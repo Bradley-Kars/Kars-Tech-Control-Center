@@ -1,0 +1,6 @@
+[
+  {"id":"TKT-2026-001","title":"Email deliverability remediation","status":"closed","client_id":"ORG-000001","hours":7.0,"total":175.0,"invoice_number":"INV-2026-001","no_charge":false},
+  {"id":"TKT-2026-002","title":"Microphone and speaker setup","status":"closed","client_id":"CUS-000001","hours":2.0,"total":60.0,"invoice_number":"INV-2026-002","no_charge":false},
+  {"id":"TKT-2026-003","title":"Laptop repair","status":"closed","client_id":"CUS-000002","hours":2.0,"total":130.0,"invoice_number":"INV-2026-003","no_charge":false},
+  {"id":"TKT-2026-004","title":"iPad printing","status":"closed","client_id":"ORG-000002","hours":1.0,"total":0.0,"invoice_number":"INV-2026-004","no_charge":true}
+]

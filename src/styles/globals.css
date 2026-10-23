@@ -1,0 +1,606 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   KTS Design Tokens — CSS Custom Properties
+   Generated from src/styles/design-tokens.ts
+   ========================================================================== */
+:root {
+  /* Color — Base */
+  --kts-color-ink: #0A1628;
+  --kts-color-panel: #101E33;
+  --kts-color-panel-2: #152A47;
+  --kts-color-line: rgba(139, 157, 179, 0.16);
+  --kts-color-muted: #8B9DB3;
+  --kts-color-off: #EDF2F7;
+
+  /* Color — Brand */
+  --kts-color-teal: #2DD4BF;
+  --kts-color-teal-dim: #1B8F82;
+  --kts-color-amber: #F5A623;
+  --kts-color-amber-dim: #C9860F;
+
+  /* Color — Semantic */
+  --kts-color-red: #EF4444;
+  --kts-color-red-dim: #B91C1C;
+  --kts-color-green: #22C55E;
+  --kts-color-green-dim: #15803D;
+  --kts-color-blue: #3B82F6;
+  --kts-color-blue-dim: #1D4ED8;
+
+  /* Color — Alpha variants (inline functions not possible in CSS, use rgba) */
+  --kts-color-teal-alpha-10: rgba(45, 212, 191, 0.1);
+  --kts-color-teal-alpha-15: rgba(45, 212, 191, 0.15);
+  --kts-color-teal-alpha-20: rgba(45, 212, 191, 0.2);
+  --kts-color-teal-alpha-25: rgba(45, 212, 191, 0.25);
+  --kts-color-amber-alpha-10: rgba(245, 166, 35, 0.1);
+  --kts-color-amber-alpha-15: rgba(245, 166, 35, 0.15);
+  --kts-color-amber-alpha-20: rgba(245, 166, 35, 0.2);
+  --kts-color-red-alpha-15: rgba(239, 68, 68, 0.15);
+  --kts-color-green-alpha-15: rgba(34, 197, 94, 0.15);
+  --kts-color-blue-alpha-15: rgba(59, 130, 246, 0.15);
+
+  /* Typography */
+  --kts-font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --kts-font-heading: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --kts-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --kts-font-size-xs: 11px;
+  --kts-font-size-sm: 12.5px;
+  --kts-font-size-base: 14px;
+  --kts-font-size-md: 15px;
+  --kts-font-size-lg: 16.5px;
+  --kts-font-size-xl: 18px;
+  --kts-font-size-2xl: 22px;
+  --kts-font-size-3xl: 28px;
+  --kts-font-size-4xl: 36px;
+  --kts-font-size-5xl: 48px;
+  --kts-font-size-6xl: 60px;
+
+  --kts-font-weight-normal: 400;
+  --kts-font-weight-medium: 500;
+  --kts-font-weight-semibold: 600;
+  --kts-font-weight-bold: 700;
+
+  --kts-line-height-tight: 1.1;
+  --kts-line-height-snug: 1.35;
+  --kts-line-height-normal: 1.6;
+  --kts-line-height-relaxed: 1.75;
+
+  --kts-letter-spacing-tight: -0.02em;
+  --kts-letter-spacing-normal: 0;
+  --kts-letter-spacing-wide: 0.02em;
+  --kts-letter-spacing-wider: 0.08em;
+  --kts-letter-spacing-widest: 0.12em;
+
+  /* Spacing (4px base) */
+  --kts-space-0: 0;
+  --kts-space-1: 4px;
+  --kts-space-2: 8px;
+  --kts-space-3: 12px;
+  --kts-space-4: 16px;
+  --kts-space-5: 20px;
+  --kts-space-6: 24px;
+  --kts-space-7: 28px;
+  --kts-space-8: 32px;
+  --kts-space-10: 40px;
+  --kts-space-12: 48px;
+  --kts-space-16: 64px;
+  --kts-space-20: 80px;
+  --kts-space-24: 96px;
+
+  /* Radius */
+  --kts-radius-none: 0;
+  --kts-radius-sm: 6px;
+  --kts-radius-base: 8px;
+  --kts-radius-md: 10px;
+  --kts-radius-lg: 12px;
+  --kts-radius-xl: 16px;
+  --kts-radius-full: 9999px;
+
+  /* Shadows */
+  --kts-shadow-none: none;
+  --kts-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --kts-shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.4);
+  --kts-shadow-base: 0 4px 16px -4px rgba(0, 0, 0, 0.45);
+  --kts-shadow-md: 0 8px 24px -6px rgba(0, 0, 0, 0.5);
+  --kts-shadow-lg: 0 16px 40px -8px rgba(0, 0, 0, 0.55);
+  --kts-shadow-xl: 0 24px 64px -12px rgba(0, 0, 0, 0.6);
+  --kts-shadow-teal-glow: 0 8px 20px -6px rgba(45, 212, 191, 0.5);
+  --kts-shadow-amber-glow: 0 8px 20px -6px rgba(245, 166, 35, 0.5);
+  --kts-shadow-red-glow: 0 8px 20px -6px rgba(239, 68, 68, 0.5);
+  --kts-shadow-green-glow: 0 8px 20px -6px rgba(34, 197, 94, 0.5);
+  --kts-shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.3);
+
+  /* Motion */
+  --kts-motion-instant: 0ms;
+  --kts-motion-fast: 120ms;
+  --kts-motion-base: 180ms;
+  --kts-motion-slow: 280ms;
+  --kts-motion-slower: 400ms;
+  --kts-motion-slowest: 600ms;
+
+  --kts-easing-linear: linear;
+  --kts-easing-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --kts-easing-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --kts-easing-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --kts-easing-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --kts-easing-brand: cubic-bezier(0.25, 1.5, 0.5, 1);
+
+  /* Z-Index */
+  --kts-z-base: 0;
+  --kts-z-dropdown: 100;
+  --kts-z-sticky: 200;
+  --kts-z-modal: 400;
+  --kts-z-popover: 500;
+  --kts-z-tooltip: 600;
+  --kts-z-toast: 700;
+  --kts-z-command-palette: 800;
+  --kts-z-notification: 900;
+
+  /* Breakpoints */
+  --kts-breakpoint-sm: 640px;
+  --kts-breakpoint-md: 860px;
+  --kts-breakpoint-lg: 1024px;
+  --kts-breakpoint-xl: 1280px;
+  --kts-breakpoint-2xl: 1536px;
+
+  /* Icon Sizes */
+  --kts-icon-xs: 12px;
+  --kts-icon-sm: 14px;
+  --kts-icon-base: 16px;
+  --kts-icon-lg: 18px;
+  --kts-icon-xl: 20px;
+  --kts-icon-2xl: 24px;
+  --kts-icon-3xl: 28px;
+  --kts-icon-4xl: 32px;
+
+  /* Border Widths */
+  --kts-border-none: 0;
+  --kts-border-thin: 1px;
+  --kts-border-base: 1px;
+  --kts-border-thick: 2px;
+  --kts-border-thicker: 3px;
+
+  /* Opacity */
+  --kts-opacity-0: 0;
+  --kts-opacity-5: 0.05;
+  --kts-opacity-10: 0.1;
+  --kts-opacity-20: 0.2;
+  --kts-opacity-30: 0.3;
+  --kts-opacity-40: 0.4;
+  --kts-opacity-50: 0.5;
+  --kts-opacity-60: 0.6;
+  --kts-opacity-70: 0.7;
+  --kts-opacity-80: 0.8;
+  --kts-opacity-90: 0.9;
+  --kts-opacity-100: 1;
+
+  /* Semantic Colors — for component usage */
+  --kts-bg-primary: var(--kts-color-ink);
+  --kts-bg-secondary: var(--kts-color-panel);
+  --kts-bg-tertiary: var(--kts-color-panel-2);
+  --kts-bg-inverse: var(--kts-color-off);
+
+  --kts-text-primary: var(--kts-color-off);
+  --kts-text-secondary: var(--kts-color-muted);
+  --kts-text-tertiary: var(--kts-color-line);
+  --kts-text-inverse: var(--kts-color-ink);
+  --kts-text-link: var(--kts-color-teal);
+  --kts-text-link-hover: var(--kts-color-teal-dim);
+
+  --kts-border-default: var(--kts-color-line);
+  --kts-border-strong: var(--kts-color-muted);
+  --kts-border-focus: var(--kts-color-teal);
+  --kts-border-error: var(--kts-color-red);
+  --kts-border-warning: var(--kts-color-amber);
+  --kts-border-success: var(--kts-color-green);
+
+  --kts-status-running: var(--kts-color-green);
+  --kts-status-running-bg: var(--kts-color-green-alpha-15);
+  --kts-status-stopped: var(--kts-color-muted);
+  --kts-status-stopped-bg: rgba(139, 157, 179, 0.15);
+  --kts-status-error: var(--kts-color-red);
+  --kts-status-error-bg: var(--kts-color-red-alpha-15);
+  --kts-status-warning: var(--kts-color-amber);
+  --kts-status-warning-bg: var(--kts-color-amber-alpha-15);
+  --kts-status-pending: var(--kts-color-blue);
+  --kts-status-pending-bg: var(--kts-color-blue-alpha-15);
+
+  --kts-brand-primary: var(--kts-color-teal);
+  --kts-brand-primary-hover: var(--kts-color-teal-dim);
+  --kts-brand-primary-bg: var(--kts-color-teal-alpha-15);
+  --kts-brand-secondary: var(--kts-color-amber);
+  --kts-brand-secondary-hover: var(--kts-color-amber-dim);
+  --kts-brand-secondary-bg: var(--kts-color-amber-alpha-15);
+
+  --kts-interactive-hover: var(--kts-color-panel-2);
+  --kts-interactive-active: rgba(139, 157, 179, 0.3);
+  --kts-interactive-focus: var(--kts-color-teal-alpha-25);
+  --kts-interactive-disabled: rgba(139, 157, 179, 0.1);
+}
+
+@theme {
+  /* Map to Tailwind v4 theme for utility classes */
+  --color-ink: var(--kts-color-ink);
+  --color-panel: var(--kts-color-panel);
+  --color-panel-2: var(--kts-color-panel-2);
+  --color-line: var(--kts-color-line);
+  --color-muted: var(--kts-color-muted);
+  --color-off: var(--kts-color-off);
+  --color-teal: var(--kts-color-teal);
+  --color-teal-dim: var(--kts-color-teal-dim);
+  --color-amber: var(--kts-color-amber);
+  --color-amber-dim: var(--kts-color-amber-dim);
+  --color-red: var(--kts-color-red);
+  --color-red-dim: var(--kts-color-red-dim);
+  --color-green: var(--kts-color-green);
+  --color-green-dim: var(--kts-color-green-dim);
+  --color-blue: var(--kts-color-blue);
+  --color-blue-dim: var(--kts-color-blue-dim);
+
+  --font-sans: var(--kts-font-sans);
+  --font-heading: var(--kts-font-heading);
+  --font-mono: var(--kts-font-mono);
+
+  --radius: var(--kts-radius-md);
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+  }
+
+  @media (min-width: 1920px) {
+    html { font-size: 18px; }
+  }
+  @media (min-width: 2560px) {
+    html { font-size: 20px; }
+  }
+  @media (max-width: 1280px) {
+    html { font-size: 14px; }
+  }
+
+  body {
+    background: var(--color-ink);
+    color: var(--color-off);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    overflow: hidden;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-panel);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-line);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-muted);
+  }
+}
+
+@layer components {
+  .card {
+    background: var(--color-panel);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--color-teal), transparent);
+  }
+
+  .card-amber::before {
+    background: linear-gradient(90deg, var(--color-amber), transparent);
+  }
+
+  .card-red::before {
+    background: linear-gradient(90deg, var(--color-red), transparent);
+  }
+
+  .card-dual::before {
+    background: linear-gradient(90deg, var(--color-teal), var(--color-amber));
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    border: none;
+    outline: none;
+  }
+
+  .btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .btn:active {
+    transform: translateY(0);
+  }
+
+  .btn-primary {
+    background: var(--color-teal);
+    color: #082421;
+  }
+
+  .btn-primary:hover {
+    background: #4FE3D1;
+    box-shadow: 0 8px 20px -6px rgba(45, 212, 191, 0.5);
+  }
+
+  .btn-amber {
+    background: var(--color-amber);
+    color: #241300;
+  }
+
+  .btn-amber:hover {
+    background: #ffb638;
+    box-shadow: 0 8px 20px -6px rgba(245, 166, 35, 0.5);
+  }
+
+  .btn-danger {
+    background: var(--color-red);
+    color: white;
+  }
+
+  .btn-danger:hover {
+    background: #F87171;
+    box-shadow: 0 8px 20px -6px rgba(239, 68, 68, 0.5);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-muted);
+    border: 1px solid var(--color-line);
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--color-teal);
+    color: var(--color-teal);
+  }
+
+  .btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: var(--font-mono);
+  }
+
+  .status-running {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--color-green);
+  }
+
+  .status-stopped {
+    background: rgba(139, 157, 179, 0.15);
+    color: var(--color-muted);
+  }
+
+  .status-error {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--color-red);
+  }
+
+  .status-warning {
+    background: rgba(245, 166, 35, 0.15);
+    color: var(--color-amber);
+  }
+
+  .kicker {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-teal);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+
+  .kicker-amber {
+    color: var(--color-amber);
+  }
+
+  .pulse-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-teal);
+    animation: pulse 2.2s infinite;
+  }
+
+  .pulse-dot-amber {
+    background: var(--color-amber);
+    animation: pulse-amber 2.2s infinite;
+  }
+
+  .input, select {
+    appearance: none;
+    background: var(--color-panel-2);
+    color: var(--color-off);
+    border: 1px solid var(--color-line);
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 14px;
+    outline: none;
+  }
+
+  select option {
+    background: var(--color-panel-2);
+    color: var(--color-off);
+  }
+
+  .input:focus, select:focus {
+    border-color: var(--color-teal);
+  }
+
+  .input-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.5); }
+    70% { box-shadow: 0 0 0 9px rgba(45, 212, 191, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(45, 212, 191, 0); }
+  }
+
+  @keyframes pulse-amber {
+    0% { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.5); }
+    70% { box-shadow: 0 0 0 9px rgba(245, 166, 35, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0); }
+  }
+}
+
+/* ==========================================================================
+   Kiosk Mode Styles
+   ========================================================================== */
+
+.kiosk-mode {
+  /* Hide all browser chrome */
+  overflow: hidden;
+}
+
+.kiosk-mode .top-bar {
+  /* In kiosk mode, top bar can be hidden or made transparent */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--kts-motion-base);
+}
+
+.kiosk-mode:hover .top-bar {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.kiosk-mode .sidebar {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--kts-motion-base);
+}
+
+.kiosk-mode:hover .sidebar {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.kiosk-mode .app-shell {
+  /* Full screen, no margins */
+  height: 100vh;
+  width: 100vw;
+}
+
+.kiosk-mode .main-content {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.cursor-hidden * {
+  cursor: none !important;
+}
+
+.cursor-hidden {
+  cursor: none !important;
+}
+
+/* Hide scrollbars in kiosk mode */
+.kiosk-mode ::-webkit-scrollbar {
+  display: none;
+}
+
+.kiosk-mode {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Kiosk mode toast positioning - move to bottom center */
+.kiosk-mode .toast-manager {
+  top: auto !important;
+  bottom: 2rem !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+}
+
+/* Animation for kiosk transition */
+.kiosk-mode .top-bar,
+.kiosk-mode .sidebar {
+  transition: opacity var(--kts-motion-base);
+}
+
+/* Fullscreen video/iframe support in kiosk */
+.kiosk-mode iframe,
+.kiosk-mode video {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Hide command palette in kiosk unless explicitly opened */
+.kiosk-mode .command-palette {
+  z-index: var(--kts-z-command-palette);
+}
+
+/* Dashboard cards in kiosk - full width, no gaps */
+.kiosk-mode .dashboard-grid {
+  gap: var(--kts-space-4);
+  padding: var(--kts-space-4);
+}
+
+/* ===== react-grid-layout overrides (dashboard grid) ===== */
+.react-grid-item.react-grid-placeholder {
+  background: var(--kts-brand-primary);
+  opacity: 0.15;
+  border: 1px dashed var(--kts-brand-primary);
+  border-radius: var(--kts-radius-md);
+}
+.react-grid-item > .react-resizable-handle::after {
+  border-right-color: rgba(255, 255, 255, 0.5);
+  border-bottom-color: rgba(255, 255, 255, 0.5);
+}

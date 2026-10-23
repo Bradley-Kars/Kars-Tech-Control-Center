@@ -1,0 +1,53 @@
+# Test results
+test-results/
+
+# Coverage output (vitest --coverage)
+coverage/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Private configuration (contains secrets - DO NOT COMMIT)
+config.private.json
+config.private.*.json
+*.private.json
+*.secret.json
+*.secrets.json
+connections.local.toml
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.private
+
+# Rust
+target/
+**/target/
+Cargo.lock
+
+# Build / test artifacts
+playwright-report/
+ui-audit-screenshots/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

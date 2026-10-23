@@ -1,0 +1,17 @@
+[package]
+name = "master-control-cli"
+version = "0.1.1"
+description = "KTS Master Control CLI and MCP server"
+authors = ["Bradley Kars"]
+edition = "2021"
+
+[[bin]]
+name = "master-control-cli"
+path = "src/main.rs"
+
+[dependencies]
+master_control_lib = { package = "master-control", path = "../src-tauri" }
+tauri = { version = "2", features = ["tray-icon"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

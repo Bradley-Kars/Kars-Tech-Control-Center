@@ -1,0 +1,154 @@
+{
+  "version": "1.0.0",
+  "dashboard": {
+    "defaultTimeRange": "24h",
+    "autoRefreshInterval": 60000,
+    "kioskMode": false,
+    "theme": "system"
+  },
+  "devices": [
+    {
+      "id": "unraid-server",
+      "name": "Unraid Server",
+      "type": "unraid",
+      "role": "server",
+      "description": "Primary home server — storage, containers, media stack",
+      "icon": "🖥️",
+      "location": "rack",
+      "tags": ["storage", "media", "containers", "primary"],
+      "capabilities": ["ssh", "meshcentral", "docker", "unraid-api"],
+      "dashboard": {
+        "position": { "x": 0, "y": 8, "w": 4, "h": 12, "minW": 4, "minH": 8 },
+        "widgets": ["vitals", "docker", "storage", "network", "cpu", "memory", "temperature", "alerts"]
+      }
+    },
+    {
+      "id": "htpc",
+      "name": "HTPC (Living Room)",
+      "type": "bazzite",
+      "role": "htpc",
+      "description": "Living room media center — Bazzite on NVIDIA",
+      "icon": "📺",
+      "location": "living-room",
+      "tags": ["media", "htpc", "bazzite", "nvidia"],
+      "capabilities": ["ssh", "meshcentral", "docker"],
+      "dashboard": {
+        "position": { "x": 4, "y": 8, "w": 4, "h": 12, "minW": 4, "minH": 8 },
+        "widgets": ["vitals", "docker", "temperature", "network", "docker", "media"]
+      }
+    },
+    {
+      "id": "senpai-laptop",
+      "name": "Senpai Laptop",
+      "type": "bazzite",
+      "role": "workstation",
+      "description": "MSI Crosshair 16 — Bazzite NVIDIA laptop",
+      "icon": "💻",
+      "location": "mobile",
+      "tags": ["laptop", "bazzite", "nvidia", "gaming"],
+      "capabilities": ["ssh", "meshcentral"],
+      "dashboard": {
+        "position": { "x": 8, "y": 8, "w": 4, "h": 12, "minW": 4, "minH": 8 },
+        "widgets": ["vitals", "temperature", "gpu", "battery", "network"]
+      }
+    },
+    {
+      "id": "rog-ally",
+      "name": "ROG Ally",
+      "type": "bazzite",
+      "role": "handheld",
+      "description": "ROG Ally handheld — Bazzite, Sunshine host",
+      "icon": "🎮",
+      "location": "mobile",
+      "tags": ["handheld", "gaming", "bazzite", "sunshine"],
+      "capabilities": ["ssh", "meshcentral", "kdeconnect", "sunshine"],
+      "dashboard": {
+        "position": { "x": 0, "y": 20, "w": 4, "h": 10, "minW": 4, "minH": 6 },
+        "widgets": ["vitals", "battery", "gpu", "temperature", "sunshine", "games"]
+      }
+    },
+    {
+      "id": "galaxy-s24",
+      "name": "Galaxy S24 Ultra",
+      "type": "android",
+      "role": "phone",
+      "description": "Daily driver — Samsung Galaxy S24 Ultra",
+      "icon": "📱",
+      "location": "mobile",
+      "tags": ["phone", "android", "samsung", "daily-driver"],
+      "capabilities": ["adb", "meshcentral", "kdeconnect", "termux"],
+      "dashboard": {
+        "position": { "x": 4, "y": 20, "w": 4, "h": 10, "minW": 4, "minH": 6 },
+        "widgets": ["vitals", "battery", "apps", "notifications", "sms", "kdeconnect", "termux"]
+      }
+    },
+    {
+      "id": "this-machine",
+      "name": "This Machine",
+      "type": "linux",
+      "role": "workstation",
+      "description": "Local workstation running KTS Master Control",
+      "icon": "⌨️",
+      "location": "local",
+      "tags": ["local", "workstation", "master-control"],
+      "capabilities": ["local", "prometheus", "node-exporter"],
+      "dashboard": {
+        "position": { "x": 0, "y": 0, "w": 4, "h": 6, "minW": 4, "minH": 4 },
+        "widgets": ["vitals", "cpu", "memory", "disk", "network", "gpu", "processes"]
+      }
+    }
+  ],
+  "groups": [
+    {
+      "id": "servers",
+      "name": "Servers",
+      "description": "Always-on infrastructure",
+      "deviceIds": ["unraid-server"],
+      "icon": "🖥️",
+      "color": "#2DD4BF"
+    },
+    {
+      "id": "media",
+      "name": "Media Centers",
+      "description": "Living room and media devices",
+      "deviceIds": ["htpc"],
+      "icon": "📺",
+      "color": "#F5A623"
+    },
+    {
+      "id": "mobile",
+      "name": "Mobile Devices",
+      "description": "Laptops, handhelds, phones",
+      "deviceIds": ["senpai-laptop", "rog-ally", "galaxy-s24"],
+      "icon": "📱",
+      "color": "#8B5CF6"
+    },
+    {
+      "id": "workstations",
+      "name": "Workstations",
+      "description": "Primary workstations",
+      "deviceIds": ["this-machine", "senpai-laptop"],
+      "icon": "💻",
+      "color": "#EF4444"
+    }
+  ],
+  "integrations": {
+    "meshcentral": {
+      "enabled": true,
+      "serverUrl": "https://meshcentral.example.com",
+      "groupName": "Home"
+    },
+    "homeassistant": {
+      "enabled": true,
+      "url": "http://homeassistant.local:8123"
+    },
+    "prometheus": {
+      "enabled": true,
+      "url": "http://prometheus.local:9090"
+    },
+    "grafana": {
+      "enabled": true,
+      "url": "http://grafana.local:3000"
+    }
+  }
+}

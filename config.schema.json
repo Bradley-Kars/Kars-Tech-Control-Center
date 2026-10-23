@@ -1,0 +1,199 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://karstechsolutions.com/schemas/kts-master-control-config.json",
+  "title": "KTS Master Control Configuration",
+  "description": "Configuration schema for KTS Master Control dashboard. Public device definitions only - secrets loaded separately.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "devices"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Config schema version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "dashboard": {
+      "type": "object",
+      "description": "Dashboard UI settings",
+      "additionalProperties": false,
+      "properties": {
+        "defaultTimeRange": {
+          "type": "string",
+          "enum": ["1h", "6h", "24h", "7d", "30d"],
+          "default": "24h"
+        },
+        "autoRefreshInterval": {
+          "type": "integer",
+          "description": "Auto-refresh interval in milliseconds",
+          "minimum": 10000,
+          "default": 60000
+        },
+        "kioskMode": {
+          "type": "boolean",
+          "default": false
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["system", "light", "dark"],
+          "default": "system"
+        }
+      }
+    },
+    "devices": {
+      "type": "array",
+      "description": "Device definitions for the fleet",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "type", "role"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique device identifier (matches servers.json key)",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable display name"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["unraid", "linux", "bazzite", "windows", "android", "router", "proxmox"],
+            "description": "Device type for UI icons and default capabilities"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["server", "workstation", "handheld", "phone", "htpc", "router", "nas", "proxmox"],
+            "description": "Device role for UI grouping and default dashboard position"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description for UI tooltips"
+          },
+          "icon": {
+            "type": "string",
+            "description": "Emoji or icon identifier for UI display"
+          },
+          "location": {
+            "type": "string",
+            "description": "Physical/logical location (e.g., 'rack', 'living-room', 'mobile')"
+          },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Tags for filtering and grouping"
+          },
+          "capabilities": {
+            "type": "array",
+            "description": "Supported management capabilities",
+            "items": {
+              "type": "string",
+              "enum": [
+                "ssh", "meshcentral", "docker", "kdeconnect", "adb",
+                "ipmi", "redfish", "snmp", "prometheus", "node-exporter",
+                "docker-api", "kubernetes", "libvirt", "proxmox-api",
+                "unraid-api", "truenas-api", "synology-api", "qnap-api"
+              ]
+            }
+          },
+          "dashboard": {
+            "type": "object",
+            "description": "Dashboard widget configuration",
+            "additionalProperties": false,
+            "properties": {
+              "position": {
+                "type": "object",
+                "description": "Default grid position (react-grid-layout format)",
+                "properties": {
+                  "x": { "type": "integer", "minimum": 0 },
+                  "y": { "type": "integer", "minimum": 0 },
+                  "w": { "type": "integer", "minimum": 1, "maximum": 12 },
+                  "h": { "type": "integer", "minimum": 1 },
+                  "minW": { "type": "integer", "minimum": 1 },
+                  "minH": { "type": "integer", "minimum": 1 },
+                  "static": { "type": "boolean" }
+                }
+              },
+              "widgets": {
+                "type": "array",
+                "description": "Enabled dashboard widgets for this device",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "vitals", "cpu", "memory", "disk", "network", "gpu",
+                    "docker", "services", "processes", "logs", "temperature",
+                    "battery", "storage", "uptime", "alerts", "backup"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "groups": {
+      "type": "array",
+      "description": "Device groups for UI organization",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "deviceIds"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "deviceIds": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "icon": { "type": "string" },
+          "color": { "type": "string", "format": "color" }
+        }
+      }
+    },
+    "integrations": {
+      "type": "object",
+      "description": "External integration configurations (public endpoints only)",
+      "additionalProperties": false,
+      "properties": {
+        "meshcentral": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "serverUrl": { "type": "string", "format": "uri" },
+            "groupName": { "type": "string" }
+          }
+        },
+        "homeassistant": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "url": { "type": "string", "format": "uri" }
+          }
+        },
+        "proxmox": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "url": { "type": "string", "format": "uri" }
+          }
+        },
+        "prometheus": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "url": { "type": "string", "format": "uri" }
+          }
+        },
+        "grafana": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "url": { "type": "string", "format": "uri" }
+          }
+        }
+      }
+    }
+  }
+}
