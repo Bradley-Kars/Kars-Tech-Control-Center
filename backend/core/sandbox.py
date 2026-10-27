@@ -9,8 +9,8 @@ sibling locations:
 Activate it with:
 
     export KTS_SANDBOX=1
-    export KTS_VAULT="/home/slayerbrk/Documents/KTS Records-sandbox"
-    export KTS_HOME="/home/slayerbrk/.ticketing-sandbox"
+    export KTS_VAULT="{HOME}/Documents/KTS Records-sandbox"
+    export KTS_HOME="${HOME}/.ticketing-sandbox"
 
 Rules enforced here:
   - create/reset REFUSE to run while any sandbox env var is active

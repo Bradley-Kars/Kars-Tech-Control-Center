@@ -58,9 +58,6 @@ def _make_checker(allowed: set):
 
 
 def _make_service(tmp_path: Path) -> TicketService:
-    import importlib
-    import core.paths as paths_module
-
     vault_dir = tmp_path / "vault"
     home_dir = tmp_path / "home"
     config_dir = home_dir / "config"
@@ -72,13 +69,23 @@ def _make_service(tmp_path: Path) -> TicketService:
     shutil.copy2(fixture_dir / "users.yaml", config_dir / "users.yaml")
     shutil.copy2(fixture_dir / "permissions.yaml", config_dir / "permissions.yaml")
 
-    # Set env vars so that core.paths reads from tmp_path
-    os.environ["KTS_SANDBOX"] = "1"
-    os.environ["KTS_VAULT"] = str(vault_dir)
-    os.environ["KTS_HOME"] = str(home_dir)
+    svc = TicketService(event_emitter=EventEmitter(EventStore()),
+                        permission_checker=None)
+    svc.event_dir = vault_dir / "events"
+    svc.entity_dir = vault_dir / "events"
+    return svc
 
-    # Reload paths module to pick up new env vars
-    importlib.reload(paths_module)
+    # Copy fixture files
+    fixture_dir = Path(__file__).parent / "fixtures"
+    import shutil
+    shutil.copy2(fixture_dir / "users.yaml", config_dir / "users.yaml")
+    shutil.copy2(fixture_dir / "permissions.yaml", config_dir / "permissions.yaml")
+
+    svc = TicketService(event_emitter=EventEmitter(EventStore()),
+                        permission_checker=None)
+    svc.entity_dir = vault_dir / "Tickets"
+    svc.entity_dir.mkdir(parents=True, exist_ok=True)
+    return svc
 
     svc = TicketService(event_emitter=EventEmitter(EventStore()),
                         permission_checker=None)
@@ -171,7 +178,7 @@ def _create_knowledge(svc: KnowledgeService, actor: EventActor,
 def test_noop_update_requires_ticket_update(tmp_path: Path):
     svc = _make_service(tmp_path)
     actor = _make_actor("USR-000001")
-    tid = _next_id("TKT-2026")
+    tid = _next_id("TKT-2026", width=3)
     _create_ticket(svc, actor, tid, {"title": "Original"})
 
     svc.permission_checker = _make_checker(set())
@@ -190,7 +197,7 @@ def test_noop_update_requires_ticket_update(tmp_path: Path):
 def test_empty_changes_requires_ticket_update(tmp_path: Path):
     svc = _make_service(tmp_path)
     actor = _make_actor("USR-000001")
-    tid = _next_id("TKT-2026")
+    tid = _next_id("TKT-2026", width=3)
     _create_ticket(svc, actor, tid, {"title": "Original"})
 
     svc.permission_checker = _make_checker(set())
@@ -233,7 +240,7 @@ def test_unauthorized_actor_denied_before_read(tmp_path: Path):
 def test_assigned_to_current_value_requires_ticket_assign(tmp_path: Path):
     svc = _make_service(tmp_path)
     actor = _make_actor("USR-000001")
-    tid = _next_id("TKT-2026")
+    tid = _next_id("TKT-2026", width=3)
     _create_ticket(svc, actor, tid, {"assigned_to": "USR-000002"})
 
     svc.permission_checker = _make_checker({"ticket.update"})
@@ -252,7 +259,7 @@ def test_assigned_to_current_value_requires_ticket_assign(tmp_path: Path):
 def test_assign_only_can_change_assigned_to(tmp_path: Path):
     svc = _make_service(tmp_path)
     actor = _make_actor("USR-000001")
-    tid = _next_id("TKT-2026")
+    tid = _next_id("TKT-2026", width=3)
     _create_ticket(svc, actor, tid, {"assigned_to": "USR-000002"})
 
     svc.permission_checker = _make_checker({"ticket.assign"})
@@ -270,7 +277,7 @@ def test_assign_only_can_change_assigned_to(tmp_path: Path):
 def test_assign_only_denied_title(tmp_path: Path):
     svc = _make_service(tmp_path)
     actor = _make_actor("USR-000001")
-    tid = _next_id("TKT-2026")
+    tid = _next_id("TKT-2026", width=3)
     _create_ticket(svc, actor, tid, {"title": "Original"})
 
     svc.permission_checker = _make_checker({"ticket.assign"})
@@ -289,7 +296,7 @@ def test_assign_only_denied_title(tmp_path: Path):
 def test_update_only_denied_assigned_to(tmp_path: Path):
     svc = _make_service(tmp_path)
     actor = _make_actor("USR-000001")
-    tid = _next_id("TKT-2026")
+    tid = _next_id("TKT-2026", width=3)
     _create_ticket(svc, actor, tid, {"assigned_to": "USR-000002"})
 
     svc.permission_checker = _make_checker({"ticket.update"})
@@ -308,7 +315,7 @@ def test_update_only_denied_assigned_to(tmp_path: Path):
 def test_mixed_needs_both(tmp_path: Path):
     svc = _make_service(tmp_path)
     actor = _make_actor("USR-000001")
-    tid = _next_id("TKT-2026")
+    tid = _next_id("TKT-2026", width=3)
     _create_ticket(svc, actor, tid, {"assigned_to": "USR-000002", "title": "Original"})
 
     # Actor has ONLY ticket.update
@@ -437,7 +444,7 @@ def test_unknown_actor_id_denies(tmp_path: Path):
 def test_denial_logs_actor_and_permission(tmp_path: Path, caplog):
     svc = _make_service(tmp_path)
     actor = _make_actor("USR-000001")
-    tid = _next_id("TKT-2026")
+    tid = _next_id("TKT-2026", width=3)
     _create_ticket(svc, actor, tid)
 
     svc.permission_checker = _make_checker(set())
