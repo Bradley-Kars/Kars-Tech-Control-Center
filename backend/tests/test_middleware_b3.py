@@ -37,7 +37,7 @@ def test_token_without_actor_id_gets_401_and_is_audited(tmp_path: Path):
     app = create_app(table)
     client = TestClient(app, raise_server_exceptions=False)
 
-    r = client.get("/health", headers={"X-API-Token": secret})
+    r = client.get("/api/health", headers={"X-API-Token": secret})
     assert r.status_code == 401, r.text
     assert r.json() == {"detail": "token has no actor_id"}, r.text
 
@@ -45,7 +45,7 @@ def test_token_without_actor_id_gets_401_and_is_audited(tmp_path: Path):
     assert any(
         f.get("status") == 401
         and f.get("reason") == "token has no actor_id"
-        and f.get("path") == "/health"
+        and f.get("path") == "/api/health"
         for f in fails
     ), f"expected auth_fail audit for token-without-actor_id, got: {fails}"
 
@@ -56,9 +56,9 @@ def test_token_with_actor_id_passes(tmp_path: Path):
     app = create_app(table)
     client = TestClient(app, raise_server_exceptions=False)
 
-    r = client.get("/health", headers={"X-API-Token": secret})
+    r = client.get("/api/health", headers={"X-API-Token": secret})
     assert r.status_code == 200, r.text
 
     # no auth_fail recorded for this request
     fails = _auth_fail_reasons(table.audit_path)
-    assert not any(f.get("path") == "/health" for f in fails), fails
+    assert not any(f.get("path") == "/api/health" for f in fails), fails

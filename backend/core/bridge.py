@@ -22,13 +22,15 @@ Scope (H2b/MC-2): every token carries scope="read" (default) or "write".
 GET/HEAD/OPTIONS require "read"; POST/PUT/PATCH/DELETE require "write".
 Read tokens are rejected with 403 on mutating routes.
 """
+import os
 import re
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from .auth import TokenTable, HEADER, default_token_table
 from . import paths
@@ -415,10 +417,18 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
 
     @app.middleware("http")
     async def require_token(request: Request, call_next):
-        """Middleware that validates X-API-Token on EVERY request.
+        """Middleware that validates X-API-Token on EVERY API request.
         No IP-based bypass anywhere.
-        Enforces token scope: write methods need scope="write"."""
+        Enforces token scope: write methods need scope="write".
+
+        Static frontend assets and the SPA fallback (served at /, W1) are
+        NOT under /api, so they pass through without a token: identity is
+        enforced at the API boundary (W3), not at the asset boundary.
+        """
         start = time.perf_counter()
+        if not request.url.path.startswith("/api"):
+            response = await call_next(request)
+            return response
         presented = request.headers.get(HEADER, "")
         rec = table.verify(presented) if presented else None
         client_host = request.client.host if request.client else "unknown"
@@ -483,11 +493,11 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
         )
         return response
 
-    @app.get("/health")
+    @app.get("/api/health")
     def health():
         return {"ok": True, "sandbox": paths.is_sandbox_mode()}
 
-    @app.get("/tickets")
+    @app.get("/api/tickets")
     def tickets(all: bool = False):
         """Read-only ticket list (H2c slice 1). GET only, no mutation.
 
@@ -525,7 +535,7 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
     # (system). No if_version precondition: create allocates a brand-new id,
     # so there is no prior version to check against; a bool/non-int
     # if_version still 422s for consistency with the update routes.
-    @app.post("/tickets")
+    @app.post("/api/tickets")
     def create_ticket(body: dict):
         """T4 (MC-2): createTicket via the real write path (ticket sequence only).
 
@@ -614,7 +624,7 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
             "actor": request.state.actor_id,
         }
 
-    @app.post("/tickets/{ticket_id}/worklog")
+    @app.post("/api/tickets/{ticket_id}/worklog")
     def add_worklog(ticket_id: str, body: dict):
         """T1 (MC-2): append a worklog entry via the real write path.
 
@@ -665,7 +675,7 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
             "actor": request.state.actor_id,
         }
 
-    @app.post("/tickets/{ticket_id}/status")
+    @app.post("/api/tickets/{ticket_id}/status")
     def change_ticket_status(ticket_id: str, body: dict):
         """T2 (MC-2): change ticket status via the real write path.
 
@@ -731,7 +741,7 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
             "actor": request.state.actor_id,
         }
 
-    @app.patch("/tickets/{ticket_id}")
+    @app.patch("/api/tickets/{ticket_id}")
     def update_ticket_fields(ticket_id: str, body: dict):
         """T3 (MC-2): edit ticket fields via the real write path (update_ticket).
 
@@ -833,7 +843,7 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
             "actor": request.state.actor_id,
         }
 
-    @app.post("/tasks")
+    @app.post("/api/tasks")
     def create_task(body: dict):
         """T5 (MC-2): create a task via the real write path (TaskService.next_id + create).
 
@@ -919,7 +929,7 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
             "actor": request.state.actor_id,
         }
 
-    @app.post("/knowledge")
+    @app.post("/api/knowledge")
     def create_knowledge(body: dict):
         """T7 (MC-2): create a knowledge article via the real write path.
 
@@ -1020,7 +1030,7 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
             "actor": request.state.actor_id,
         }
 
-    @app.patch("/knowledge/{knowledge_id}")
+    @app.patch("/api/knowledge/{knowledge_id}")
     def update_knowledge_fields(knowledge_id: str, body: dict):
         """T7 (MC-2): edit knowledge fields via the real write path.
 
@@ -1125,3 +1135,37 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
 
 # Module-level app for uvicorn core.bridge:app
 app = create_app()
+
+# Serve the built frontend (dist/) at / from the same origin (W1). API
+# routes registered inside create_app() are matched first (they appear
+# earlier in the router). Everything else is handled by spa_fallback
+# below, registered last: real files under dist/ are served as-is and any
+# other path (client-side routes) falls back to index.html so React Router
+# works on refresh. Dist defaults to the repo-root dist/ and may be
+# overridden with KTS_DIST_DIR; if dist/ is not built yet the API still
+# works and the frontend is served once dist/ exists.
+_DIST_DIR = Path(os.environ.get("KTS_DIST_DIR", Path(__file__).resolve().parents[2] / "dist"))
+_INDEX_HTML = _DIST_DIR / "index.html"
+
+
+def spa_fallback(path: str):
+    """Serve a file under dist/ when it exists, else index.html (SPA).
+
+    Stays inside dist/ (no directory traversal). Paths under /api never
+    reach here: the API routes are registered before this catch-all.
+    """
+    if not _DIST_DIR.is_dir():
+        return JSONResponse({"detail": "Not Found"}, status_code=404)
+    candidate = _DIST_DIR / path
+    try:
+        resolved = candidate.resolve()
+    except (OSError, ValueError):
+        resolved = candidate
+    if resolved.is_file() and _DIST_DIR in resolved.parents:
+        return FileResponse(resolved)
+    if _INDEX_HTML.is_file():
+        return FileResponse(_INDEX_HTML)
+    return JSONResponse({"detail": "Not Found"}, status_code=404)
+
+
+app.get("/{path:path}")(spa_fallback)
