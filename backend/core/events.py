@@ -8,8 +8,11 @@ from typing import List, Dict, Any, Optional, AsyncIterator
 from dataclasses import dataclass
 
 from .models import Event, EventActor, EventEntity, EventChanges, EntityRef
-from .paths import vault_root
+from .paths import events_dir
 from .safe_io import safe_mkdir, safe_write, safe_delete
+
+
+EVENTS_DIR = events_dir()
 
 
 @dataclass
@@ -23,12 +26,11 @@ class EventStore:
     """Append-only immutable event store"""
 
     def __init__(self):
-        self.event_dir = vault_root() / "events"
-        safe_mkdir(self.event_dir)
-        safe_mkdir(self.event_dir / "current", parents=False)
+        safe_mkdir(EVENTS_DIR)
+        safe_mkdir(EVENTS_DIR / "current", parents=False)
 
     def _get_day_dir(self, dt: datetime) -> Path:
-        return vault_root() / "events" / str(dt.year) / f"{dt.month:02d}" / f"{dt.day:02d}"
+        return EVENTS_DIR / str(dt.year) / f"{dt.month:02d}" / f"{dt.day:02d}"
 
     def append(self, event: Event) -> None:
         """Append event to store (immutable)"""
@@ -47,20 +49,20 @@ class EventStore:
         )
 
         # Also write to current symlink for fast access
-        current_link = vault_root() / "events" / "current" / f"{event.event_id}.json"
+        current_link = EVENTS_DIR / "current" / f"{event.event_id}.json"
         if current_link.exists() or current_link.is_symlink():
             safe_delete(current_link)
         current_link.symlink_to(file_path)
 
     def get(self, event_id: str) -> Optional[Event]:
         """Get event by ID"""
-        # Check current symlink first
-        current_link = vault_root() / "events" / "current" / f"{event_id}.json"
+        # Check current first
+        current_link = EVENTS_DIR / "current" / f"{event_id}.json"
         if current_link.exists():
             return Event.model_validate_json(current_link.read_text())
 
         # Search by date (would need index for production)
-        for year_dir in (vault_root() / "events").iterdir():
+        for year_dir in EVENTS_DIR.iterdir():
             if year_dir.name in ("current",):
                 continue
             for month_dir in year_dir.iterdir():
@@ -72,8 +74,9 @@ class EventStore:
 
     def query(
         self,
-        event_type: Optional[str] = None,
+        entity_type: Optional[str] = None,
         entity_id: Optional[str] = None,
+        event_type: Optional[str] = None,
         actor_id: Optional[str] = None,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
@@ -82,7 +85,7 @@ class EventStore:
         """Query events with filters"""
         results = []
 
-        for year_dir in sorted((vault_root() / "events").iterdir(), reverse=True):
+        for year_dir in sorted(EVENTS_DIR.iterdir(), reverse=True):
             if year_dir.name in ("current",):
                 continue
             if start_date and int(year_dir.name) < start_date.year:
@@ -91,7 +94,7 @@ class EventStore:
                 break
 
             for month_dir in sorted(year_dir.iterdir(), reverse=True):
-                for day_dir in sorted(year_dir.iterdir(), reverse=True):
+                for day_dir in sorted(month_dir.iterdir(), reverse=True):
                     for file_path in day_dir.glob("*.json"):
                         if len(results) >= limit:
                             return results
@@ -144,8 +147,8 @@ class EventEmitter:
         now = datetime.now()
         event_id = self._generate_event_id()
         event = Event(
+            type="event",
             id=event_id,
-            type=event_type,
             title=f"{event_type}: {entity.id}",
             status="recorded",
             created_at=now,
@@ -173,10 +176,11 @@ class EventEmitter:
 
     def _generate_event_id(self) -> str:
         """Generate next event ID (monotonic, never reuses deleted IDs)"""
+        from .counters import next_seq
         max_num = 0
-        for f in (vault_root() / "events").rglob("EVT-*.json"):
+        for f in EVENTS_DIR.rglob("EVT-*.json"):
             try:
-                num = int(f.stem.split("-")[-1])
+                num = int(Path(f).stem.split("-")[-1])
                 max_num = max(max_num, num)
             except (ValueError, IndexError):
                 pass
@@ -185,7 +189,6 @@ class EventEmitter:
     def subscribe(self, filter: Dict[str, Any]) -> "asyncio.Queue":
         """Subscribe to event stream with filter"""
         import asyncio
-
         queue = asyncio.Queue()
         sub = EventSubscription(filter=filter, queue=queue)
         self._subscriptions.append(sub)
@@ -208,9 +211,9 @@ class EventEmitter:
                 return False
             if key == "entity_type" and event.entity.type != value:
                 return False
-            if key == "entity_id" and event.entity.id != entity_id:
+            if key == "entity_id" and event.entity.id != value:
                 return False
-            if key == "actor_id" and event.actor.id != actor_id:
+            if key == "actor_id" and event.actor.id != value:
                 return False
         return True
 
@@ -219,5 +222,4 @@ class EventEmitter:
         return self.store.query(limit=limit)
 
     def get_for_entity(self, entity: EntityRef, limit: int = 100) -> List[Event]:
-        """Get all events for a specific entity"""
-        return self.store.query(entity_type=entity.type, entity_id=entity.id, limit=limit)
+        return self.store.get_for_entity(entity, limit)
