@@ -1,0 +1,70 @@
+# Test fixture users.yaml
+users:
+  USR-000001:
+    id: "USR-000001"
+    first_name: "Test"
+    last_name: "User"
+    display_name: "Test User"
+    username: "test.user"
+    email: "test.user@example.com"
+    role: "admin"
+    teams:
+      - "Management"
+    skills:
+      - "administration"
+      - "management"
+    capacity_hours_per_day: 8
+    timezone: "America/Chicago"
+    status: "active"
+    avatar: ""
+    created_at: "2026-01-01T00:00:00-05:00"
+    updated_at: "2026-01-01T00:00:00-05:00"
+  USR-000002:
+    id: "USR-000002"
+    first_name: "Bridge"
+    last_name: "Operator"
+    display_name: "Bridge Operator"
+    username: "bridge.operator"
+    email: "bridge@example.com"
+    role: "technician"
+    teams:
+      - "Support Team"
+    skills:
+      - "ticketing"
+      - "automation"
+    capacity_hours_per_day: 8
+    timezone: "America/Chicago"
+    status: "active"
+    avatar: ""
+    created_at: "2026-01-01T00:00:00-05:00"
+    updated_at: "2026-01-01T00:00:00-05:00"
+
+# Teams
+teams:
+  "Support Team":
+    description: "General support team"
+    members:
+      - "USR-000002"
+    skills:
+      - "ticketing"
+      - "automation"
+    default_sla: "standard"
+    auto_assign_categories: ["support"]
+  "Management":
+    description: "Management team"
+    members:
+      - "USR-000001"
+    skills:
+      - "management"
+      - "escalation"
+    default_sla: "standard"
+    auto_assign_categories: []
+
+# Assignment rules
+assignment:
+  auto_assign_enabled: true
+  round_robin: true
+  respect_capacity: true
+  respect_skills: true
+  respect_teams: true
+  fallback_user: "USR-000001"

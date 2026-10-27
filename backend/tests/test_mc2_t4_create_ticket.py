@@ -108,21 +108,24 @@ def write_counters(home: Path, event: int = 0, invoice: int = 0) -> Path:
 class TestCreateTicket(unittest.TestCase):
     """End-to-end createTicket via TestClient against a TEMP vault+home."""
 
-    def setUp(self):
-        sys.path.insert(0, str(CODE))
-        self.tmp = Path(tempfile.mkdtemp(prefix="mc2t4-"))
-        self.vault = self.tmp / "vault"
-        self.home = self.tmp / "home"
-        self.vault.mkdir()
-        self.home.mkdir()
-        self.users_path = write_users_with_bridge(self.home)
-        self.counters_path = write_counters(self.home)
-        self.env = base_env(
-            KTS_SANDBOX="1",
-            KTS_VAULT=str(self.vault),
-            KTS_HOME=str(self.home),
-        )
-        self.real_snap = snapshot_real_tree()
+def setUp(self):
+    sys.path.insert(0, str(CODE))
+    self.tmp = Path(tempfile.mkdtemp(prefix="mc2t4-"))
+    self.vault = self.tmp / "vault"
+    self.home = self.tmp / "home"
+    self.vault.mkdir()
+    self.home.mkdir()
+    self.users_path = write_users_with_bridge(self.home)
+    self.counters_path = write_counters(self.home)
+    # Copy permissions fixture to sandbox config
+    fixture_permissions = Path(__file__).parent / "fixtures" / "permissions.yaml"
+    shutil.copy2(fixture_permissions, self.home / "config" / "permissions.yaml")
+    self.env = base_env(
+        KTS_SANDBOX="1",
+        KTS_VAULT=str(self.vault),
+        KTS_HOME=str(self.home),
+    )
+    self.real_snap = snapshot_real_tree()
 
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)

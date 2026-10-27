@@ -1,0 +1,31 @@
+admin:
+  description: "Administrator with full access"
+  permissions:
+    - "ticket.*"
+    - "task.*"
+    - "project.*"
+    - "knowledge.*"
+    - "automation.*"
+    - "system.*"
+    - "user.*"
+technician:
+  description: "Technician with ticket and task permissions"
+  permissions:
+    - "ticket.read"
+    - "ticket.create"
+    - "ticket.change_status"
+    - "ticket.add_worklog"
+    - "ticket.link"
+    - "task.read"
+    - "task.create"
+    - "task.change_status"
+    - "task.add_worklog"
+    - "knowledge.read"
+    - "knowledge.create"
+viewer:
+  description: "Read-only access"
+  permissions:
+    - "ticket.read"
+    - "task.read"
+    - "project.read"
+    - "knowledge.read"
