@@ -1,0 +1,25 @@
+name: Backend tests
+
+on:
+  push:
+    branches:
+      - "work/**"
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend (dev)
+        run: pip install -e "backend[dev]"
+
+      - name: Run backend test suite
+        run: pytest -q -p no:cacheprovider
+        working-directory: backend
