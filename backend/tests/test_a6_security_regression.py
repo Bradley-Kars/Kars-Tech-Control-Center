@@ -54,7 +54,7 @@ def _make_checker(allowed: set):
 def _make_service(tmp_path: Path) -> TicketService:
     svc = TicketService(event_emitter=EventEmitter(EventStore()),
                         permission_checker=None)
-    svc.entity_dir = Path("/tmp/sandbox-vault-a5/Tickets")
+    svc.entity_dir = tmp_path / "Tickets"
     svc.entity_dir.mkdir(parents=True, exist_ok=True)
     return svc
 
@@ -388,13 +388,13 @@ def test_knowledge_update_requires_knowledge_update(tmp_path: Path):
 # ---------------------------------------------------------------------------
 def test_automation_actor_listed_gets_users_yaml_role(tmp_path: Path):
     import yaml
-    users_path = Path("/tmp/sandbox-home-a5/config/users.yaml")
+    users_path = tmp_path / "config" / "users.yaml"
     with open(users_path) as f:
         users_data = yaml.safe_load(f)
     users_data["users"]["AUT-BRIDGE"] = {
         "id": "AUT-BRIDGE", "role": "dispatcher"
     }
-    config_dir = Path("/tmp/sandbox-home-a5/config")
+    config_dir = tmp_path / "config"
     config_dir.mkdir(parents=True, exist_ok=True)
     with open(config_dir / "users.yaml", "w") as f:
         yaml.safe_dump(users_data, f)
