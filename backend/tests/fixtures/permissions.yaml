@@ -1,31 +1,55 @@
-admin:
-  description: "Administrator with full access"
-  permissions:
-    - "ticket.*"
-    - "task.*"
-    - "project.*"
-    - "knowledge.*"
-    - "automation.*"
-    - "system.*"
-    - "user.*"
-technician:
-  description: "Technician with ticket and task permissions"
-  permissions:
-    - "ticket.read"
-    - "ticket.create"
-    - "ticket.change_status"
-    - "ticket.add_worklog"
-    - "ticket.link"
-    - "task.read"
-    - "task.create"
-    - "task.change_status"
-    - "task.add_worklog"
-    - "knowledge.read"
-    - "knowledge.create"
-viewer:
-  description: "Read-only access"
-  permissions:
-    - "ticket.read"
-    - "task.read"
-    - "project.read"
-    - "knowledge.read"
+# Test fixture permissions.yaml
+# Format expected by core/permissions.py:
+#   permissions:
+#     <perm name>:
+#       description: "..."
+#       roles: [role, ...]
+permissions:
+  ticket.read:
+    description: "View tickets and ticket details"
+    roles: ["admin", "technician", "dispatcher", "manager", "viewer", "ai"]
+  ticket.create:
+    description: "Create new tickets"
+    roles: ["admin", "technician", "dispatcher"]
+  ticket.update:
+    description: "Update ticket fields (title, description, category, etc.)"
+    roles: ["admin", "technician", "dispatcher", "ai"]
+  ticket.delete:
+    description: "Delete tickets (never used — cancel instead)"
+    roles: ["admin"]
+  ticket.assign:
+    description: "Assign or reassign tickets to users/teams"
+    roles: ["admin", "dispatcher", "manager"]
+  ticket.change_status:
+    description: "Close tickets (move to closed status)"
+    roles: ["admin", "technician", "manager"]
+  ticket.add_worklog:
+    description: "Add worklog entries to a ticket"
+    roles: ["admin", "technician", "dispatcher"]
+  ticket.link:
+    description: "Link tickets to clients/assets"
+    roles: ["admin", "technician", "dispatcher"]
+  task.read:
+    description: "View tasks"
+    roles: ["admin", "technician", "dispatcher", "manager", "viewer"]
+  task.create:
+    description: "Create new tasks"
+    roles: ["admin", "technician"]
+  task.update:
+    description: "Update task fields"
+    roles: ["admin", "technician"]
+  task.assign:
+    description: "Assign or reassign tasks"
+    roles: ["admin", "dispatcher", "manager"]
+  project.read:
+    description: "View projects"
+    roles: ["admin", "technician", "dispatcher", "manager", "viewer"]
+  project.create:
+    description: "Create new projects"
+    roles: ["admin", "manager"]
+  knowledge.read:
+    description: "View knowledge articles"
+    roles: ["admin", "technician", "dispatcher", "manager", "viewer"]
+  knowledge.create:
+    description: "Create knowledge articles"
+    roles: ["admin", "technician"]

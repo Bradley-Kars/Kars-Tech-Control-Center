@@ -57,40 +57,15 @@ def _make_checker(allowed: set):
     return PC()
 
 
-def _make_service(tmp_path: Path) -> TicketService:
-    vault_dir = tmp_path / "vault"
-    home_dir = tmp_path / "home"
-    config_dir = home_dir / "config"
-    config_dir.mkdir(parents=True, exist_ok=True)
+def _make_service(tmp_path=None) -> TicketService:
+    """Build a TicketService wired to the sandbox vault (set by conftest).
 
-    # Copy fixture files
-    fixture_dir = Path(__file__).parent / "fixtures"
-    import shutil
-    shutil.copy2(fixture_dir / "users.yaml", config_dir / "users.yaml")
-    shutil.copy2(fixture_dir / "permissions.yaml", config_dir / "permissions.yaml")
-
+    tmp_path is accepted (and ignored) so existing call sites keep working;
+    the service reads vault/home from core.paths, which conftest locks to
+    the sandbox before any test module is imported.
+    """
     svc = TicketService(event_emitter=EventEmitter(EventStore()),
                         permission_checker=None)
-    svc.event_dir = vault_dir / "events"
-    svc.entity_dir = vault_dir / "events"
-    return svc
-
-    # Copy fixture files
-    fixture_dir = Path(__file__).parent / "fixtures"
-    import shutil
-    shutil.copy2(fixture_dir / "users.yaml", config_dir / "users.yaml")
-    shutil.copy2(fixture_dir / "permissions.yaml", config_dir / "permissions.yaml")
-
-    svc = TicketService(event_emitter=EventEmitter(EventStore()),
-                        permission_checker=None)
-    svc.entity_dir = vault_dir / "Tickets"
-    svc.entity_dir.mkdir(parents=True, exist_ok=True)
-    return svc
-
-    svc = TicketService(event_emitter=EventEmitter(EventStore()),
-                        permission_checker=None)
-    svc.entity_dir = vault_dir / "Tickets"
-    svc.entity_dir.mkdir(parents=True, exist_ok=True)
     return svc
 
 
@@ -399,15 +374,14 @@ def test_knowledge_update_requires_knowledge_update(tmp_path: Path):
 # ---------------------------------------------------------------------------
 def test_automation_actor_listed_gets_users_yaml_role(tmp_path: Path):
     import yaml
-    users_path = tmp_path / "config" / "users.yaml"
+    from core.paths import config_dir
+    users_path = config_dir() / "users.yaml"
     with open(users_path) as f:
         users_data = yaml.safe_load(f)
     users_data["users"]["AUT-BRIDGE"] = {
         "id": "AUT-BRIDGE", "role": "dispatcher"
     }
-    config_dir = Path("/tmp/sandbox-home-a5/config")
-    config_dir.mkdir(parents=True, exist_ok=True)
-    with open(config_dir / "users.yaml", "w") as f:
+    with open(users_path, "w") as f:
         yaml.safe_dump(users_data, f)
 
     checker = PermissionChecker()
