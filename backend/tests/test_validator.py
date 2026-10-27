@@ -26,6 +26,10 @@ from phasef_helpers import (
     snapshot_pair,
 )
 
+import pytest
+pytestmark = pytest.mark.real_install
+
+
 COUNTS_CODE = r"""
 import sys
 sys.path.insert(0, sys.argv[1])

@@ -24,6 +24,10 @@ Required proofs (by test name):
   + isolation guard enforced                        -> test_isolation_guard_enforced
 """
 
+import pytest
+pytestmark = pytest.mark.real_install
+
+
 # ---- ISOLATION GUARD: must be FIRST, before ANY core.* imports -------------
 try:
     from tests.test_isolation_guard import require_isolation, snapshot_real_tree

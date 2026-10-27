@@ -26,6 +26,10 @@ from urllib import error as urllib_error
 import uvicorn
 from fastapi.testclient import TestClient
 
+import pytest
+pytestmark = pytest.mark.real_install
+
+
 # Ensure we can import core modules from the ticketing tree
 sys.path.insert(
     0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")

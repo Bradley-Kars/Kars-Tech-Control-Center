@@ -27,6 +27,10 @@ import os
 from pathlib import Path
 from typing import Optional
 
+import pytest
+pytestmark = pytest.mark.real_install
+
+
 
 REAL_HOME = Path.home() / ".ticketing"
 REAL_VAULT = Path.home() / "Documents" / "KTS Records"

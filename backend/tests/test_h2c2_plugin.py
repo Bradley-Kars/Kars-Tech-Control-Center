@@ -17,6 +17,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
+pytestmark = pytest.mark.real_install
+
+
 PLUGIN_DIR = Path.home() / ".ticketing" / "plugins" / "kts-rebuild"
 MAIN_JS = PLUGIN_DIR / "main.js"
 

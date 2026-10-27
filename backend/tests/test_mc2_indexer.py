@@ -5,6 +5,10 @@ methods (lines 194-210) are dead code. After verification, the shadowed
 copies (lines 194-210) can be deleted as no-behavior-change cleanup.
 """
 
+import pytest
+pytestmark = pytest.mark.real_install
+
+
 # ---- ISOLATION GUARD: must be FIRST, before ANY core.* imports -------------
 try:
     from tests.test_isolation_guard import require_isolation, snapshot_real_tree

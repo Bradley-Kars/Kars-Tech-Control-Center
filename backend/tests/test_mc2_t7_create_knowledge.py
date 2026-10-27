@@ -38,6 +38,10 @@ status is system-owned: always "draft" on create (published_at/review_date are
 set only by the desktop publish flow, not the bridge).
 """
 
+import pytest
+pytestmark = pytest.mark.real_install
+
+
 # ---- ISOLATION GUARD: must be FIRST, before ANY core.* imports -------------
 try:
     from tests.test_isolation_guard import require_isolation, snapshot_real_tree

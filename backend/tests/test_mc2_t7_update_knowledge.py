@@ -36,6 +36,10 @@ status is system-owned: always rejected on update (publish flow, not PATCH).
 author must equal the bridge actor (USR-000002) on update.
 """
 
+import pytest
+pytestmark = pytest.mark.real_install
+
+
 # ---- ISOLATION GUARD: must be FIRST, before ANY core.* imports -------------
 try:
     from tests.test_isolation_guard import require_isolation, snapshot_real_tree

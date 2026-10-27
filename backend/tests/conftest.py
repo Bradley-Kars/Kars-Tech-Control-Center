@@ -20,3 +20,25 @@ def _clean_vault():
 
 def pytest_sessionfinish(session, exitstatus):
     shutil.rmtree(_SESSION, ignore_errors=True)
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--run-real-install",
+        action="store_true",
+        default=False,
+        help="also run real_install tests (skipped by default)",
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--run-real-install"):
+        return
+    skip_real = pytest.mark.skip(
+        reason="real_install: needs this machine's real install (~/.ticketing code, "
+        "~/.ticketing-sandbox / ~/Documents/KTS Records-sandbox data, "
+        "~/.local/bin/ticket); skipped by default"
+    )
+    for item in items:
+        if "real_install" in item.keywords:
+            item.add_marker(skip_real)

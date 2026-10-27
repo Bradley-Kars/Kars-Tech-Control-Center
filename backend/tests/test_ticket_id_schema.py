@@ -29,6 +29,10 @@ from phasef_helpers import (
 from core.indexer import Indexer
 from core.validator import Validator, ValidationReport
 
+import pytest
+pytestmark = pytest.mark.real_install
+
+
 
 def _inv_doc(tid, number):
     return {"ticket_id": tid, "invoice": {"number": number}}

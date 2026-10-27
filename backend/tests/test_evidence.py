@@ -28,6 +28,10 @@ from phasef_helpers import (
     snapshot_pair,
 )
 
+import pytest
+pytestmark = pytest.mark.real_install
+
+
 AI_PIPELINE_CODE = r"""
 import json, pathlib, sys
 sys.path.insert(0, sys.argv[1])

@@ -7,6 +7,10 @@ serialization) survived in knowledge_service.py, task_service.py, and
 project_service.py for so long. This test makes the hazard visible.
 """
 
+import pytest
+pytestmark = pytest.mark.real_install
+
+
 # ---- ISOLATION GUARD: must be FIRST, before ANY core.* imports ------------
 try:
     from tests.test_isolation_guard import require_isolation, snapshot_real_tree

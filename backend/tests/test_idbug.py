@@ -28,6 +28,10 @@ import subprocess
 import unittest
 from pathlib import Path
 
+import pytest
+pytestmark = pytest.mark.real_install
+
+
 HOME = Path.home()
 REAL_HOME = HOME / ".ticketing"
 CODE_HOME = Path(os.environ.get("KTS_CODE_HOME", str(REAL_HOME)))

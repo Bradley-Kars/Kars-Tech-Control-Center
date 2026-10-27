@@ -35,6 +35,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
+pytestmark = pytest.mark.real_install
+
+
 HOME = Path.home()
 REAL_VAULT = HOME / "Documents" / "KTS Records"
 REAL_HOME = HOME / ".ticketing"

@@ -27,6 +27,10 @@ Temp counters DO change (ticket.update allocates an event ID inside the temp
 home); real id-counters.json must stay byte-identical.
 """
 
+import pytest
+pytestmark = pytest.mark.real_install
+
+
 # ---- ISOLATION GUARD: must be FIRST, before ANY core.* imports -------------
 try:
     from tests.test_isolation_guard import require_isolation, snapshot_real_tree

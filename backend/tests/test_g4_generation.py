@@ -14,6 +14,10 @@ import sys
 import unittest
 from pathlib import Path
 
+import pytest
+pytestmark = pytest.mark.real_install
+
+
 sys.path.insert(
     0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 )

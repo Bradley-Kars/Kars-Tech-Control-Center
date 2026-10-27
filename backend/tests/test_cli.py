@@ -24,6 +24,10 @@ from phasef_helpers import (
     snapshot_pair,
 )
 
+import pytest
+pytestmark = pytest.mark.real_install
+
+
 
 def parse_created(stdout):
     m = re.search(r"Created (TKT-\d{4}-\d{3}):", stdout)

@@ -34,6 +34,7 @@ testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
+markers = ["real_install: tests that require this machine's real install (~/.ticketing code, ~/.ticketing-sandbox / ~/Documents/KTS Records-sandbox data, or ~/.local/bin/ticket). Skipped by default; run with -m real_install to execute."]
 
 [tool.ruff]
 line-length = 100

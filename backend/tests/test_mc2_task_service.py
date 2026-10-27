@@ -15,6 +15,10 @@ Characterization tests document current behavior; they are updated after the
 fix to expect corrected behavior.
 """
 
+import pytest
+pytestmark = pytest.mark.real_install
+
+
 # ---- ISOLATION GUARD: must be FIRST, before ANY core.* imports -------------
 try:
     from tests.test_isolation_guard import require_isolation, snapshot_real_tree
