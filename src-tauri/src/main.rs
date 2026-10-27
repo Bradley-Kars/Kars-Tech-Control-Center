@@ -1755,6 +1755,9 @@ async fn launch_gui() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::ticketing::ticketing_overview,
+            commands::ticketing::ticketing_create_ticket,
+            commands::ticketing::ticketing_add_worklog,
+            commands::ticketing::ticketing_change_status,
             commands::test_connection,
             commands::save_server,
             commands::remove_server,

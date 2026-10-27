@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Card } from '../ui/Card';
 import { Badge, StatusBadge } from '../ui/Badge';
+import { Input } from '../ui/Input';
+import { Button } from '../ui/Button';
+import { Label } from '../ui/Label';
 import { invoke } from '@tauri-apps/api/core';
 
 interface TicketRow {
@@ -71,6 +74,12 @@ export function TicketingPage() {
   const [data, setData] = useState<TicketingOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<TicketRow | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [createTitle, setCreateTitle] = useState('');
+  const [createPriority, setCreatePriority] = useState('medium');
+  const [createCategory, setCreateCategory] = useState('');
+  const [worklogEntry, setWorklogEntry] = useState('');
+  const [worklogHours, setWorklogHours] = useState(0.5);
 
   useEffect(() => {
     let mounted = true;
@@ -89,6 +98,74 @@ export function TicketingPage() {
       });
     return () => { mounted = false; };
   }, []);
+
+  // Create ticket
+  const handleCreateTicket = async () => {
+    if (!createTitle.trim()) return;
+    try {
+      const created = await invoke<TicketRow>('ticketing_create_ticket', {
+        text: createTitle,
+        priority: createPriority,
+        category: createCategory || undefined,
+      });
+      setData((d) => ({
+        ...d!,
+        tickets: [created, ...(d?.tickets ?? [])],
+        overview: {
+          ...d!.overview,
+          tickets_total: d!.overview.tickets_total + 1,
+        },
+      }));
+      setCreateTitle('');
+      setCreatePriority('medium');
+      setCreateCategory('');
+      setCreating(false);
+    } catch (err) {
+      console.error('[ticketing] create failed:', err);
+      alert(`Failed to create ticket: ${err}`);
+    }
+  };
+
+  // Add worklog entry
+  const handleAddWorklog = async () => {
+    if (!selected) return;
+    if (!worklogEntry.trim()) return;
+    try {
+      await invoke('ticketing_add_worklog', {
+        ticket_id: selected.id,
+        entry: worklogEntry,
+        hours: worklogHours,
+        payment: 'uninvoiced',
+      });
+      setWorklogEntry('');
+      setWorklogHours(0.5);
+      // Refresh to reflect updated ticket
+      const refreshed = await invoke<TicketingOverview>('ticketing_overview');
+      setData(refreshed);
+      setSelected(refreshed.tickets.find((t) => t.id === selected.id) ?? null);
+    } catch (err) {
+      console.error('[ticketing] worklog failed:', err);
+      alert(`Failed to add worklog: ${err}`);
+    }
+  };
+
+  // Change ticket status
+  const handleChangeStatus = async (newStatus: string) => {
+    if (!selected) return;
+    try {
+      await invoke('ticketing_change_status', {
+        ticket_id: selected.id,
+        status: newStatus,
+      });
+      // Refresh to reflect updated ticket
+      const refreshed = await invoke<TicketingOverview>('ticketing_overview');
+      setData(refreshed);
+      setSelected(refreshed.tickets.find((t) => t.id === selected.id) ?? selected);
+    } catch (err) {
+      console.error('[ticketing] status change failed:', err);
+      alert(`Failed to change status: ${err}`);
+    }
+  };
 
   if (loading) {
     return (
@@ -116,6 +193,9 @@ export function TicketingPage() {
         <div className="flex items-center gap-2">
           {from_mock && <Badge variant="info">MC-1 · mock data</Badge>}
           {!from_mock && <Badge variant="success">MC-1b · live bridge</Badge>}
+          <Button onClick={() => setCreating(!creating)}>
+            {creating ? 'Cancel' : 'New Ticket'}
+          </Button>
         </div>
       </div>
 
@@ -133,6 +213,64 @@ export function TicketingPage() {
                 Configure the bridge URL and token in <code>~/.config/master-control/config.private.json</code> and set
                 <code>use_live_bridge: true</code> to enable live data.
               </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Create ticket form */}
+      {creating && (
+        <Card variant="subtle" className="p-4">
+          <div className="text-sm font-semibold mb-2">New Ticket</div>
+          <div className="space-y-2">
+            <div className="flex flex-col gap-1">
+              <Label>Title</Label>
+              <Input
+                value={createTitle}
+                onChange={(e) => setCreateTitle(e.currentTarget.value)}
+                placeholder="Ticket title"
+              />
+            </div>
+            <div className="flex gap-2">
+              <div className="flex-col gap-1">
+                <Label>Priority</Label>
+                <select
+                  value={createPriority}
+                  onChange={(e) => setCreatePriority(e.currentTarget.value)}
+                  className="border rounded px-2 py-1 text-sm"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+              <div className="flex-col gap-1">
+                <Label>Category</Label>
+                <Input
+                  value={createCategory}
+                  onChange={(e) => setCreateCategory(e.currentTarget.value)}
+                  placeholder="e.g. support, hardware, network"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-2">
+              <Button
+                onClick={handleCreateTicket}
+                disabled={!createTitle.trim()}
+              >
+                Create
+              </Button>
+              <Button
+                onClick={() => {
+                  setCreating(false);
+                  setCreateTitle('');
+                  setCreatePriority('medium');
+                  setCreateCategory('');
+                }}
+                variant="outline"
+              >
+                Cancel
+              </Button>
             </div>
           </div>
         </Card>
@@ -207,12 +345,55 @@ export function TicketingPage() {
       {/* Detail strip */}
       {selected && (
         <Card variant="dual" data-testid="ticket-detail">
-          <div className="text-sm opacity-70 mb-1">Selected</div>
+          <div className="text-sm font-semibold mb-2">Selected</div>
           <div className="font-mono">{selected.id}</div>
           <div>{selected.title}</div>
           <div className="mt-1">
             invoice:{' '}
             {isLiveData ? 'n/a' : invoices.find((i) => i.ticket_id === selected.id)?.number ?? 'none'}
+          </div>
+          <div className="mt-2">
+            Status:{' '}
+            <select
+              value={selected.status}
+              onChange={(e) => handleChangeStatus(e.currentTarget.value)}
+            >
+              <option value="new">New</option>
+              <option value="triaged">Triaged</option>
+              <option value="in-progress">In Progress</option>
+              <option value="waiting">Waiting</option>
+              <option value="resolved">Resolved</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
+          <div className="mt-2">
+            <div className="text-sm font-semibold mb-1">Worklog</div>
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1">
+                <Label>Entry</Label>
+                <Input
+                  value={worklogEntry}
+                  onChange={(e) => setWorklogEntry(e.currentTarget.value)}
+                  placeholder="Describe the work done"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label>Hours</Label>
+                <Input
+                  type="number"
+                  value={worklogHours}
+                  onChange={(e) => setWorklogHours(parseFloat(e.currentTarget.value) || 0.5)}
+                />
+              </div>
+              <Button
+                onClick={() => {
+                  if (!worklogEntry.trim()) return;
+                  handleAddWorklog();
+                }}
+              >
+                Add Worklog
+              </Button>
+            </div>
           </div>
         </Card>
       )}

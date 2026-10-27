@@ -216,6 +216,171 @@ pub async fn fetch_overview() -> Result<TicketingOverview, String> {
     })
 }
 
+/// Create a ticket via the live bridge (POST /tickets).
+///
+/// - Reads `bridge_url` + `bridge_token` from config.private.json (mode 0o600).
+/// - POST /tickets with {title, priority, category?}.
+/// - Returns the created ticket row.
+/// - Returns Err if bridge not configured or request fails.
+pub async fn create_ticket(
+    title: String,
+    priority: String,
+    category: Option<String>,
+) -> Result<TicketRow, String> {
+    let cfg = load_ticketing_config();
+
+    let bridge_url = match cfg.bridge_url {
+        Some(u) => u,
+        None => return Err("bridge_url not configured".to_string()),
+    };
+    let token = match cfg.bridge_token {
+        Some(t) => t,
+        None => return Err("bridge_token not configured".to_string()),
+    };
+
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(3))
+        .build()
+        .map_err(|e| format!("http client build failed: {e}"))?;
+
+    let url = format!("{}/tickets", bridge_url.trim_end_matches('/'));
+
+    let mut req = client.post(&url).header("X-API-Token", &token);
+    req = req.json(&serde_json::json!({
+        "title": title,
+        "priority": priority,
+    }));
+    if let Some(cat) = category {
+        req = req.json(&serde_json::json!({
+            "category": cat,
+        }));
+    }
+
+    let resp = req.send().await.map_err(|e| format!("create ticket request failed: {e}"))?;
+
+    if !resp.status().is_success() {
+        return Err(format!(
+            "create ticket failed with status {}",
+            resp.status().as_u16()
+        ));
+    }
+
+    let created: serde_json::Value = resp.json().await.map_err(|e| format!("parse failed: {e}"))?;
+
+    Ok(TicketRow {
+        id: created["ticket_id"].as_str().unwrap_or("").to_string(),
+        title: created["title"].as_str().unwrap_or(&title).to_string(),
+        status: created["status"].as_str().unwrap_or("new").to_string(),
+        client_id: String::new(),
+        hours: 0.0,
+        total: 0.0,
+        invoice_number: None,
+        no_charge: false,
+    })
+}
+
+/// Add a worklog entry to a ticket via the live bridge (POST /tickets/{id}/worklog).
+///
+/// - Reads `bridge_url` + `bridge_token` from config.private.json (mode 0o600).
+/// - Returns Err if bridge not configured or request fails.
+pub async fn add_worklog(
+    ticket_id: String,
+    entry: String,
+    date: Option<String>,
+    mode: Option<String>,
+    hours: Option<f64>,
+    payment: Option<String>,
+    amount: Option<f64>,
+) -> Result<(), String> {
+    let cfg = load_ticketing_config();
+
+    let bridge_url = match cfg.bridge_url {
+        Some(u) => u,
+        None => return Err("bridge_url not configured".to_string()),
+    };
+    let token = match cfg.bridge_token {
+        Some(t) => t,
+        None => return Err("bridge_token not configured".to_string()),
+    };
+
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(3))
+        .build()
+        .map_err(|e| format!("http client build failed: {e}"))?;
+
+    let url = format!(
+        "{}/tickets/{}/worklog",
+        bridge_url.trim_end_matches('/'),
+        ticket_id
+    );
+
+    let mut req = client.post(&url).header("X-API-Token", &token);
+    req = req.json(&serde_json::json!({
+        "date": date.unwrap_or_else(|| chrono::Utc::now().format("%Y-%m-%d").to_string()),
+        "mode": mode.unwrap_or_else(|| "remote".to_string()),
+        "hours": hours.unwrap_or(0.5),
+        "payment": payment.unwrap_or_else(|| "uninvoiced".to_string()),
+        "entry": entry,
+        "amount": amount.unwrap_or(0.0),
+    }));
+
+    let resp = req.send().await.map_err(|e| format!("worklog request failed: {e}"))?;
+
+    if !resp.status().is_success() {
+        return Err(format!(
+            "worklog failed with status {}",
+            resp.status().as_u16()
+        ));
+    }
+
+    Ok(())
+}
+
+/// Change the status of a ticket via the live bridge (POST /tickets/{id}/status).
+///
+/// - Reads `bridge_url` + `bridge_token` from config.private.json (mode 0o600).
+/// - Returns Err if bridge not configured or request fails.
+pub async fn change_status(ticket_id: String, status: String) -> Result<(), String> {
+    let cfg = load_ticketing_config();
+
+    let bridge_url = match cfg.bridge_url {
+        Some(u) => u,
+        None => return Err("bridge_url not configured".to_string()),
+    };
+    let token = match cfg.bridge_token {
+        Some(t) => t,
+        None => return Err("bridge_token not configured".to_string()),
+    };
+
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(3))
+        .build()
+        .map_err(|e| format!("http client build failed: {e}"))?;
+
+    let url = format!(
+        "{}/tickets/{}/status",
+        bridge_url.trim_end_matches('/'),
+        ticket_id
+    );
+
+    let resp = client
+        .post(&url)
+        .header("X-API-Token", &token)
+        .json(&serde_json::json!({ "status": status }))
+        .send()
+        .await
+        .map_err(|e| format!("status change request failed: {e}"))?;
+
+    if !resp.status().is_success() {
+        return Err(format!(
+            "status change failed with status {}",
+            resp.status().as_u16()
+        ));
+    }
+
+    Ok(())
+}
+
 /// The mock fixture tagged with one specific OFF-1 reason.
 fn offline(reason: OfflineReason) -> Result<TicketingOverview, String> {
     let mut ov = load_fixture()?;
