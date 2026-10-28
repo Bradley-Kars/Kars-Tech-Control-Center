@@ -13,7 +13,7 @@
  *     requests; the bridge trusts it only from 127.0.0.1 (W3).
  *
  * All helpers throw an `ApiError` (with `.status` and `.detail`) on non-ok
- * responses so callers can render the OFF-1 banner deterministically.
+ * responses so callers can render inline errors with retry.
  */
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/+$/, '');
@@ -164,5 +164,28 @@ export function changeTicketStatus(
   return request<StatusResult>(
     `/tickets/${encodeURIComponent(ticketId)}/status`,
     { method: 'POST', body: { status }, token },
+  );
+}
+
+/** PATCH /api/tickets/{id} — update ticket fields (assign, priority, etc.). */
+export function updateTicket(
+  ticketId: string,
+  fields: Record<string, unknown>,
+  token?: string,
+): Promise<TicketSummary> {
+  return request<TicketSummary>(
+    `/tickets/${encodeURIComponent(ticketId)}`,
+    { method: 'PATCH', body: fields, token },
+  );
+}
+
+/** GET /api/tickets/{id} — get a single ticket. */
+export function getTicket(
+  ticketId: string,
+  token?: string,
+): Promise<TicketSummary> {
+  return request<TicketSummary>(
+    `/tickets/${encodeURIComponent(ticketId)}`,
+    { token },
   );
 }
