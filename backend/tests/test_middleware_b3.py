@@ -277,3 +277,115 @@ def test_same_origin_post_with_login_ok():
     finally:
         proc.terminate()
         proc.wait(timeout=5)
+
+
+def test_login_authenticated_200_logs_request_audit():
+    port = _free_port()
+    # Clear any pre-existing audit log from other tests sharing the sandbox
+    audit_path = tmp_path_for_audit() / "audit.log"
+    audit_path.unlink(missing_ok=True)
+    proc = _start_bridge(port)
+    try:
+        _wait_for_server(port)
+        with httpx.Client(timeout=5.0) as c:
+            r = c.get(
+                f"{_base_url(port)}/api/health",
+                headers={
+                    "Host": "127.0.0.1",
+                    "Tailscale-User-Login": "user@example.com",
+                },
+            )
+            assert r.status_code == 200, r.text
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    table = TokenTable(tmp_path_for_audit() / "token-table.json")
+    reqs = [r for r in _request_actions(table) if r.get("action") == "request"]
+    assert len(reqs) == 1, reqs
+    assert reqs[0]["label"] == "tailscale:user@example.com"
+    assert reqs[0]["actor_id"] == "USR-000001"
+    assert reqs[0]["status"] == 200
+
+
+def test_403_logs_auth_fail_login():
+    port = _free_port()
+    audit_path = tmp_path_for_audit() / "audit.log"
+    audit_path.unlink(missing_ok=True)
+    proc = _start_bridge(port)
+    try:
+        _wait_for_server(port)
+        with httpx.Client(timeout=5.0) as c:
+            r = c.post(
+                f"{_base_url(port)}/api/tickets",
+                headers={
+                    "Host": "127.0.0.1",
+                    "Tailscale-User-Login": "user@example.com",
+                    "Sec-Fetch-Site": "cross-site",
+                },
+                json={"title": "x"},
+            )
+            assert r.status_code == 403, r.text
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    table = TokenTable(tmp_path_for_audit() / "token-table.json")
+    fails = [r for r in _request_actions(table) if r.get("action") == "auth_fail" and r.get("status") == 403]
+    assert len(fails) >= 1, fails
+    assert any(f.get("method") == "POST" for f in fails)
+
+
+def tmp_path_for_audit() -> Path:
+    # The uvicorn subprocess inherits conftest's KTS_HOME; read its audit log
+    # from the sandbox auth dir.
+    return Path(os.environ["KTS_HOME"]) / "auth"
+
+
+# --- W6 audit fix -----------------------------------------------------------
+# A login-authenticated 200 logs action "request" with label tailscale:<login>
+# and actor_id; a 401 and a 403 log auth_fail.
+#
+# Login-header tests run via real uvicorn subprocesses (TestClient's
+# client.host is "testclient", not 127.0.0.1, so the login header is not
+# trusted). Token-based and no-credential tests run in-process via TestClient.
+
+
+def _request_actions(table: TokenTable):
+    out = []
+    if table.audit_path.exists():
+        for line in table.audit_path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            rec = json.loads(line)
+            out.append(rec)
+    return out
+
+
+def test_token_authenticated_200_logs_request_audit(tmp_path: Path):
+    table = TokenTable(tmp_path / "token-table.json")
+    _token_id, secret = table.mint("tok", scope="write", actor_id="USR-000001")
+    app = create_app(table)
+    client = TestClient(app, raise_server_exceptions=False)
+
+    r = client.get("/api/health", headers={"X-API-Token": secret, **_host_headers()})
+    assert r.status_code == 200, r.text
+
+    reqs = [r for r in _request_actions(table) if r.get("action") == "request"]
+    assert len(reqs) == 1, reqs
+    assert reqs[0]["token_id"] is not None
+    assert reqs[0]["actor_id"] == "USR-000001"
+    assert reqs[0]["status"] == 200
+
+
+def test_401_logs_auth_fail(tmp_path: Path):
+    table = TokenTable(tmp_path / "token-table.json")
+    app = create_app(table)
+    client = TestClient(app, raise_server_exceptions=False)
+
+    r = client.get("/api/health", headers=_host_headers())
+    assert r.status_code == 401, r.text
+
+    fails = [r for r in _request_actions(table) if r.get("action") == "auth_fail"]
+    assert len(fails) == 1, fails
+    assert fails[0]["status"] == 401

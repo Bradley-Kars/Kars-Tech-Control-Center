@@ -666,10 +666,10 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
         """T4 (MC-2): createTicket via the real write path (ticket sequence only).
 
         Allocates the next TKT id (TicketService.next_id), writes the vault
-        file at version 1, emits ticket.created. Acts as BRIDGE_ACTOR
-        (USR-000002, KTS Bridge). Requires scope="write" (middleware).
-        Body is a whitelist of optional fields plus required "title";
-        id/type/version are system-owned and rejected. if_version is
+        file at version 1, emits ticket.created. The actor comes from the
+        authenticated identity set by the middleware. Requires scope="write"
+        (middleware). Body is a whitelist of optional fields plus required
+        "title"; id/type/version are system-owned and rejected. if_version is
         accepted for route consistency but has no precondition target on
         create (new id -> always version 1). Sandbox-aware via paths.py.
         """

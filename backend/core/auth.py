@@ -141,10 +141,10 @@ class TokenTable:
         reason: Optional[str] = None,
     ) -> None:
         """Append a per-request audit line to the JSONL audit file.
-        For auth_fail: token_id/label/actor_id are None; source + reason included.
-        For request: token_id/label/actor_id present; source/reason omitted.
-        Never includes secrets."""
-        if token_id is not None and label is not None:
+        A request is successful when label is not None (token_id may be None
+        for Tailscale-login identities). For auth_fail: token_id/label/actor_id
+        are None; source + reason included. Never includes secrets."""
+        if label is not None:
             # successful request
             obj = {
                 "ts_utc": _utcnow(),
