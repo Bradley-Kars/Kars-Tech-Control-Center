@@ -22,14 +22,14 @@
 
 ## What changed this session (W7 — placeholders in docs)
 
-- `backend/docs/STAGING.md`: replaced real machine name `kars-tech-solutions.tailf6d3b4.ts.net` with `<machine>.<tailnet>.ts.net` and real login email `bradley.kars@gmail.com` with `you@example.com`.
+- `backend/docs/STAGING.md`: replaced real hostnames and email with placeholders.
 - `backend/docs/evidence/L1.md`: same replacements; also `login: "you@example.com"` in the users.yaml fixture example.
 - Rule from now on: no real hostnames, tailnet names or emails in the repo.
 
 ## Verification evidence (this session)
 
 - `python3 -m py_compile` on `core/bridge.py`, `core/auth.py`, and every backend test file: OK.
-- `grep` for `kars-tech-solutions.tailf6d3b4.ts.net`, `bradley.kars@gmail.com` in `docs/STAGING.md` and `docs/evidence/L1.md`: no matches (only `/home/slayerbrk/` home paths remain, which are not hostnames/tailnet names/emails).
+- `grep` for real hostnames and email in `docs/STAGING.md` and `docs/evidence/L1.md`: no matches.
 - `git ls-remote origin`: see below.
 
 ```
