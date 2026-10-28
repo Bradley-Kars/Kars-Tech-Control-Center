@@ -136,12 +136,13 @@ class TokenTable:
         latency_ms: int,
         token_id: Optional[str] = None,
         label: Optional[str] = None,
+        actor_id: Optional[str] = None,
         source: Optional[str] = None,
         reason: Optional[str] = None,
     ) -> None:
         """Append a per-request audit line to the JSONL audit file.
-        For auth_fail: token_id/label are None; source + reason included.
-        For request: token_id/label present; source/reason omitted.
+        For auth_fail: token_id/label/actor_id are None; source + reason included.
+        For request: token_id/label/actor_id present; source/reason omitted.
         Never includes secrets."""
         if token_id is not None and label is not None:
             # successful request
@@ -150,6 +151,7 @@ class TokenTable:
                 "action": "request",
                 "token_id": token_id,
                 "label": label,
+                "actor_id": actor_id,
                 "method": method,
                 "path": path,
                 "status": status,
@@ -166,6 +168,7 @@ class TokenTable:
                 "latency_ms": latency_ms,
                 "source": source or "unknown",
                 "reason": reason or "missing or invalid token",
+                "actor_id": actor_id,
             }
         line = json.dumps(obj, separators=(",", ":"))
         self.audit_path.parent.mkdir(parents=True, exist_ok=True)

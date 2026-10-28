@@ -33,6 +33,7 @@ import yaml
 
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .auth import TokenTable, HEADER, default_token_table
 from . import paths
@@ -44,6 +45,13 @@ from .services.ticket_service import VersionMismatch
 # Re-created inside each test setup; never hand-edited into the shared
 # sandbox users.yaml (suite reset wipes it).
 BRIDGE_ACTOR_NAME = "KTS Bridge"
+
+# Trusted Host header values (W5.3). localhost/127.0.0.1 are always allowed;
+# the machine's tailnet name comes from KTS_ALLOWED_HOSTS (comma-separated).
+_ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+_extra_hosts = os.environ.get("KTS_ALLOWED_HOSTS", "")
+if _extra_hosts:
+    _ALLOWED_HOSTS.extend([h.strip() for h in _extra_hosts.split(",") if h.strip()])
 
 _WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
@@ -77,8 +85,8 @@ def _load_login_map() -> dict[str, str]:
         if not isinstance(udata, dict):
             continue
         login = udata.get("login")
-        if isinstance(login, str) and login:
-            mapping[login] = str(uid)
+        if isinstance(login, str) and login.strip():
+            mapping[login.strip().lower()] = str(uid)
     return mapping
 
 
@@ -87,38 +95,42 @@ def _resolve_api_identity(
     tailscale_login: str,
     client_host: str,
     table: TokenTable,
-) -> tuple[Optional[str], str, Optional[str], Optional[str], Optional[str]]:
+) -> tuple[Optional[str], str, Optional[str], Optional[str], str, str, Optional[str]]:
     """Resolve the actor for an API request.
 
-    Returns (actor_id, scope, token_id, label, error_reason). When
-    error_reason is non-None, authentication failed and the other values
-    must not be trusted.
+    Returns (actor_id, scope, token_id, label, actor_type, actor_name,
+    error_reason). When error_reason is non-None, authentication failed and
+    the other values must not be trusted.
 
     Identity is established by EITHER:
-      - an X-API-Token verified against the token table, or
+      - an X-API-Token verified against the token table (actor type
+        "automation", name = token label), or
       - a Tailscale-User-Login header, trusted ONLY when the request
-        arrives from 127.0.0.1 (W3).
+        arrives from 127.0.0.1 (W3) (actor type "human", name = login).
     """
     if presented_token:
         rec = table.verify(presented_token)
         if rec is None:
-            return None, "read", None, None, "missing or invalid token"
+            return None, "read", None, None, "automation", None, "missing or invalid token"
         return (
             rec.get("actor_id"),
             rec.get("scope", "read"),
             rec["token_id"],
             rec["label"],
+            "automation",
+            rec["label"],
             None,
         )
 
+    tailscale_login = tailscale_login.strip().lower()
     if tailscale_login and client_host == "127.0.0.1":
         login_map = _load_login_map()
         matched_uid = login_map.get(tailscale_login)
         if matched_uid is None:
-            return None, "read", None, None, "unknown tailscale login"
-        return matched_uid, "write", None, f"tailscale:{tailscale_login}", None
+            return None, "read", None, None, "human", None, "unknown tailscale login"
+        return matched_uid, "write", None, f"tailscale:{tailscale_login}", "human", tailscale_login, None
 
-    return None, "read", None, None, "missing or invalid token"
+    return None, "read", None, None, "automation", None, "missing or invalid token"
 
 # Ticket status values for T2. Must match Ticket.status Literal
 # (core/models) and TicketService.change_status's valid_statuses list.
@@ -512,10 +524,10 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
             return response
 
         presented_token = request.headers.get(HEADER, "")
-        tailscale_login = request.headers.get(TAILSCALE_LOGIN_HEADER, "")
+        tailscale_login = request.headers.get(TAILSCALE_LOGIN_HEADER, "").strip().lower()
         client_host = request.client.host if request.client else "unknown"
 
-        actor_id, token_scope, token_id, label, error_reason = (
+        actor_id, token_scope, token_id, label, actor_type, actor_name, error_reason = (
             _resolve_api_identity(presented_token, tailscale_login, client_host, table)
         )
         if error_reason is not None:
@@ -543,11 +555,43 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
                 status_code=403,
             )
 
+        # Login-identified requests (no token) are trusted only from loopback
+        # (W3). On unsafe methods, reject cross-site origins: a cross-site
+        # site or an Origin whose host differs from the Host header is a
+        # CSRF-style attempt and must be refused.
+        login_authenticated = token_id is None and actor_id is not None
+        if login_authenticated and request.method in _WRITE_METHODS:
+            denied = False
+            sec_fetch_site = request.headers.get("sec-fetch-site", "")
+            if sec_fetch_site == "cross-site":
+                denied = True
+            else:
+                origin = request.headers.get("origin", "")
+                if origin:
+                    origin_host = origin.split("://")[-1].split("/")[0].split(":")[0]
+                    host = request.headers.get("host", "").split(":")[0]
+                    if origin_host and origin_host != host:
+                        denied = True
+            if denied:
+                table.audit_request(
+                    method=request.method,
+                    path=request.url.path,
+                    status=403,
+                    latency_ms=int((time.perf_counter() - start) * 1000),
+                    source=client_host,
+                    reason="cross-site write denied",
+                )
+                return JSONResponse(
+                    {"detail": "cross-site write not permitted"}, status_code=403
+                )
+
         # attach for downstream
         request.state.token_id = token_id
         request.state.label = label
         request.state.scope = token_scope
         request.state.actor_id = actor_id
+        request.state.actor_type = actor_type
+        request.state.actor_name = actor_name
         if not actor_id:
             table.audit_request(
                 method=request.method,
@@ -571,6 +615,7 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
             latency_ms=int((time.perf_counter() - start) * 1000),
             token_id=token_id,
             label=label,
+            actor_id=actor_id,
         )
         return response
 
@@ -617,7 +662,7 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
     # so there is no prior version to check against; a bool/non-int
     # if_version still 422s for consistency with the update routes.
     @app.post("/api/tickets")
-    def create_ticket(body: dict):
+    def create_ticket(request: Request, body: dict):
         """T4 (MC-2): createTicket via the real write path (ticket sequence only).
 
         Allocates the next TKT id (TicketService.next_id), writes the vault
@@ -688,7 +733,11 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
                 status_code=400,
             )
 
-        actor = EventActor(id=request.state.actor_id, type="automation", name=request.state.label or "bridge")
+        actor = EventActor(
+            id=request.state.actor_id,
+            type=request.state.actor_type,
+            name=request.state.actor_name or request.state.label or "bridge",
+        )
         try:
             ticket = _api.create_ticket(data, actor)
         except ValueError as exc:
@@ -706,7 +755,7 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
         }
 
     @app.post("/api/tickets/{ticket_id}/worklog")
-    def add_worklog(ticket_id: str, body: dict):
+    def add_worklog(request: Request, ticket_id: str, body: dict):
         """T1 (MC-2): append a worklog entry via the real write path.
 
         Acts as BRIDGE_ACTOR (USR-000002, KTS Bridge). Requires
@@ -729,7 +778,11 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
                 {"detail": f"invalid worklog entry: {exc}"}, status_code=422
             )
 
-        actor = EventActor(id=request.state.actor_id, type="automation", name=request.state.label or "bridge")
+        actor = EventActor(
+            id=request.state.actor_id,
+            type=request.state.actor_type,
+            name=request.state.actor_name or request.state.label or "bridge",
+        )
         api = get_api()
         try:
             ticket = api.add_worklog(ticket_id, entry, actor, if_version=if_version)
@@ -757,7 +810,7 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
         }
 
     @app.post("/api/tickets/{ticket_id}/status")
-    def change_ticket_status(ticket_id: str, body: dict):
+    def change_ticket_status(request: Request, ticket_id: str, body: dict):
         """T2 (MC-2): change ticket status via the real write path.
 
         Status field only (plus optional reason for the event trail).
@@ -792,7 +845,11 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
         if if_err is not None:
             return if_err
 
-        actor = EventActor(id=request.state.actor_id, type="automation", name=request.state.label or "bridge")
+        actor = EventActor(
+            id=request.state.actor_id,
+            type=request.state.actor_type,
+            name=request.state.actor_name or request.state.label or "bridge",
+        )
         api = get_api()
         try:
             ticket = api.change_ticket_status(
@@ -823,7 +880,7 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
         }
 
     @app.patch("/api/tickets/{ticket_id}")
-    def update_ticket_fields(ticket_id: str, body: dict):
+    def update_ticket_fields(request: Request, ticket_id: str, body: dict):
         """T3 (MC-2): edit ticket fields via the real write path (update_ticket).
 
         Field edits only — no status (T2 route), no worklog (T1 route),
@@ -894,7 +951,11 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
                 status_code=400,
             )
 
-        actor = EventActor(id=request.state.actor_id, type="automation", name=request.state.label or "bridge")
+        actor = EventActor(
+            id=request.state.actor_id,
+            type=request.state.actor_type,
+            name=request.state.actor_name or request.state.label or "bridge",
+        )
         api = _api
         try:
             ticket = api.update_ticket(
@@ -925,7 +986,7 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
         }
 
     @app.post("/api/tasks")
-    def create_task(body: dict):
+    def create_task(request: Request, body: dict):
         """T5 (MC-2): create a task via the real write path (TaskService.next_id + create).
 
         title is required; optional fields are whitelisted. id/type/version/status
@@ -993,7 +1054,11 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
                 status_code=400,
             )
 
-        actor = EventActor(id=request.state.actor_id, type="automation", name=request.state.label or "bridge")
+        actor = EventActor(
+            id=request.state.actor_id,
+            type=request.state.actor_type,
+            name=request.state.actor_name or request.state.label or "bridge",
+        )
         try:
             task = _api.create_task(data, actor)
         except ValueError as exc:
@@ -1011,7 +1076,7 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
         }
 
     @app.post("/api/knowledge")
-    def create_knowledge(body: dict):
+    def create_knowledge(request: Request, body: dict):
         """T7 (MC-2): create a knowledge article via the real write path.
 
         Allocates the KB sequence (KnowledgeService.next_id) and writes via the
@@ -1092,7 +1157,11 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
                 status_code=403,
             )
 
-        actor = EventActor(id=request.state.actor_id, type="automation", name=request.state.label or "bridge")
+        actor = EventActor(
+            id=request.state.actor_id,
+            type=request.state.actor_type,
+            name=request.state.actor_name or request.state.label or "bridge",
+        )
         try:
             knowledge = _api.create_knowledge(data, actor)
         except ValueError as exc:
@@ -1112,7 +1181,7 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
         }
 
     @app.patch("/api/knowledge/{knowledge_id}")
-    def update_knowledge_fields(knowledge_id: str, body: dict):
+    def update_knowledge_fields(request: Request, knowledge_id: str, body: dict):
         """T7 (MC-2): edit knowledge fields via the real write path.
 
         Field edits only — no status (system-owned, publish flow), no id/type/
@@ -1182,7 +1251,11 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
                 status_code=403,
             )
 
-        actor = EventActor(id=request.state.actor_id, type="automation", name=request.state.label or "bridge")
+        actor = EventActor(
+            id=request.state.actor_id,
+            type=request.state.actor_type,
+            name=request.state.actor_name or request.state.label or "bridge",
+        )
         try:
             knowledge = _api.update_knowledge(
                 knowledge_id, changes, actor, reason=reason, if_version=if_version
@@ -1210,6 +1283,10 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
             "updated_by": knowledge.updated_by,
             "actor": request.state.actor_id,
         }
+
+    # TrustedHostMiddleware runs outermost (added last), so a forged Host
+    # header is rejected with 400 before authentication runs (W5.3).
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=_ALLOWED_HOSTS)
 
     return app
 

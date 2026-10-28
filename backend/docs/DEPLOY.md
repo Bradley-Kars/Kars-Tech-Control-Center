@@ -11,8 +11,12 @@ From the repository root:
 
 ```sh
 cd backend
-uvicorn core.bridge:app --host 127.0.0.1 --port 8799
+uvicorn core.bridge:app --host 127.0.0.1 --port 8799 --no-proxy-headers
 ```
+
+`--no-proxy-headers` is required: uvicorn must not rewrite
+`request.client` from `X-Forwarded-For`, so the bridge's loopback check
+(W3) keeps trusting traffic proxied by tailscale serve.
 
 The app never binds/listens by itself; the host/port are set at launch and
 must always be `127.0.0.1`. Do **not** expose the bridge port directly on the
@@ -27,17 +31,18 @@ curl -s http://127.0.0.1:8799/api/health   # 401 without a token
 ## 2. Expose via Tailscale (tailnet only, no Funnel)
 
 Tailscale serve publishes a local port on the tailnet without opening it to
-the internet. Do **not** use `tailscale serve --https`/Funnel for the bridge;
-keep it tailnet-only.
+the internet. Funnel is the public-facing exposure and is **never** used for
+the bridge; keep it tailnet-only.
 
 From the machine running the bridge:
 
 ```sh
-# Serve the bridge (127.0.0.1:8799) at the tailnet root path
-tailscale serve 127.0.0.1:8799 /
+# Serve the bridge (127.0.0.1:8799) on the tailnet
+tailscale serve --bg 8799
 ```
 
-Then check `tailscale serve status` and reach it from any tailnet device at
+Confirm the syntax with `tailscale serve --help`, then check
+`tailscale serve status`. Reach the bridge from any tailnet device at
 `https://<this-machine>.your-tailnet.ts.net/` (tailscale serve terminates TLS
 and forwards to 127.0.0.1:8799). Because the bridge only binds loopback, the
 only way to reach it from another tailnet node is via this serve proxy.
@@ -56,7 +61,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/home/<user>/GitHub/Kars-Tech-Control-Center/backend
-ExecStart=/usr/bin/uvicorn core.bridge:app --host 127.0.0.1 --port 8799
+ExecStart=/usr/bin/uvicorn core.bridge:app --host 127.0.0.1 --port 8799 --no-proxy-headers
 Restart=on-failure
 RestartSec=5
 # The bridge binds loopback only; it is reached from the tailnet via
@@ -120,14 +125,20 @@ Rules:
   `config/users.yaml` (test fixture only; never edit the real
   `~/.ticketing/config/users.yaml`).
 
+### Trust model
+
+Trusting the `Tailscale-User-Login` header from loopback means any local
+process on the bridge host can impersonate a logged-in user by forging that
+header. This is acceptable only on a single-user host; do not expose the
+bridge to untrusted local processes.
+
 ## 6. Security reminders
 
 - The bridge binds loopback only. Do not change `--host` to `0.0.0.0` or
   expose port 8799 directly.
 - Access from the tailnet goes through `tailscale serve`, which terminates
   TLS and forwards to `127.0.0.1:8799`.
-- Keep `tailscale serve` tailnet-only; do not enable Funnel/--https for the
-  bridge.
+- Keep `tailscale serve` tailnet-only; Funnel is never used for the bridge.
 - Review `tailscale serve status` and `systemctl --user status kts-bridge`
   periodically.
 - API tokens are scoped (read/write). Write tokens may call mutating routes
