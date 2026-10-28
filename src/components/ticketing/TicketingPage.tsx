@@ -1,18 +1,30 @@
-// MC-1b — Ticketing section with live sandbox bridge + OFF-1 fallback with distinct states.
+// MC-1b — Ticketing section backed by the KTS bridge API (fetch, W2/W3).
+// No @tauri-apps imports: data flows through src/lib/api.ts (same origin,
+// API under /api). Identity comes from the bridge (X-API-Token or the
+// Tailscale-User-Login header it trusts from loopback, W3).
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card } from '../ui/Card';
 import { Badge, StatusBadge } from '../ui/Badge';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Label } from '../ui/Label';
-import { invoke } from '@tauri-apps/api/core';
+import {
+  addWorklog,
+  changeTicketStatus,
+  createTicket,
+  listTickets,
+  type CreateTicketInput,
+  type TicketSummary,
+  type WorklogEntryInput,
+} from '../../lib/api';
 
 interface TicketRow {
   id: string;
   title: string;
   status: string;
   client_id: string;
+  priority?: string;
   hours: number;
   total: number;
   invoice_number: string | null;
@@ -36,8 +48,6 @@ interface Overview {
   outstanding: number;
 }
 
-type OfflineReason = 'none' | 'unreachable' | 'unauthorized' | 'bad_response';
-
 interface TicketingOverview {
   overview: Overview;
   tickets: TicketRow[];
@@ -48,11 +58,23 @@ interface TicketingOverview {
 
 const BRIDGE_URL_DEFAULT = 'http://127.0.0.1:8799';
 
-function StatCard({ label, value, tone }: { label: string; value: number | string; tone?: 'default' | 'amber' | 'red' }) {
+const CLOSED_STATUSES = new Set(['closed', 'cancelled', 'resolved']);
+
+function StatCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number | string;
+  tone?: 'default' | 'amber' | 'red';
+}) {
   return (
     <Card variant={tone ?? 'subtle'} className="flex-1 min-w-[140px]" data-testid={`stat-${label.toLowerCase()}`}>
       <div className="text-sm opacity-70">{label}</div>
-      <div className="text-3xl font-semibold mt-1" data-testid={`stat-${label.toLowerCase()}-value`}>{value}</div>
+      <div className="text-3xl font-semibold mt-1" data-testid={`stat-${label.toLowerCase()}-value`}>
+        {value}
+      </div>
     </Card>
   );
 }
@@ -70,6 +92,41 @@ function offlineReasonLabel(reason: string): string {
   }
 }
 
+function mapOverview(tickets: TicketSummary[]): TicketingOverview {
+  const rows: TicketRow[] = tickets.map((t) => ({
+    id: t.id,
+    title: t.title,
+    status: t.status,
+    client_id: t.client_name ?? '',
+    priority: t.priority,
+    hours: 0,
+    total: 0,
+    invoice_number: null,
+    no_charge: false,
+  }));
+
+  const open = rows.filter((t) => !CLOSED_STATUSES.has(t.status)).length;
+  const critical = rows.filter((t) => t.priority === 'critical').length;
+
+  const overview: Overview = {
+    open,
+    critical,
+    overdue: 0,
+    tickets_total: rows.length,
+    invoices_total: 0,
+    collected: 0,
+    outstanding: 0,
+  };
+
+  return {
+    overview,
+    tickets: rows,
+    invoices: [],
+    from_mock: false,
+    offline_reason: 'none',
+  };
+}
+
 export function TicketingPage() {
   const [data, setData] = useState<TicketingOverview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,43 +140,65 @@ export function TicketingPage() {
 
   useEffect(() => {
     let mounted = true;
-    invoke<TicketingOverview>('ticketing_overview')
-      .then((res) => {
+    (async () => {
+      try {
+        const res = await listTickets();
         if (mounted) {
-          setData(res);
+          setData(mapOverview(res.tickets));
           setLoading(false);
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         if (mounted) {
-          console.error('[ticketing] invoke failed:', err);
+          console.error('[ticketing] list failed:', err);
+          const offline: TicketingOverview = {
+            overview: {
+              open: 0,
+              critical: 0,
+              overdue: 0,
+              tickets_total: 0,
+              invoices_total: 0,
+              collected: 0,
+              outstanding: 0,
+            },
+            tickets: [],
+            invoices: [],
+            from_mock: false,
+            offline_reason: (err as { status?: number }).status === 401 ? 'unauthorized' : 'unreachable',
+          };
+          setData(offline);
           setLoading(false);
         }
-      });
-    return () => { mounted = false; };
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
+
+  const refetch = async (): Promise<void> => {
+    try {
+      const res = await listTickets();
+      setData(mapOverview(res.tickets));
+    } catch (err) {
+      console.error('[ticketing] refetch failed:', err);
+    }
+  };
 
   // Create ticket
   const handleCreateTicket = async () => {
     if (!createTitle.trim()) return;
     try {
-      const created = await invoke<TicketRow>('ticketing_create_ticket', {
-        text: createTitle,
+      const input: CreateTicketInput = {
+        title: createTitle,
         priority: createPriority,
         category: createCategory || undefined,
-      });
-      setData((d) => ({
-        ...d!,
-        tickets: [created, ...(d?.tickets ?? [])],
-        overview: {
-          ...d!.overview,
-          tickets_total: d!.overview.tickets_total + 1,
-        },
-      }));
+      };
+      await createTicket(input);
       setCreateTitle('');
       setCreatePriority('medium');
       setCreateCategory('');
       setCreating(false);
+      await refetch();
     } catch (err) {
       console.error('[ticketing] create failed:', err);
       alert(`Failed to create ticket: ${err}`);
@@ -131,18 +210,17 @@ export function TicketingPage() {
     if (!selected) return;
     if (!worklogEntry.trim()) return;
     try {
-      await invoke('ticketing_add_worklog', {
-        ticket_id: selected.id,
+      const input: WorklogEntryInput = {
         entry: worklogEntry,
         hours: worklogHours,
         payment: 'uninvoiced',
-      });
+      };
+      await addWorklog(selected.id, input);
       setWorklogEntry('');
       setWorklogHours(0.5);
-      // Refresh to reflect updated ticket
-      const refreshed = await invoke<TicketingOverview>('ticketing_overview');
-      setData(refreshed);
-      setSelected(refreshed.tickets.find((t) => t.id === selected.id) ?? null);
+      await refetch();
+      const refreshed = await listTickets();
+      setSelected(mapOverview(refreshed.tickets).tickets.find((t) => t.id === selected.id) ?? null);
     } catch (err) {
       console.error('[ticketing] worklog failed:', err);
       alert(`Failed to add worklog: ${err}`);
@@ -153,14 +231,12 @@ export function TicketingPage() {
   const handleChangeStatus = async (newStatus: string) => {
     if (!selected) return;
     try {
-      await invoke('ticketing_change_status', {
-        ticket_id: selected.id,
-        status: newStatus,
-      });
-      // Refresh to reflect updated ticket
-      const refreshed = await invoke<TicketingOverview>('ticketing_overview');
-      setData(refreshed);
-      setSelected(refreshed.tickets.find((t) => t.id === selected.id) ?? selected);
+      await changeTicketStatus(selected.id, newStatus);
+      await refetch();
+      const refreshed = await listTickets();
+      setSelected(
+        mapOverview(refreshed.tickets).tickets.find((t) => t.id === selected.id) ?? selected,
+      );
     } catch (err) {
       console.error('[ticketing] status change failed:', err);
       alert(`Failed to change status: ${err}`);
@@ -183,7 +259,8 @@ export function TicketingPage() {
     offline_reason: 'none',
   };
 
-  // Live bridge doesn't send hours/total/invoice_number - detect live data
+  // Live data carries no hours/total/invoice_number — detect and show n/a
+  // rather than fabricating money figures.
   const isLiveData = !from_mock && offline_reason === 'none';
 
   return (
@@ -254,10 +331,7 @@ export function TicketingPage() {
               </div>
             </div>
             <div className="flex gap-2 mt-2">
-              <Button
-                onClick={handleCreateTicket}
-                disabled={!createTitle.trim()}
-              >
+              <Button onClick={handleCreateTicket} disabled={!createTitle.trim()}>
                 Create
               </Button>
               <Button
@@ -279,7 +353,11 @@ export function TicketingPage() {
       {/* Cards */}
       <div className="flex flex-wrap gap-4">
         <StatCard label="Open" value={overview.open} />
-        <StatCard label="Critical" value={overview.critical} tone={overview.critical > 0 ? 'red' : undefined} />
+        <StatCard
+          label="Critical"
+          value={overview.critical}
+          tone={overview.critical > 0 ? 'red' : undefined}
+        />
         {/* Live data carries no hours/total/due-date, so "overdue" cannot be computed:
             show n/a rather than a fabricated 0. Same for Collected below. */}
         <StatCard
@@ -409,7 +487,12 @@ export function TicketingPage() {
           </div>
           <div>
             Set <code>use_live_bridge: true</code> and provide <code>bridge_token</code> to enable live data.
-            Current mode: {from_mock ? 'MC-1 (mock)' : data?.offline_reason && data.offline_reason !== 'none' ? 'OFF-1 (' + offlineReasonLabel(data.offline_reason) + ')' : 'MC-1b (live)'}.
+            Current mode:{' '}
+            {from_mock
+              ? 'MC-1 (mock)'
+              : data?.offline_reason && data.offline_reason !== 'none'
+              ? 'OFF-1 (' + offlineReasonLabel(data.offline_reason) + ')'
+              : 'MC-1b (live)'}.
           </div>
         </div>
       </Card>

@@ -7,6 +7,7 @@ export * from './Card';
 export * from './Button';
 export * from './Badge';
 export * from './Input';
+export * from './Label';
 export * from './Gauge';
 export * from './Skeleton';
 export * from './Modal';
