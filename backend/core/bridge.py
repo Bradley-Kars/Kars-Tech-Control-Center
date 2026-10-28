@@ -29,11 +29,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+import yaml
+
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 
 from .auth import TokenTable, HEADER, default_token_table
 from . import paths
+from .safe_io import safe_read
 from .services.ticket_service import VersionMismatch
 
 
@@ -43,6 +46,79 @@ from .services.ticket_service import VersionMismatch
 BRIDGE_ACTOR_NAME = "KTS Bridge"
 
 _WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+# Header tailscale serve adds to loopback requests; trusted ONLY from 127.0.0.1
+# (W3). Tagged devices and Funnel traffic carry no header, so a spoofed
+# header from anywhere else is never honored.
+TAILSCALE_LOGIN_HEADER = "Tailscale-User-Login"
+
+
+def _load_login_map() -> dict[str, str]:
+    """Map a Tailscale login email -> user id from config/users.yaml.
+
+    Reads the optional "login" field on each users.yaml entry. Missing or
+    malformed users.yaml -> empty map (deny all). Reads config/users.yaml
+    under the (sandbox) home root, never the real vault.
+    """
+    users_file = paths.config_dir() / "users.yaml"
+    if not users_file.exists():
+        return {}
+    try:
+        config = yaml.safe_load(safe_read(users_file))
+    except Exception:
+        return {}
+    if not isinstance(config, dict):
+        return {}
+    users = config.get("users", {})
+    if not isinstance(users, dict):
+        return {}
+    mapping: dict[str, str] = {}
+    for uid, udata in users.items():
+        if not isinstance(udata, dict):
+            continue
+        login = udata.get("login")
+        if isinstance(login, str) and login:
+            mapping[login] = str(uid)
+    return mapping
+
+
+def _resolve_api_identity(
+    presented_token: str,
+    tailscale_login: str,
+    client_host: str,
+    table: TokenTable,
+) -> tuple[Optional[str], str, Optional[str], Optional[str], Optional[str]]:
+    """Resolve the actor for an API request.
+
+    Returns (actor_id, scope, token_id, label, error_reason). When
+    error_reason is non-None, authentication failed and the other values
+    must not be trusted.
+
+    Identity is established by EITHER:
+      - an X-API-Token verified against the token table, or
+      - a Tailscale-User-Login header, trusted ONLY when the request
+        arrives from 127.0.0.1 (W3).
+    """
+    if presented_token:
+        rec = table.verify(presented_token)
+        if rec is None:
+            return None, "read", None, None, "missing or invalid token"
+        return (
+            rec.get("actor_id"),
+            rec.get("scope", "read"),
+            rec["token_id"],
+            rec["label"],
+            None,
+        )
+
+    if tailscale_login and client_host == "127.0.0.1":
+        login_map = _load_login_map()
+        matched_uid = login_map.get(tailscale_login)
+        if matched_uid is None:
+            return None, "read", None, None, "unknown tailscale login"
+        return matched_uid, "write", None, f"tailscale:{tailscale_login}", None
+
+    return None, "read", None, None, "missing or invalid token"
 
 # Ticket status values for T2. Must match Ticket.status Literal
 # (core/models) and TicketService.change_status's valid_statuses list.
@@ -417,8 +493,13 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
 
     @app.middleware("http")
     async def require_token(request: Request, call_next):
-        """Middleware that validates X-API-Token on EVERY API request.
-        No IP-based bypass anywhere.
+        """Middleware that authenticates every API request.
+
+        Identity is established by EITHER:
+          - an X-API-Token verified against the token table, or
+          - a Tailscale-User-Login header, trusted ONLY when the request
+            arrives from 127.0.0.1 (W3).
+        No IP-based bypass anywhere else.
         Enforces token scope: write methods need scope="write".
 
         Static frontend assets and the SPA fallback (served at /, W1) are
@@ -429,25 +510,25 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
         if not request.url.path.startswith("/api"):
             response = await call_next(request)
             return response
-        presented = request.headers.get(HEADER, "")
-        rec = table.verify(presented) if presented else None
+
+        presented_token = request.headers.get(HEADER, "")
+        tailscale_login = request.headers.get(TAILSCALE_LOGIN_HEADER, "")
         client_host = request.client.host if request.client else "unknown"
 
-        if rec is None:
-            # auth failure audit
+        actor_id, token_scope, token_id, label, error_reason = (
+            _resolve_api_identity(presented_token, tailscale_login, client_host, table)
+        )
+        if error_reason is not None:
             table.audit_request(
                 method=request.method,
                 path=request.url.path,
                 status=401,
                 latency_ms=int((time.perf_counter() - start) * 1000),
                 source=client_host,
-                reason="missing or invalid token",
+                reason=error_reason,
             )
-            return JSONResponse(
-                {"detail": "missing or invalid token"}, status_code=401
-            )
+            return JSONResponse({"detail": error_reason}, status_code=401)
 
-        token_scope = rec.get("scope", "read")
         if request.method in _WRITE_METHODS and token_scope != "write":
             table.audit_request(
                 method=request.method,
@@ -463,11 +544,11 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
             )
 
         # attach for downstream
-        request.state.token_id = rec["token_id"]
-        request.state.label = rec["label"]
+        request.state.token_id = token_id
+        request.state.label = label
         request.state.scope = token_scope
-        request.state.actor_id = rec.get("actor_id")
-        if not request.state.actor_id:
+        request.state.actor_id = actor_id
+        if not actor_id:
             table.audit_request(
                 method=request.method,
                 path=request.url.path,
@@ -488,8 +569,8 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
             path=request.url.path,
             status=response.status_code,
             latency_ms=int((time.perf_counter() - start) * 1000),
-            token_id=rec["token_id"],
-            label=rec["label"],
+            token_id=token_id,
+            label=label,
         )
         return response
 

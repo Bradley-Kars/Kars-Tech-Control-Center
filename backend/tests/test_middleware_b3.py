@@ -11,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from core.auth import TokenTable
-from core.bridge import create_app
+from core.bridge import TAILSCALE_LOGIN_HEADER, _load_login_map, _resolve_api_identity, create_app
 
 
 def _mint_no_actor(table: TokenTable) -> str:
@@ -62,3 +62,97 @@ def test_token_with_actor_id_passes(tmp_path: Path):
     # no auth_fail recorded for this request
     fails = _auth_fail_reasons(table.audit_path)
     assert not any(f.get("path") == "/api/health" for f in fails), fails
+
+
+def test_load_login_map_reads_users_yaml():
+    mapping = _load_login_map()
+    assert mapping == {
+        "user@example.com": "USR-000001",
+        "bridge.operator@example.com": "USR-000002",
+    }
+
+
+def test_resolve_api_identity_token_verified():
+    import tempfile
+
+    table = TokenTable(Path(tempfile.mkdtemp()) / "token-table.json")
+    _token_id, secret = table.mint("tok", scope="write", actor_id="USR-000001")
+    actor_id, scope, token_id, label, error = _resolve_api_identity(
+        secret, "", "127.0.0.1", table
+    )
+    assert error is None
+    assert actor_id == "USR-000001"
+    assert scope == "write"
+    assert token_id is not None
+    assert label == "tok"
+
+
+def test_resolve_api_identity_tailscale_success_trusted_host():
+    import tempfile
+
+    table = TokenTable(Path(tempfile.mkdtemp()) / "token-table.json")
+    actor_id, scope, token_id, label, error = _resolve_api_identity(
+        "", "user@example.com", "127.0.0.1", table
+    )
+    assert error is None
+    assert actor_id == "USR-000001"
+    assert scope == "write"
+    assert token_id is None
+    assert label == "tailscale:user@example.com"
+
+
+def test_resolve_api_identity_tailscale_unknown_login():
+    import tempfile
+
+    table = TokenTable(Path(tempfile.mkdtemp()) / "token-table.json")
+    actor_id, scope, token_id, label, error = _resolve_api_identity(
+        "", "nobody@example.com", "127.0.0.1", table
+    )
+    assert error == "unknown tailscale login"
+    assert actor_id is None
+
+
+def test_resolve_api_identity_tailscale_untrusted_host():
+    import tempfile
+
+    table = TokenTable(Path(tempfile.mkdtemp()) / "token-table.json")
+    # TestClient's client.host is "testclient", not 127.0.0.1, so a
+    # Tailscale header from anywhere but loopback is rejected.
+    actor_id, scope, token_id, label, error = _resolve_api_identity(
+        "", "user@example.com", "testclient", table
+    )
+    assert error == "missing or invalid token"
+    assert actor_id is None
+
+
+def test_resolve_api_identity_no_credentials():
+    import tempfile
+
+    table = TokenTable(Path(tempfile.mkdtemp()) / "token-table.json")
+    actor_id, scope, token_id, label, error = _resolve_api_identity(
+        "", "", "127.0.0.1", table
+    )
+    assert error == "missing or invalid token"
+    assert actor_id is None
+
+
+def test_middleware_tailscale_login_from_untrusted_host_401(tmp_path: Path):
+    import tempfile
+
+    table = TokenTable(tmp_path / "token-table.json")
+    app = create_app(table)
+    client = TestClient(app, raise_server_exceptions=False)
+    # TestClient's client.host is "testclient", not 127.0.0.1, so the
+    # Tailscale header is not trusted (IP gate).
+    r = client.get(
+        "/api/health", headers={"Tailscale-User-Login": "user@example.com"}
+    )
+    assert r.status_code == 401, r.text
+
+
+def test_middleware_no_credentials_401(tmp_path: Path):
+    table = TokenTable(tmp_path / "token-table.json")
+    app = create_app(table)
+    client = TestClient(app, raise_server_exceptions=False)
+    r = client.get("/api/health")
+    assert r.status_code == 401, r.text

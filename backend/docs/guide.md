@@ -68,3 +68,30 @@ PY
   next `verify()`.
 - The live bridge (`~/.config/kts/bridge-token`, systemd on `127.0.0.1:8799`)
   is off-limits for edits/restarts unless the maintainer authorizes promotion.
+
+## Bridge identity — API token or Tailscale login (W3)
+
+The middleware authenticates every API request by EITHER:
+
+- an `X-API-Token` verified against the token table (`core/auth.py`), or
+- a `Tailscale-User-Login` header, trusted **only** when the request arrives
+  from `127.0.0.1` (the bridge listens on loopback only, and tailscale serve
+  strips spoofed headers; tagged devices and Funnel traffic carry no header).
+
+The login email is mapped to a user via the optional `login` field on each
+entry in `config/users.yaml` (never `~/.ticketing` directly):
+
+```yaml
+users:
+  USR-000002:
+    id: "USR-000002"
+    ...
+    login: "bridge.operator@example.com"
+    role: "technician"
+```
+
+Unknown login or no credentials → `401`, audited as `auth_fail` with the
+source and reason. The login mapping is read from `config/users.yaml`
+(home root), never from the vault, and missing/malformed users.yaml denies
+all (fail-closed). Add `login` to the test fixture only; never edit the real
+`~/.ticketing/config/users.yaml`.
