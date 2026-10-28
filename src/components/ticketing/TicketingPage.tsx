@@ -1,11 +1,13 @@
-// MC-1b — Ticketing section backed by the KTS bridge API (fetch, W2/W3).
-// No @tauri-apps imports: data flows through src/lib/api.ts (same origin,
+// MC-1b — Ticketing page (W1/W2)
+// Mobile-first, reuse existing UI components (Card, Badge, Input, Button, Label).
+// No @tauri-apps imports — data flows through src/lib/api.ts (same origin,
 // API under /api). Identity comes from the bridge (X-API-Token or the
 // Tailscale-User-Login header it trusts from loopback, W3).
+// No new libraries.
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Card } from '../ui/Card';
-import { Badge, StatusBadge } from '../ui/Badge';
+import { Badge } from '../ui/Badge';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Label } from '../ui/Label';
@@ -14,10 +16,15 @@ import {
   changeTicketStatus,
   createTicket,
   listTickets,
+  updateTicket,
   type CreateTicketInput,
   type TicketSummary,
   type WorklogEntryInput,
 } from '../../lib/api';
+
+/* ------------------------------------------------------------------ */
+/* Types                                                              */
+/* ------------------------------------------------------------------ */
 
 interface TicketRow {
   id: string;
@@ -25,149 +32,211 @@ interface TicketRow {
   status: string;
   client_id: string;
   priority?: string;
+  category?: string;
   hours: number;
   total: number;
   invoice_number: string | null;
   no_charge: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
-interface InvoiceRow {
-  number: string;
-  ticket_id: string;
-  total: number;
-  no_charge: boolean;
-}
-
-interface Overview {
-  open: number;
-  critical: number;
-  overdue: number;
-  tickets_total: number;
-  invoices_total: number;
-  collected: number;
-  outstanding: number;
-}
-
-interface TicketingOverview {
-  overview: Overview;
+interface TicketOverview {
   tickets: TicketRow[];
-  invoices: InvoiceRow[];
   from_mock: boolean;
-  offline_reason: 'none' | 'unreachable' | 'unauthorized' | 'bad_response';
+  offline_reason: 'none' | 'unreachable' | 'unauthorized' | 'bad_response' | 'other';
 }
-
-const BRIDGE_URL_DEFAULT = 'http://127.0.0.1:8799';
 
 const CLOSED_STATUSES = new Set(['closed', 'cancelled', 'resolved']);
+const OPEN_STATUSES = new Set(['new', 'open', 'in-progress', 'triaged', 'waiting']);
+const WAITING_STATUSES = new Set(['waiting', 'pending']);
 
-function StatCard({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number | string;
-  tone?: 'default' | 'amber' | 'red';
-}) {
+const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
+
+// ------------------------------------------------------------------ */
+/* Small components                                                   */
+/* ------------------------------------------------------------------ */
+
+function StatusChip({ status }: { status: string }) {
+  const isClosed = CLOSED_STATUSES.has(status);
+  const isWaiting = WAITING_STATUSES.has(status);
+  const variant =
+    isClosed ? 'subtle' : isWaiting ? 'amber' : status === 'in-progress' ? 'brand' : 'default';
   return (
-    <Card variant={tone ?? 'subtle'} className="flex-1 min-w-[140px]" data-testid={`stat-${label.toLowerCase()}`}>
-      <div className="text-sm opacity-70">{label}</div>
-      <div className="text-3xl font-semibold mt-1" data-testid={`stat-${label.toLowerCase()}-value`}>
-        {value}
+    <Badge variant={variant} size="xs">
+      {status.charAt(0).toUpperCase() + status.slice(1)}
+    </Badge>
+  );
+}
+
+function PriorityChip({ priority }: { priority?: string }) {
+  const variant =
+    priority === 'high' ? 'danger' : priority === 'medium' ? 'amber' : 'subtle';
+  return (
+    <Badge variant={variant} size="xs">
+      {priority ? priority.charAt(0).toUpperCase() + priority.slice(1) : '—'}
+    </Badge>
+  );
+}
+
+function ErrorBanner({ error, onRetry }: { error: string; onRetry: () => void }) {
+  return (
+    <Card variant="amber" className="p-4">
+      <div className="flex items-center gap-3">
+        <span className="text-lg font-bold">⚠</span>
+        <div className="flex-1">
+          <div className="text-sm font-semibold">{error}</div>
+          <Button variant="outline" size="sm" onClick={onRetry}>
+            Retry
+          </Button>
+        </div>
       </div>
     </Card>
   );
 }
 
-function offlineReasonLabel(reason: string): string {
-  switch (reason) {
-    case 'unreachable':
-      return 'Unreachable (network/timeout)';
-    case 'unauthorized':
-      return 'Unauthorized (401)';
-    case 'bad_response':
-      return 'Bad response (parse/format error)';
-    default:
-      return 'Unknown';
-  }
+function StatCard({ label, value }: { label: string; value: number | string }) {
+  return (
+    <Card variant="subtle" className="flex-1 min-w-[140px] p-4">
+      <div className="text-sm opacity-70">{label}</div>
+      <div className="text-3xl font-semibold mt-1">{value}</div>
+    </Card>
+  );
 }
 
-function mapOverview(tickets: TicketSummary[]): TicketingOverview {
-  const rows: TicketRow[] = tickets.map((t) => ({
-    id: t.id,
-    title: t.title,
-    status: t.status,
-    client_id: t.client_name ?? '',
-    priority: t.priority,
-    hours: 0,
-    total: 0,
-    invoice_number: null,
-    no_charge: false,
-  }));
+function TicketRowItem({ ticket, onSelect }: { ticket: TicketRow; onSelect: (t: TicketRow) => void }) {
+  const isClosed = CLOSED_STATUSES.has(ticket.status);
+  const isWaiting = WAITING_STATUSES.has(ticket.status);
+  const isOverdue = false; // No due dates in current data model
 
-  const open = rows.filter((t) => !CLOSED_STATUSES.has(t.status)).length;
-  const critical = rows.filter((t) => t.priority === 'critical').length;
-
-  const overview: Overview = {
-    open,
-    critical,
-    overdue: 0,
-    tickets_total: rows.length,
-    invoices_total: 0,
-    collected: 0,
-    outstanding: 0,
-  };
-
-  return {
-    overview,
-    tickets: rows,
-    invoices: [],
-    from_mock: false,
-    offline_reason: 'none',
-  };
+  return (
+    <button
+      onClick={() => onSelect(ticket)}
+      className={`flex flex-col gap-2 p-3 rounded-lg border border-[var(--kts-border-default)] cursor-pointer transition-all duration-200 ${isClosed ? 'opacity-50 grayscale-[0.5]' : 'hover:bg-[var(--kts-bg-tertiary)] hover:border-[var(--kts-border-focus)]'}`}
+    >
+      <div className="flex items-center justify-between">
+        <div className="font-mono text-sm">{ticket.id}</div>
+        <div className="flex items-center gap-2">
+          <PriorityChip priority={ticket.priority} />
+          <StatusChip status={ticket.status} />
+        </div>
+      </div>
+      <div className="mt-2 font-semibold">{ticket.title}</div>
+      <div className="flex items-center gap-4 text-sm text-[var(--kts-text-secondary)]">
+        <span className="font-mono">{ticket.client_id}</span>
+        {isOverdue && <span className="text-[var(--kts-status-error)]">Overdue</span>}
+      </div>
+    </button>
+  );
 }
+
+// ------------------------------------------------------------------ */
+/* TicketingPage                                                      */
+/* ------------------------------------------------------------------ */
 
 export function TicketingPage() {
-  const [data, setData] = useState<TicketingOverview | null>(null);
+  const [data, setData] = useState<TicketOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<TicketRow | null>(null);
   const [creating, setCreating] = useState(false);
   const [createTitle, setCreateTitle] = useState('');
+  const [createClient, setCreateClient] = useState('');
   const [createPriority, setCreatePriority] = useState('medium');
-  const [createCategory, setCreateCategory] = useState('');
-  const [worklogEntry, setWorklogEntry] = useState('');
-  const [worklogHours, setWorklogHours] = useState(0.5);
 
+  // Filter state
+  const [filterStatus, setFilterStatus] = useState<'all' | 'open' | 'picks' | 'closed'>('all');
+  const [searchText, setSearchText] = useState('');
+  const [sortBy, setSortBy] = useState<'rating' | 'capture_date' | 'edit_date'>('rating');
+
+  // View mode (mobile vs desktop)
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Filtered & sorted tickets
+  const filteredTickets = useMemo(() => {
+    if (!data) return [];
+    let result = [...data.tickets];
+
+    // Filter by status
+    if (filterStatus !== 'all') {
+      if (filterStatus === 'open') {
+        result = result.filter((t) => !CLOSED_STATUSES.has(t.status));
+      } else if (filterStatus === 'picks') {
+        result = result.filter((t) => !CLOSED_STATUSES.has(t.status));
+      } else if (filterStatus === 'closed') {
+        result = result.filter((t) => CLOSED_STATUSES.has(t.status));
+      }
+    }
+
+    // Search
+    if (searchText.trim()) {
+      const s = searchText.toLowerCase();
+      result = result.filter(
+        (t) =>
+          t.id.toLowerCase().includes(s) ||
+          t.title.toLowerCase().includes(s) ||
+          t.client_id.toLowerCase().includes(s),
+      );
+    }
+
+    // Sort
+    if (sortBy === 'rating') {
+      result = result.sort((a, b) => {
+        const pa = PRIORITY_ORDER[a.priority ?? 'medium'] ?? 1;
+        const pb = PRIORITY_ORDER[b.priority ?? 'medium'] ?? 1;
+        return pa - pb;
+      });
+    } else if (sortBy === 'capture_date') {
+      result = result.sort((a, b) => a.id.localeCompare(b.id));
+    } else if (sortBy === 'edit_date') {
+      result = result.sort((a, b) => a.id.localeCompare(b.id));
+    }
+
+    return result;
+  }, [data, filterStatus, searchText, sortBy]);
+
+  // View mode (mobile vs desktop)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  // Fetch tickets on mount
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
+        setLoading(true);
         const res = await listTickets();
         if (mounted) {
-          setData(mapOverview(res.tickets));
-          setLoading(false);
+          setData({
+            tickets: res.tickets.map((t) => ({
+              id: t.id,
+              title: t.title,
+              status: t.status,
+              client_id: t.client_id ?? '',
+              priority: t.priority ?? 'medium',
+              hours: 0,
+              total: 0,
+              invoice_number: null,
+              no_charge: false,
+            })),
+            offline_reason: 'none',
+          });
         }
       } catch (err) {
         if (mounted) {
           console.error('[ticketing] list failed:', err);
-          const offline: TicketingOverview = {
-            overview: {
-              open: 0,
-              critical: 0,
-              overdue: 0,
-              tickets_total: 0,
-              invoices_total: 0,
-              collected: 0,
-              outstanding: 0,
-            },
+          setData({
             tickets: [],
-            invoices: [],
             from_mock: false,
             offline_reason: (err as { status?: number }).status === 401 ? 'unauthorized' : 'unreachable',
-          };
-          setData(offline);
-          setLoading(false);
+          });
         }
+      } finally {
+        if (mounted) setLoading(false);
       }
     })();
     return () => {
@@ -175,28 +244,49 @@ export function TicketingPage() {
     };
   }, []);
 
-  const refetch = async (): Promise<void> => {
+  const refetch = async () => {
     try {
       const res = await listTickets();
-      setData(mapOverview(res.tickets));
+      setData({
+        tickets: res.tickets.map((t) => ({
+          id: t.id,
+          title: t.title,
+          status: t.status,
+          client_id: t.client_id ?? '',
+          priority: t.priority ?? 'medium',
+          hours: 0,
+          total: 0,
+          invoice_number: null,
+          no_charge: false,
+        })),
+        from_mock: false,
+        offline_reason: 'none',
+      });
     } catch (err) {
       console.error('[ticketing] refetch failed:', err);
+      const offline: TicketOverview = {
+        tickets: [],
+        from_mock: false,
+        offline_reason: (err as { status?: number }).status === 401 ? 'unauthorized' : 'unreachable',
+      };
+      setData(offline);
     }
   };
 
   // Create ticket
-  const handleCreateTicket = async () => {
+  const handleCreateTicket = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!createTitle.trim()) return;
     try {
       const input: CreateTicketInput = {
         title: createTitle,
         priority: createPriority,
-        category: createCategory || undefined,
+        category: createClient || undefined,
       };
       await createTicket(input);
       setCreateTitle('');
+      setCreateClient('');
       setCreatePriority('medium');
-      setCreateCategory('');
       setCreating(false);
       await refetch();
     } catch (err) {
@@ -205,29 +295,29 @@ export function TicketingPage() {
     }
   };
 
-  // Add worklog entry
+  // Add worklog
   const handleAddWorklog = async () => {
     if (!selected) return;
-    if (!worklogEntry.trim()) return;
+    const entryInput = document.getElementById(`worklog-input-${selected.id}`) as HTMLInputElement | null;
+    const hoursInput = document.getElementById(`worklog-hours-${selected.id}`) as HTMLInputElement | null;
+    if (!entryInput?.value.trim()) return;
     try {
       const input: WorklogEntryInput = {
-        entry: worklogEntry,
-        hours: worklogHours,
+        entry: entryInput.value,
+        hours: parseFloat(hoursInput?.value || '0.5') || 0.5,
         payment: 'uninvoiced',
       };
       await addWorklog(selected.id, input);
-      setWorklogEntry('');
-      setWorklogHours(0.5);
+      entryInput.value = '';
+      hoursInput.value = '0.5';
       await refetch();
-      const refreshed = await listTickets();
-      setSelected(mapOverview(refreshed.tickets).tickets.find((t) => t.id === selected.id) ?? null);
     } catch (err) {
       console.error('[ticketing] worklog failed:', err);
       alert(`Failed to add worklog: ${err}`);
     }
   };
 
-  // Change ticket status
+  // Change status
   const handleChangeStatus = async (newStatus: string) => {
     if (!selected) return;
     try {
@@ -235,11 +325,27 @@ export function TicketingPage() {
       await refetch();
       const refreshed = await listTickets();
       setSelected(
-        mapOverview(refreshed.tickets).tickets.find((t) => t.id === selected.id) ?? selected,
+        refreshed.tickets.find((t) => t.id === selected.id) ?? selected,
       );
     } catch (err) {
       console.error('[ticketing] status change failed:', err);
       alert(`Failed to change status: ${err}`);
+    }
+  };
+
+  // Update ticket inline
+  const handleUpdateTicket = async (updates: Record<string, unknown>) => {
+    if (!selected) return;
+    try {
+      await updateTicket(selected.id, updates);
+      await refetch();
+      const refreshed = await listTickets();
+      setSelected(
+        refreshed.tickets.find((t) => t.id === selected.id) ?? selected,
+      );
+    } catch (err) {
+      console.error('[ticketing] update failed:', err);
+      alert(`Failed to update: ${err}`);
     }
   };
 
@@ -251,55 +357,128 @@ export function TicketingPage() {
     );
   }
 
-  const { overview, tickets, invoices, from_mock, offline_reason } = data ?? {
-    overview: { open: 0, critical: 0, overdue: 0, tickets_total: 0, invoices_total: 0, collected: 0, outstanding: 0 },
-    tickets: [],
-    invoices: [],
-    from_mock: true,
-    offline_reason: 'none',
-  };
+  if (!data) {
+    return (
+      <div className="p-6 space-y-6" data-testid="ticketing-page">
+        <ErrorBanner error="Failed to load tickets" onRetry={() => refetch()} />
+      </div>
+    );
+  }
 
-  // Live data carries no hours/total/invoice_number — detect and show n/a
-  // rather than fabricating money figures.
-  const isLiveData = !from_mock && offline_reason === 'none';
+  const { tickets, offline_reason } = data;
 
+  // Mobile view: cards
+  if (isMobile) {
+    return (
+      <div className="p-4 space-y-4" data-testid="ticketing-page">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold">Ticketing</h1>
+          <div className="flex items-center gap-2">
+            {from_mock && <Badge variant="info">MC-1 · mock data</Badge>}
+            <span className="text-xs font-semibold font-mono">
+              MC-1b · live bridge
+            </span>
+            <Button onClick={() => setCreating(!creating)}>
+              {creating ? 'Cancel' : 'New Ticket'}
+            </Button>
+          </div>
+        </div>
+
+        {/* OFF-1 offline banner */}
+        {data.offline_reason && data.offline_reason !== 'none' && (
+          <ErrorBanner error={data.offline_reason} onRetry={() => refetch()} />
+        )}
+
+        {/* Create ticket form */}
+        {creating && (
+          <Card variant="subtle" className="p-4">
+            <form onSubmit={handleCreateTicket} className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1">
+                <Label>Title</Label>
+                <Input
+                  value={createTitle}
+                  onChange={(e) => setCreateTitle(e.currentTarget.value)}
+                  placeholder="Ticket title"
+                />
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-col gap-1">
+                  <Label>Priority</Label>
+                  <select
+                    value={createPriority}
+                    onChange={(e) => setCreatePriority(e.currentTarget.value)}
+                    className="border rounded px-2 py-1 text-sm w-full"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+                <div className="flex-col gap-1">
+                  <Label>Client</Label>
+                  <Input
+                    value={createClient}
+                    onChange={(e) => setCreateClient(e.currentTarget.value)}
+                    placeholder="Client (optional)"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 mt-2">
+                <Button variant="primary" onClick={handleCreateTicket} disabled={!createTitle.trim()}>
+                  Create
+                </Button>
+                <Button variant="outline" onClick={() => setCreating(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </Card>
+        )}
+
+        {/* Ticket list - cards on mobile */}
+        <div className="space-y-3">
+          {filteredTickets.length === 0 ? (
+            <div className="text-center py-8 text-[var(--kts-text-secondary)]">
+              No tickets found.
+            </div>
+          ) : (
+            tickets.map((t) => (
+              <TicketRowItem key={t.id} ticket={t} onSelect={setSelected} />
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop view: table
   return (
     <div className="p-6 space-y-6" data-testid="ticketing-page">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-xl font-semibold">Ticketing</h1>
-        <div className="flex items-center gap-2">
-          {from_mock && <Badge variant="info">MC-1 · mock data</Badge>}
-          {!from_mock && <Badge variant="success">MC-1b · live bridge</Badge>}
-          <Button onClick={() => setCreating(!creating)}>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col">
+          <h1 className="text-xl font-semibold">Ticketing</h1>
+          <div className="text-sm opacity-70">
+            {filteredTickets.length} ticket{filteredTickets.length !== 1 ? 's' : ''}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="primary" size="sm" onClick={() => setCreating(!creating)}>
             {creating ? 'Cancel' : 'New Ticket'}
           </Button>
         </div>
       </div>
 
-      {/* OFF-1 offline banner with specific reason */}
-      {data?.offline_reason && data.offline_reason !== 'none' && (
-        <Card variant="amber" className="p-4">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">⚠</span>
-            <div>
-              <div className="font-semibold">
-                OFF-1 — {offlineReasonLabel(data.offline_reason)}
-              </div>
-              <div className="text-sm opacity-80">
-                Could not reach the ticketing bridge at <code>127.0.0.1:8799</code>. Showing mock data as fallback.
-                Configure the bridge URL and token in <code>~/.config/master-control/config.private.json</code> and set
-                <code>use_live_bridge: true</code> to enable live data.
-              </div>
-            </div>
-          </div>
-        </Card>
+      {/* Error banner */}
+      {data.offline_reason && data.offline_reason !== 'none' && (
+        <ErrorBanner error={data.offline_reason} onRetry={() => refetch()} />
       )}
 
-      {/* Create ticket form */}
+      {/* Quick add */}
       {creating && (
         <Card variant="subtle" className="p-4">
-          <div className="text-sm font-semibold mb-2">New Ticket</div>
-          <div className="space-y-2">
+          <form onSubmit={handleCreateTicket} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
               <Label>Title</Label>
               <Input
@@ -308,13 +487,13 @@ export function TicketingPage() {
                 placeholder="Ticket title"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-4">
               <div className="flex-col gap-1">
                 <Label>Priority</Label>
                 <select
                   value={createPriority}
                   onChange={(e) => setCreatePriority(e.currentTarget.value)}
-                  className="border rounded px-2 py-1 text-sm"
+                  className="border rounded px-2 py-1 text-sm w-full"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -322,73 +501,79 @@ export function TicketingPage() {
                 </select>
               </div>
               <div className="flex-col gap-1">
-                <Label>Category</Label>
+                <Label>Client</Label>
                 <Input
-                  value={createCategory}
-                  onChange={(e) => setCreateCategory(e.currentTarget.value)}
-                  placeholder="e.g. support, hardware, network"
+                  value={createClient}
+                  onChange={(e) => setCreateClient(e.currentTarget.value)}
+                  placeholder="Client (optional)"
                 />
               </div>
             </div>
-            <div className="flex gap-2 mt-2">
-              <Button onClick={handleCreateTicket} disabled={!createTitle.trim()}>
+            <div className="flex gap-2 mt-4">
+              <Button variant="primary" onClick={handleCreateTicket} disabled={!createTitle.trim()}>
                 Create
               </Button>
-              <Button
-                onClick={() => {
-                  setCreating(false);
-                  setCreateTitle('');
-                  setCreatePriority('medium');
-                  setCreateCategory('');
-                }}
-                variant="outline"
-              >
+              <Button variant="outline" onClick={() => setCreating(false)}>
                 Cancel
               </Button>
             </div>
-          </div>
+          </form>
         </Card>
-      )}
+        )}
 
-      {/* Cards */}
-      <div className="flex flex-wrap gap-4">
-        <StatCard label="Open" value={overview.open} />
-        <StatCard
-          label="Critical"
-          value={overview.critical}
-          tone={overview.critical > 0 ? 'red' : undefined}
-        />
-        {/* Live data carries no hours/total/due-date, so "overdue" cannot be computed:
-            show n/a rather than a fabricated 0. Same for Collected below. */}
-        <StatCard
-          label="Overdue"
-          value={isLiveData ? 'n/a' : overview.overdue}
-          tone={!isLiveData && overview.overdue > 0 ? 'amber' : undefined}
-        />
-        <StatCard label="Tickets" value={overview.tickets_total} />
-        <StatCard label="Invoices" value={overview.invoices_total} />
-        <StatCard label="Collected" value={isLiveData ? 'n/a' : overview.collected} />
-      </div>
+        {/* Controls: filter, search, sort */}
+        <div className="flex flex-wrap gap-4 items-end">
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-mono text-[var(--kts-text-secondary)]">Status</label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.currentTarget.value as any)}
+              className="border rounded px-2 py-1 text-sm w-full"
+            >
+              <option value="all">All</option>
+              <option value="open">Open</option>
+              <option value="picks">Picks</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
+          <div className="flex flex-col gap-2 flex-1">
+            <label className="text-xs font-mono text-[var(--kts-text-secondary)]">Search</label>
+            <Input
+              value={searchText}
+              onChange={(e) => setSearchText(e.currentTarget.value)}
+              placeholder="Search id, title, client…"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-mono text-[var(--kts-text-secondary)]">Sort by</label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.currentTarget.value as any)}
+              className="border rounded px-2 py-1 text-sm w-full"
+            >
+              <option value="rating">Priority</option>
+              <option value="capture_date">Capture date</option>
+              <option value="edit_date">Edit date</option>
+            </select>
+          </div>
+        </div>
 
-      {/* Ticket list */}
-      <Card padded={false}>
-        <table className="w-full text-sm" data-testid="ticket-table">
-          <thead>
-            <tr className="text-left border-b border-[var(--kts-border-default)]">
-              <th className="p-3">Ticket</th>
-              <th className="p-3">Title</th>
-              <th className="p-3">Status</th>
-              <th className="p-3">Client</th>
-              <th className="p-3 text-right">Hours</th>
-              <th className="p-3 text-right">Total</th>
-              <th className="p-3">Invoice</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tickets.map((t) => {
-              const inv = invoices.find((i) => i.ticket_id === t.id) ?? null;
-              const isLive = isLiveData;
-              return (
+        {/* Ticket table */}
+        <Card variant="subtle" className="p-4">
+          <table className="w-full text-sm" data-testid="ticket-table">
+            <thead>
+              <tr className="text-left border-b border-[var(--kts-border-default)]">
+                <th className="p-3">ID</th>
+                <th className="p-3">Title</th>
+                <th className="p-3">Status</th>
+                <th className="p-3">Priority</th>
+                <th className="p-3">Client</th>
+                <th className="p-3 text-right">Hours</th>
+                <th className="p-3 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredTickets.map((t) => (
                 <tr
                   key={t.id}
                   className="border-b border-[var(--kts-border-default)] cursor-pointer hover:bg-[var(--kts-bg-tertiary)]"
@@ -398,104 +583,19 @@ export function TicketingPage() {
                   <td className="p-3 font-mono">{t.id}</td>
                   <td className="p-3">{t.title}</td>
                   <td className="p-3">
-                    <StatusBadge state={t.status === 'closed' ? 'stopped' : 'unknown'} label={t.status} />
+                    <StatusChip status={t.status} />
+                  </td>
+                  <td className="p-3">
+                    <PriorityChip priority={t.priority} />
                   </td>
                   <td className="p-3 font-mono">{t.client_id}</td>
-                  <td className="p-3 text-right">{isLive ? 'n/a' : t.hours}</td>
-                  <td className="p-3 text-right">{isLive ? 'n/a' : t.total.toFixed(2)}</td>
-                  <td className="p-3 font-mono">
-                    {inv && !isLive ? (
-                      <span>
-                        {inv.number}
-                        {inv.no_charge && <Badge variant="subtle" className="ml-2">no-charge</Badge>}
-                      </span>
-                    ) : (
-                      <span className="opacity-50">{isLive ? 'n/a' : '—'}</span>
-                    )}
-                  </td>
+                  <td className="p-3 text-right">{t.hours}</td>
+                  <td className="p-3 text-right">{t.total.toFixed(2)}</td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </Card>
-
-      {/* Detail strip */}
-      {selected && (
-        <Card variant="dual" data-testid="ticket-detail">
-          <div className="text-sm font-semibold mb-2">Selected</div>
-          <div className="font-mono">{selected.id}</div>
-          <div>{selected.title}</div>
-          <div className="mt-1">
-            invoice:{' '}
-            {isLiveData ? 'n/a' : invoices.find((i) => i.ticket_id === selected.id)?.number ?? 'none'}
-          </div>
-          <div className="mt-2">
-            Status:{' '}
-            <select
-              value={selected.status}
-              onChange={(e) => handleChangeStatus(e.currentTarget.value)}
-            >
-              <option value="new">New</option>
-              <option value="triaged">Triaged</option>
-              <option value="in-progress">In Progress</option>
-              <option value="waiting">Waiting</option>
-              <option value="resolved">Resolved</option>
-              <option value="closed">Closed</option>
-            </select>
-          </div>
-          <div className="mt-2">
-            <div className="text-sm font-semibold mb-1">Worklog</div>
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-col gap-1">
-                <Label>Entry</Label>
-                <Input
-                  value={worklogEntry}
-                  onChange={(e) => setWorklogEntry(e.currentTarget.value)}
-                  placeholder="Describe the work done"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label>Hours</Label>
-                <Input
-                  type="number"
-                  value={worklogHours}
-                  onChange={(e) => setWorklogHours(parseFloat(e.currentTarget.value) || 0.5)}
-                />
-              </div>
-              <Button
-                onClick={() => {
-                  if (!worklogEntry.trim()) return;
-                  handleAddWorklog();
-                }}
-              >
-                Add Worklog
-              </Button>
-            </div>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </Card>
-      )}
-
-      {/* Settings placeholder (design only — token never enters the frontend) */}
-      <Card variant="subtle" data-testid="ticketing-settings">
-        <div className="text-sm font-semibold mb-1">Bridge connection</div>
-        <div className="text-sm opacity-70 space-y-1">
-          <div>Default URL: <code>{BRIDGE_URL_DEFAULT}</code> (loopback only).</div>
-          <div>
-            MC-1b reads the bridge URL and token from <code>~/.config/master-control/config.private.json</code>
-            (mode 0o600). Token never enters the frontend, never in servers.json, never logged.
-          </div>
-          <div>
-            Set <code>use_live_bridge: true</code> and provide <code>bridge_token</code> to enable live data.
-            Current mode:{' '}
-            {from_mock
-              ? 'MC-1 (mock)'
-              : data?.offline_reason && data.offline_reason !== 'none'
-              ? 'OFF-1 (' + offlineReasonLabel(data.offline_reason) + ')'
-              : 'MC-1b (live)'}.
-          </div>
-        </div>
-      </Card>
-    </div>
-  );
-}
+      </div>
+    );
+  }
