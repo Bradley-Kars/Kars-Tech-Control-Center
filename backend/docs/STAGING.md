@@ -5,7 +5,7 @@ The staging deployment runs the web app from the repo against a **copy** of the 
 ## Staging URL
 
 ```
-https://kars-tech-solutions.tailf6d3b4.ts.net:8443/
+https://<machine>.<tailnet>.ts.net:8443/
 ```
 
 Accessible from any tailnet device (phone, laptop, etc.). Tailnet only — not exposed to the public internet (no Funnel).
@@ -50,10 +50,10 @@ rm ~/.config/kts/staging-token
 
 | Test | Command | Expected |
 |------|---------|----------|
-| Health via tailnet | `curl -s -o /dev/null -w "%{http_code}" -H "Host: kars-tech-solutions.tailf6d3b4.ts.net" -H "Tailscale-User-Login: bradley.kars@gmail.com" https://kars-tech-solutions.tailf6d3b4.ts.net:8443/api/health` | 200 |
-| Forged Host | `curl -s -o /dev/null -w "%{http_code}" -H "Host: evil.com" https://kars-tech-solutions.tailf6d3b4.ts.net:8443/api/health` | 400 |
+| Health via tailnet | `curl -s -o /dev/null -w "%{http_code}" -H "Host: <machine>.<tailnet>.ts.net" -H "Tailscale-User-Login: you@example.com" https://<machine>.<tailnet>.ts.net:8443/api/health` | 200 |
+| Forged Host | `curl -s -o /dev/null -w "%{http_code}" -H "Host: evil.com" https://<machine>.<tailnet>.ts.net:8443/api/health` | 400 |
 | No creds on loopback | `curl -s -o /dev/null -w "%{http_code}" -H "Host: 127.0.0.1" http://127.0.0.1:8798/api/health` | 401 |
-| Root page HTML | `curl -s -o /dev/null -w "%{http_code}" -H "Host: kars-tech-solutions.tailf6d3b4.ts.net" https://kars-tech-solutions.tailf6d3b4.ts.net:8443/` | 200 |
+| Root page HTML | `curl -s -o /dev/null -w "%{http_code}" -H "Host: <machine>.<tailnet>.ts.net" https://<machine>.<tailnet>.ts.net:8443/` | 200 |
 
 ## Notes
 
