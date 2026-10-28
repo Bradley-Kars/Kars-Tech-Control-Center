@@ -1,6 +1,6 @@
-# KTS Cutover to Real Vault
+# KTS Bridge — Cutover to Real Vault
 
-This document describes the cutover of the KTS bridge from the staging environment to the real vault on `~/Documents/KTS Records` and `~/.ticketing`.
+This document describes the cutover of the KTS bridge from the staging environment to the real vault, running on `~/Documents/KTS Records` and `~/.ticketing`, reachable over the tailnet on `https://<machine>.<tailnet>.ts.net:8443`.
 
 ## Overview
 
@@ -15,7 +15,7 @@ The staging server (running on port 8798, reachable via `tailscale serve --https
 
 ## Cutover Steps
 
-1. **Stop the staging server** (optional - can remain running for reference)
+1. **Stop the staging server** (optional — can remain running for reference)
 2. **Stop the old bridge** (`kts-bridge.service` on port 8799)
 3. **Mint a write token** with `actor_id=USR-000002` in the real token table
 4. **Save the token** to `~/.config/kts/bridge-token` (mode 600), keeping the old as `bridge-token.old`
@@ -37,7 +37,7 @@ If the cutover fails, run `~/kts/ROLLBACK.sh` to restore the previous state. The
 
 After cutover, verify:
 
-- `GET https://<tailnet>.ts.net:8443/api/health` returns 200
+- `GET https://<machine>.<tailnet>.ts.net:8443/api/health` returns 200
 - Ticket count equals pre-cutover count plus smoke ticket
 - Forged Host header returns 400
 - No-credential request to 127.0.0.1:8799 returns 401
