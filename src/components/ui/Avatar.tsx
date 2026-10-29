@@ -70,15 +70,17 @@ export const Avatar = forwardRef<HTMLDivElement, AvatarProps>(
       'top-left': { top: '-2px', left: '-2px' },
     };
 
-    const fallbackContent = fallback ?? (name ? (
+    const initials = name ? getInitials(name) : '';
+    const fallbackContent = fallback ?? (initials ? (
       <span
         className={[
           'font-[var(--kts-font-sans)] font-semibold text-white',
           fontClass,
         ].filter(Boolean).join(' ')}
         style={{ fontSize: fontSize ?? s.fontSize, lineHeight: 1 }}
+        title={name}
       >
-        {getInitials(name)}
+        {initials}
       </span>
 ) : (
       <svg width={parseInt(s.size) * 0.5} height={parseInt(s.size) * 0.5} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>

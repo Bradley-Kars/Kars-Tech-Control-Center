@@ -262,7 +262,7 @@ export function DashboardPage() {
 
     if (hasUnraid) {
       actions.push(
-        { id: 'reboot-unraid', label: 'Reboot Unraid', icon: '🔄', variant: 'amber' as const, action: () => navigate('/service/system') },
+        { id: 'reboot-unraid', label: 'Reboot Unraid', icon: '🔄', variant: 'outline' as const, action: () => navigate('/service/system') },
         { id: 'docker', label: 'Docker Containers', icon: '🐳', variant: 'outline' as const, action: () => navigate('/service/docker') },
         { id: 'storage', label: 'Storage Array', icon: '💾', variant: 'outline' as const, action: () => navigate('/service/storage') },
       );
@@ -275,7 +275,7 @@ export function DashboardPage() {
     }
     actions.push(
       { id: 'mc-health', label: 'Fleet Health', icon: '🩺', variant: 'outline' as const, action: handleFleetHealth },
-      { id: 'refresh', label: 'Refresh All', icon: '↻', variant: 'primary' as const, action: handleRefresh },
+      { id: 'refresh', label: 'Refresh All', icon: '↻', variant: 'outline' as const, action: handleRefresh },
     );
     return actions;
   }, [servers, navigate, handleFleetHealth]);

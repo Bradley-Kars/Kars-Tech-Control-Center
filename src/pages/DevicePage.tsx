@@ -150,19 +150,19 @@ function LocalDevice() {
       {/* Vitals */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card padded>
-          <Gauge size="base" value={cpu} variant={cpu > 80 ? 'danger' : cpu > 50 ? 'warning' : 'success'} label="CPU" showValue loading={loading} />
+          <Gauge size="base" value={cpu} variant={loading ? 'default' : cpu > 80 ? 'danger' : cpu > 50 ? 'warning' : 'success'} label="CPU" showValue loading={loading} />
         </Card>
         <Card padded>
-          <Gauge size="base" value={mem} variant={mem > 85 ? 'danger' : mem > 60 ? 'warning' : 'success'} label="Memory" showValue loading={loading} />
+          <Gauge size="base" value={mem} variant={loading ? 'default' : mem > 85 ? 'danger' : mem > 60 ? 'warning' : 'success'} label="Memory" showValue loading={loading} />
         </Card>
         <Card padded>
-          <Gauge size="base" value={gpuUtil ?? 0} variant="info" label="GPU" showValue={gpuUtil != null} loading={loading} />
+          <Gauge size="base" value={gpuUtil ?? 0} variant={loading ? 'default' : 'info'} label="GPU" showValue={gpuUtil != null} loading={loading} />
           {gpuUtil == null && (
             <p className="text-center text-[var(--kts-text-tertiary)]" style={{ fontSize: 'var(--kts-font-size-xs)' }}>No dGPU</p>
           )}
         </Card>
         <Card padded>
-          <Gauge size="base" value={cpuTemp != null ? Math.min(100, cpuTemp) : 0} variant={cpuTemp != null && cpuTemp > 80 ? 'danger' : cpuTemp != null && cpuTemp > 65 ? 'warning' : 'success'} label="Temp" showValue={cpuTemp != null} loading={loading} valueFormatter={cpuTemp != null ? () => `${Math.round(cpuTemp)}°C` : undefined} />
+          <Gauge size="base" value={cpuTemp != null ? Math.min(100, cpuTemp) : 0} variant={loading || cpuTemp == null ? 'default' : cpuTemp > 80 ? 'danger' : cpuTemp > 65 ? 'warning' : 'success'} label="Temp" showValue={cpuTemp != null} loading={loading} valueFormatter={cpuTemp != null ? () => `${Math.round(cpuTemp)}°C` : undefined} />
           {cpuTemp == null && (
             <p className="text-center text-[var(--kts-text-tertiary)]" style={{ fontSize: 'var(--kts-font-size-xs)' }}>No sensor</p>
           )}
@@ -400,16 +400,16 @@ function UnraidDevice() {
           {/* Vitals */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card padded>
-              <Gauge size="base" value={cpu} variant={cpu > 80 ? 'danger' : cpu > 50 ? 'warning' : 'success'} label="CPU" showValue loading={loading} />
+              <Gauge size="base" value={cpu} variant={loading ? 'default' : cpu > 80 ? 'danger' : cpu > 50 ? 'warning' : 'success'} label="CPU" showValue loading={loading} />
             </Card>
             <Card padded>
-              <Gauge size="base" value={mem} variant={mem > 85 ? 'danger' : mem > 60 ? 'warning' : 'success'} label="Memory" showValue loading={loading} />
+              <Gauge size="base" value={mem} variant={loading ? 'default' : mem > 85 ? 'danger' : mem > 60 ? 'warning' : 'success'} label="Memory" showValue loading={loading} />
             </Card>
             <Card padded>
               <Gauge
                 size="base"
                 value={hottest != null ? Math.min(100, hottest) : 0}
-                variant={hottest != null && hottest > 75 ? 'danger' : hottest != null && hottest > 55 ? 'warning' : 'success'}
+                variant={loading || hottest == null ? 'default' : hottest > 75 ? 'danger' : hottest > 55 ? 'warning' : 'success'}
                 label="Hottest"
                 showValue={hottest != null}
                 loading={loading}
@@ -623,10 +623,10 @@ function LaptopDevice() {
       {mcEnrolled ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card padded>
-            <Gauge size="base" value={mcStats?.cpu_usage ?? 0} variant={(mcStats?.cpu_usage ?? 0) > 80 ? 'danger' : (mcStats?.cpu_usage ?? 0) > 50 ? 'warning' : 'success'} label="CPU" showValue loading={!mcStats} />
+            <Gauge size="base" value={mcStats?.cpu_usage ?? 0} variant={!mcStats ? 'default' : mcStats.cpu_usage > 80 ? 'danger' : mcStats.cpu_usage > 50 ? 'warning' : 'success'} label="CPU" showValue loading={!mcStats} />
           </Card>
           <Card padded>
-            <Gauge size="base" value={mcStats?.memory_usage_pct ?? 0} variant={(mcStats?.memory_usage_pct ?? 0) > 85 ? 'danger' : (mcStats?.memory_usage_pct ?? 0) > 60 ? 'warning' : 'success'} label="Memory" showValue loading={!mcStats} />
+            <Gauge size="base" value={mcStats?.memory_usage_pct ?? 0} variant={!mcStats ? 'default' : mcStats.memory_usage_pct > 85 ? 'danger' : mcStats.memory_usage_pct > 60 ? 'warning' : 'success'} label="Memory" showValue loading={!mcStats} />
           </Card>
           <Card padded>
             <div className="flex flex-col items-center justify-center h-full gap-1">

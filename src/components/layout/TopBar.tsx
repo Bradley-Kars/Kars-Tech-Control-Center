@@ -454,7 +454,7 @@ export function TopBar({
               }}
             >
               <Avatar
-                name="Bradley"
+                name="Bradley Kars"
                 status="online"
                 size="sm"
                 fontClass="font-semibold"
@@ -465,7 +465,7 @@ export function TopBar({
                   height: '32px',
                 }}
               />
-              <span className="hidden sm:block font-medium text-[var(--kts-text-primary)] text-[var(--kts-font-size-sm)] truncate max-w-[140px]">Bradley</span>
+              <span className="hidden sm:block font-medium text-[var(--kts-text-primary)] text-[var(--kts-font-size-sm)]" title="Bradley Kars · admin@karstechsolutions.com">Bradley</span>
             </button>
           </Tooltip>
 

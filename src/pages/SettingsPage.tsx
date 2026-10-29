@@ -20,12 +20,12 @@ import {
 
 const SHORTCUTS: Array<{ keys: string; description: string }> = [
   { keys: '⌘K / Ctrl+K', description: 'Open command palette' },
-  { keys: '⌘1', description: 'Dashboard' },
-  { keys: '⌘2 … ⌘6', description: 'Devices (local → laptop)' },
-  { keys: '⌘D', description: 'Docker' },
-  { keys: '⌘S', description: 'Storage' },
-  { keys: '⌘Y', description: 'System' },
-  { keys: '⌘N', description: 'Network' },
+  { keys: '⌘1 / Ctrl+1', description: 'Dashboard' },
+  { keys: '⌘2…⌘6 / Ctrl+2…6', description: 'Devices (local → laptop)' },
+  { keys: '⌘D / Ctrl+D', description: 'Docker' },
+  { keys: '⌘S / Ctrl+S', description: 'Storage' },
+  { keys: '⌘Y / Ctrl+Y', description: 'System' },
+  { keys: '⌘N / Ctrl+N', description: 'Network' },
   { keys: 'Esc', description: 'Close dialogs & palette' },
 ];
 
