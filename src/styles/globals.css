@@ -183,7 +183,7 @@
 
   --kts-text-primary: var(--kts-color-off);
   --kts-text-secondary: var(--kts-color-muted);
-  --kts-text-tertiary: var(--kts-color-line);
+  --kts-text-tertiary: #8294AA;
   --kts-text-inverse: var(--kts-color-ink);
   --kts-text-link: var(--kts-color-teal);
   --kts-text-link-hover: var(--kts-color-teal-dim);

@@ -9,6 +9,30 @@ import {
   launchRustdesk,
   kdeConnectRingDevice,
 } from '../../lib/tauri-commands';
+import {
+  Layout,
+  Laptop,
+  Server,
+  Smartphone,
+  Gamepad2,
+  HardDrive,
+  Settings,
+  Wifi,
+  Music,
+  Home,
+  Cloud,
+  ShieldCheck,
+  BarChart3,
+  RefreshCw,
+  RotateCcw,
+  Power,
+  BellRing,
+  Camera,
+  Monitor,
+  Sun,
+  Minimize2,
+  Keyboard,
+} from 'lucide-react';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -36,7 +60,7 @@ interface Cmd {
   label: string;
   description: string;
   category: string;
-  icon: string;
+  icon: React.ElementType;
   shortcut: string;
   /** Requires an explicit second Enter/click before running. */
   danger?: boolean;
@@ -53,23 +77,23 @@ function findServer(servers: CmdCtx['servers'], deviceType: string, what: string
 
 const STATIC_COMMANDS: Cmd[] = [
   // Navigation
-  { id: 'nav-dashboard', label: 'Go to Dashboard', description: 'Fleet overview', category: 'Navigation', icon: '◈', shortcut: '⌘1', action: () => '/dashboard' },
-  { id: 'nav-local', label: 'This Machine', description: 'Local Omarchy host', category: 'Navigation', icon: '💻', shortcut: '⌘2', action: () => '/device/local' },
-  { id: 'nav-unraid', label: 'Unraid Server', description: 'home-server.tailf6d3b4.ts.net', category: 'Navigation', icon: '🗄', shortcut: '⌘3', action: () => '/device/unraid' },
-  { id: 'nav-phone', label: 'Galaxy S24 Ultra', description: 'bradleys-s24-ultra.tailf6d3b4.ts.net', category: 'Navigation', icon: '📱', shortcut: '⌘4', action: () => '/device/phone' },
-  { id: 'nav-ally', label: 'ROG Ally', description: 'lgbtally.tailf6d3b4.ts.net', category: 'Navigation', icon: '🎮', shortcut: '⌘5', action: () => '/device/ally' },
-  { id: 'nav-laptop', label: 'Senpai Laptop', description: 'senpais-laptop.tailf6d3b4.ts.net', category: 'Navigation', icon: '💻', shortcut: '⌘6', action: () => '/device/laptop' },
+  { id: 'nav-dashboard', label: 'Go to Dashboard', description: 'Fleet overview', category: 'Navigation', icon: Layout, shortcut: '⌘1', action: () => '/dashboard' },
+  { id: 'nav-local', label: 'This Machine', description: 'Local Omarchy host', category: 'Navigation', icon: Laptop, shortcut: '⌘2', action: () => '/device/local' },
+  { id: 'nav-unraid', label: 'Unraid Server', description: 'home-server.tailf6d3b4.ts.net', category: 'Navigation', icon: Server, shortcut: '⌘3', action: () => '/device/unraid' },
+  { id: 'nav-phone', label: 'Galaxy S24 Ultra', description: 'bradleys-s24-ultra.tailf6d3b4.ts.net', category: 'Navigation', icon: Smartphone, shortcut: '⌘4', action: () => '/device/phone' },
+  { id: 'nav-ally', label: 'ROG Ally', description: 'lgbtally.tailf6d3b4.ts.net', category: 'Navigation', icon: Gamepad2, shortcut: '⌘5', action: () => '/device/ally' },
+  { id: 'nav-laptop', label: 'Senpai Laptop', description: 'senpais-laptop.tailf6d3b4.ts.net', category: 'Navigation', icon: Laptop, shortcut: '⌘6', action: () => '/device/laptop' },
 
   // Services
-  { id: 'svc-docker', label: 'Docker', description: 'Container management', category: 'Services', icon: '🐳', shortcut: '⌘D', action: () => '/service/docker' },
-  { id: 'svc-storage', label: 'Storage', description: 'Array, disks, shares', category: 'Services', icon: '💾', shortcut: '⌘S', action: () => '/service/storage' },
-  { id: 'svc-system', label: 'System', description: 'CPU, memory, processes', category: 'Services', icon: '⚙', shortcut: '⌘Y', action: () => '/service/system' },
-  { id: 'svc-network', label: 'Network', description: 'Interfaces, Tailscale', category: 'Services', icon: '🌐', shortcut: '⌘N', action: () => '/service/network' },
-  { id: 'svc-lidarr', label: 'Lidarr', description: 'Music', category: 'Services', icon: '🎵', shortcut: '', action: () => '/service/lidarr' },
-  { id: 'svc-ha', label: 'Home Assistant', description: 'Home automation', category: 'Services', icon: '🏠', shortcut: '', action: () => '/service/homeassistant' },
-  { id: 'svc-nextcloud', label: 'Nextcloud', description: 'File sync & share', category: 'Services', icon: '☁', shortcut: '', action: () => '/service/nextcloud' },
-  { id: 'svc-adguard', label: 'AdGuard', description: 'DNS filtering', category: 'Services', icon: '🛡', shortcut: '', action: () => '/service/adguard' },
-  { id: 'svc-myspeed', label: 'MySpeed', description: 'Speed tests', category: 'Services', icon: '📊', shortcut: '', action: () => '/service/myspeed' },
+  { id: 'svc-docker', label: 'Docker', description: 'Container management', category: 'Services', icon: Layout, shortcut: '⌘D', action: () => '/service/docker' },
+  { id: 'svc-storage', label: 'Storage', description: 'Array, disks, shares', category: 'Services', icon: HardDrive, shortcut: '⌘S', action: () => '/service/storage' },
+  { id: 'svc-system', label: 'System', description: 'CPU, memory, processes', category: 'Services', icon: Settings, shortcut: '⌘Y', action: () => '/service/system' },
+  { id: 'svc-network', label: 'Network', description: 'Interfaces, Tailscale', category: 'Services', icon: Wifi, shortcut: '⌘N', action: () => '/service/network' },
+  { id: 'svc-lidarr', label: 'Lidarr', description: 'Music', category: 'Services', icon: Music, shortcut: '', action: () => '/service/lidarr' },
+  { id: 'svc-ha', label: 'Home Assistant', description: 'Home automation', category: 'Services', icon: Home, shortcut: '', action: () => '/service/homeassistant' },
+  { id: 'svc-nextcloud', label: 'Nextcloud', description: 'File sync & share', category: 'Services', icon: Cloud, shortcut: '', action: () => '/service/nextcloud' },
+  { id: 'svc-adguard', label: 'AdGuard', description: 'DNS filtering', category: 'Services', icon: ShieldCheck, shortcut: '', action: () => '/service/adguard' },
+  { id: 'svc-myspeed', label: 'MySpeed', description: 'Speed tests', category: 'Services', icon: BarChart3, shortcut: '', action: () => '/service/myspeed' },
 
   // Actions
   {
@@ -77,7 +101,7 @@ const STATIC_COMMANDS: Cmd[] = [
     label: 'Refresh All Data',
     description: 'Force refresh all device data',
     category: 'Actions',
-    icon: '↻',
+    icon: RefreshCw,
     shortcut: '⌘R',
     action: (ctx) => {
       window.dispatchEvent(new CustomEvent('kts:refresh'));
@@ -89,7 +113,7 @@ const STATIC_COMMANDS: Cmd[] = [
     label: 'Reboot Unraid',
     description: 'Reboot the Unraid server',
     category: 'Actions',
-    icon: '🔄',
+    icon: RotateCcw,
     shortcut: '',
     danger: true,
     action: async (ctx) => {
@@ -103,7 +127,7 @@ const STATIC_COMMANDS: Cmd[] = [
     label: 'Shutdown Unraid',
     description: 'Shutdown the Unraid server',
     category: 'Actions',
-    icon: '⏻',
+    icon: Power,
     shortcut: '',
     danger: true,
     action: async (ctx) => {
@@ -117,12 +141,12 @@ const STATIC_COMMANDS: Cmd[] = [
     label: 'Ring Phone',
     description: 'Find phone via KDE Connect',
     category: 'Actions',
-    icon: '🔔',
+    icon: BellRing,
     shortcut: '',
     action: async (ctx) => {
       const s = findServer(ctx.servers, 'phone', 'phone');
       await kdeConnectRingDevice(s.id);
-      ctx.notify('success', 'Ringing phone 🔔', 'KDE Connect find-my-phone sent');
+      ctx.notify('success', 'Ringing phone', 'KDE Connect find-my-phone sent');
     },
   },
   {
@@ -130,7 +154,7 @@ const STATIC_COMMANDS: Cmd[] = [
     label: 'Screenshot Phone',
     description: 'Capture phone screen',
     category: 'Actions',
-    icon: '📱',
+    icon: Camera,
     shortcut: '',
     action: async (ctx) => {
       const s = findServer(ctx.servers, 'phone', 'phone');
@@ -143,7 +167,7 @@ const STATIC_COMMANDS: Cmd[] = [
     label: 'Launch RustDesk',
     description: 'Remote desktop to phone',
     category: 'Actions',
-    icon: '🖥',
+    icon: Monitor,
     shortcut: '',
     action: async (ctx) => {
       const s = findServer(ctx.servers, 'phone', 'phone');
@@ -151,8 +175,8 @@ const STATIC_COMMANDS: Cmd[] = [
       ctx.notify('success', 'RustDesk', 'Connecting to phone…');
     },
   },
-  { id: 'act-meshcentral', label: 'MeshCentral Console', description: 'Fleet devices & agents', category: 'Actions', icon: '🛰', shortcut: '', action: () => '/meshcentral' },
-  { id: 'act-settings', label: 'Open Settings', description: 'App settings', category: 'Actions', icon: '⚙', shortcut: '', action: () => '/settings' },
+  { id: 'act-meshcentral', label: 'MeshCentral Console', description: 'Fleet devices & agents', category: 'Actions', icon: Monitor, shortcut: '', action: () => '/meshcentral' },
+  { id: 'act-settings', label: 'Open Settings', description: 'App settings', category: 'Actions', icon: Settings, shortcut: '', action: () => '/settings' },
 
   // System
   {
@@ -160,7 +184,7 @@ const STATIC_COMMANDS: Cmd[] = [
     label: 'Toggle Theme',
     description: 'Switch between dark/light',
     category: 'System',
-    icon: '🌓',
+    icon: Sun,
     shortcut: '',
     action: (ctx) => {
       ctx.setTheme(ctx.resolvedTheme === 'dark' ? 'light' : 'dark');
@@ -171,13 +195,13 @@ const STATIC_COMMANDS: Cmd[] = [
     label: 'Toggle Density',
     description: 'Compact/comfortable spacing',
     category: 'System',
-    icon: '◧',
+    icon: Minimize2,
     shortcut: '',
     action: (ctx) => {
       ctx.setDensity(ctx.density === 'comfortable' ? 'compact' : 'comfortable');
     },
   },
-  { id: 'sys-shortcuts', label: 'Show Shortcuts', description: 'Display keyboard shortcuts', category: 'System', icon: '⌨', shortcut: '?', action: () => '/settings' },
+  { id: 'sys-shortcuts', label: 'Show Shortcuts', description: 'Display keyboard shortcuts', category: 'System', icon: Keyboard, shortcut: '?', action: () => '/settings' },
 ];
 
 /** Per-server power commands — built from the live server list, shown while searching. */
@@ -188,7 +212,7 @@ function buildPowerCommands(servers: CommandPaletteProps['servers']): Cmd[] {
       label: `Reboot ${s.name}`,
       description: `Send reboot via SSH · ${s.hostname}`,
       category: 'Power',
-      icon: '🔄',
+      icon: RotateCcw,
       shortcut: '',
       danger: true,
       dynamic: true,
@@ -204,7 +228,7 @@ function buildPowerCommands(servers: CommandPaletteProps['servers']): Cmd[] {
       label: `Shutdown ${s.name}`,
       description: `Send poweroff via SSH · ${s.hostname}`,
       category: 'Power',
-      icon: '⏻',
+      icon: Power,
       shortcut: '',
       danger: true,
       dynamic: true,
@@ -423,6 +447,7 @@ export function CommandPalette({ isOpen, onClose, navigate, servers }: CommandPa
                   </div>
                   <div className="divide-y divide-[var(--kts-border-default)]">
                     {cmds.map((cmd) => {
+                      const Icon = cmd.icon;
                       const isSelected = cmd.id === selectedCommand?.id;
                       const isArmed = cmd.id === confirmArmed;
                       const globalIndex = filteredCommands.indexOf(cmd);
@@ -443,7 +468,9 @@ export function CommandPalette({ isOpen, onClose, navigate, servers }: CommandPa
                           ].join(' ')}
                           style={{ outline: 'none' }}
                         >
-                          <span className="flex-shrink-0" style={{ width: '24px', textAlign: 'center', fontSize: '18px' }}>{cmd.icon}</span>
+                          <span className="flex-shrink-0" style={{ width: '24px', textAlign: 'center', fontSize: '18px' }}>
+                            <Icon width="18" height="18" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </span>
                           <div className="flex-1 min-w-0">
                             <p className={['font-medium truncate', isArmed ? 'text-red-400' : isSelected ? 'text-[var(--kts-brand-primary)]' : 'text-[var(--kts-text-primary)]'].join(' ')} style={{ fontSize: 'var(--kts-font-size-sm)' }}>
                               {cmd.label}
@@ -473,7 +500,7 @@ export function CommandPalette({ isOpen, onClose, navigate, servers }: CommandPa
         <div className="px-4 py-2 border-t border-[var(--kts-border-default)] bg-[var(--kts-bg-tertiary)]">
           {armedLabel ? (
             <p className="text-center text-red-400 font-medium" style={{ fontSize: 'var(--kts-font-size-xs)' }}>
-              ⚠ Press Enter again to confirm — {armedLabel} · Esc cancels
+              Press Enter again to confirm — {armedLabel} · Esc cancels
             </p>
           ) : (
             <p className="text-center text-[var(--kts-text-tertiary)]" style={{ fontSize: 'var(--kts-font-size-xs)' }}>

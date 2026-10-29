@@ -4,6 +4,7 @@ import { useMediaQuery, useServers, useLocalStats, useFleetStats } from './hooks
 import { Sidebar } from './components/layout/Sidebar';
 import { TopBar } from './components/layout/TopBar';
 import { CommandPalette } from './components/layout/CommandPalette';
+import { ErrorBoundary } from './components/layout/ErrorBoundary';
 import { ToastManager, useToast } from './components/ui/Toast';
 import { AppProvider } from './context/AppContext';
 import { DashboardPage } from './pages/DashboardPage';
@@ -29,8 +30,8 @@ function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const { servers } = useServers();
-  const { stats: localStats, refresh: refreshLocal } = useLocalStats();
-  const { fleetStats, refresh: refreshFleet } = useFleetStats(servers);
+  const { refresh: refreshLocal } = useLocalStats();
+  const { refresh: refreshFleet } = useFleetStats(servers);
   const { toasts, removeToast, addToast } = useToast();
   const { isKiosk, cursorHidden } = useKiosk();
 
@@ -148,29 +149,13 @@ function AppLayout() {
     }
   }, [location.pathname, isMobile]);
 
-  // Derive device status for sidebar
-  const deviceStatus = useMemo(() => {
-    const status: Record<string, 'online' | 'offline' | 'warning'> = {};
-    servers.forEach((s) => {
-      const fs = fleetStats[s.id];
-      if (!fs || fs.connected === false) status[s.id] = 'offline';
-      else if (fs?.cpu_usage > 90 || fs?.memory_usage_pct > 90) status[s.id] = 'warning';
-      else status[s.id] = 'online';
-    });
-    return status;
-  }, [servers, fleetStats]);
-
   const sidebarContent = useMemo(() => (
     <Sidebar
-      location={location}
       onNavigate={navigate}
-      servers={servers}
-      deviceStatus={deviceStatus}
-      localStats={localStats}
       collapsed={sidebarCollapsed}
       onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
     />
-  ), [location, navigate, servers, deviceStatus, localStats, sidebarCollapsed]);
+  ), [navigate, sidebarCollapsed]);
 
   return (
     <div className={[
@@ -184,11 +169,11 @@ function AppLayout() {
           'sidebar fixed left-0 top-0 z-[var(--kts-z-sticky)] h-full transition-all duration-[var(--kts-motion-base)] ease-[var(--kts-easing-ease-out)]',
           isMobile
             ? sidebarOpen
-              ? 'w-72 translate-x-0'
-              : '-translate-x-full w-72'
+              ? 'w-[232px] translate-x-0'
+              : '-translate-x-full w-[232px]'
             : sidebarCollapsed
-            ? 'w-16'
-            : 'w-72',
+            ? 'w-[56px]'
+            : 'w-[232px]',
         ].join(' ')}
         style={{
           background: 'var(--kts-bg-secondary)',
@@ -212,7 +197,7 @@ function AppLayout() {
       <main
         className={[
           'flex-1 flex flex-col overflow-hidden transition-all duration-[var(--kts-motion-base)]',
-          isMobile ? 'ml-0' : sidebarCollapsed ? 'ml-16' : 'ml-72',
+          isMobile ? 'ml-0' : sidebarCollapsed ? 'ml-[56px]' : 'ml-[232px]',
         ].join(' ')}
       >
         {/* Top Bar */}
@@ -224,7 +209,9 @@ function AppLayout() {
 
         {/* Page Content */}
         <div className="flex-1 overflow-y-auto" style={{ padding: 'var(--kts-space-6)' }}>
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </div>
       </main>
 
@@ -250,7 +237,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<AppLayout />}>
             {/* Fleet Overview */}
-            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route index element={<Navigate to="/ticketing" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
 
             {/* Device Pages */}

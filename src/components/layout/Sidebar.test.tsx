@@ -5,14 +5,7 @@ import { Sidebar, type SidebarProps } from './Sidebar';
 
 function renderSidebar(overrides: Partial<SidebarProps> = {}) {
   const props: SidebarProps = {
-    location: { pathname: '/dashboard' },
     onNavigate: vi.fn(),
-    servers: [
-      { id: 'unraid', name: 'Unraid Server', device_type: 'unraid', hostname: 'home-server' },
-      { id: 'phone', name: 'Galaxy S24 Ultra', device_type: 'phone', hostname: 'bradleys-s24-ultra' },
-    ],
-    deviceStatus: { unraid: 'online', phone: 'online' },
-    localStats: null,
     collapsed: false,
     onToggleCollapse: vi.fn(),
     ...overrides,
@@ -27,40 +20,33 @@ function renderSidebar(overrides: Partial<SidebarProps> = {}) {
 describe('Sidebar', () => {
   it('renders KTS Master Control branding', () => {
     renderSidebar();
-    expect(screen.getByText('KTS Master Control')).toBeInTheDocument();
-    expect(screen.getByText('Fleet Operations Hub')).toBeInTheDocument();
+    expect(screen.getByText('KTS')).toBeInTheDocument();
+    expect(screen.getByText('Master Control')).toBeInTheDocument();
   });
 
-  it('renders device navigation items by default', () => {
+  it('renders only Ticketing and Settings as linkable destinations', () => {
     renderSidebar();
-    expect(screen.getByText('This Machine')).toBeInTheDocument();
-    expect(screen.getByText('Unraid Server')).toBeInTheDocument();
-    expect(screen.getByText('Galaxy S24 Ultra')).toBeInTheDocument();
-    expect(screen.getByText('ROG Ally')).toBeInTheDocument();
-    expect(screen.queryByText('Senpai Laptop')).not.toBeInTheDocument();
+    expect(screen.getByText('Ticketing')).toBeInTheDocument();
+    expect(screen.getByText('Settings')).toBeInTheDocument();
   });
 
-  it('hides service pages until Services group is expanded', () => {
+  it('does not render removed fleet pages', () => {
     renderSidebar();
-    expect(screen.queryByText('Nextcloud')).not.toBeInTheDocument();
-    expect(screen.queryByText('Docker')).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByText('Services'));
-    expect(screen.getByText('Docker')).toBeInTheDocument();
-    expect(screen.getByText('Nextcloud')).toBeInTheDocument();
+    expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
+    expect(screen.queryByText('Unraid Server')).not.toBeInTheDocument();
+    expect(screen.queryByText('Galaxy S24 Ultra')).not.toBeInTheDocument();
   });
 
-  it('highlights the active page', () => {
-    renderSidebar({ location: { pathname: '/device/unraid' } });
-    const link = screen.getByText('Unraid Server').closest('a');
-    expect(link).toHaveClass('bg-[var(--kts-brand-primary-bg)]');
+  it('does not render Fleet Operations Hub subtitle', () => {
+    renderSidebar();
+    expect(screen.queryByText('Fleet Operations Hub')).not.toBeInTheDocument();
   });
 
   it('calls onNavigate when a nav item is clicked', () => {
     const onNavigate = vi.fn();
     renderSidebar({ onNavigate });
-    fireEvent.click(screen.getByText('This Machine'));
-    expect(onNavigate).toHaveBeenCalledWith('/device/local');
+    fireEvent.click(screen.getByText('Ticketing'));
+    expect(onNavigate).toHaveBeenCalledWith('/ticketing');
   });
 
   it('calls onToggleCollapse when collapse is clicked', () => {
@@ -70,10 +56,17 @@ describe('Sidebar', () => {
     expect(onToggleCollapse).toHaveBeenCalled();
   });
 
-  it('renders collapsed sidebar without labels', () => {
+  it('calls onToggleCollapse when expand is clicked while collapsed', () => {
+    const onToggleCollapse = vi.fn();
+    renderSidebar({ collapsed: true, onToggleCollapse });
+    fireEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }));
+    expect(onToggleCollapse).toHaveBeenCalled();
+  });
+
+  it('renders collapsed sidebar as icon-only rail', () => {
     renderSidebar({ collapsed: true });
-    expect(screen.queryByText('KTS Master Control')).not.toBeInTheDocument();
-    expect(screen.queryByText('This Machine')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument();
+    expect(screen.queryByText('Ticketing')).not.toBeInTheDocument();
+    expect(screen.queryByText('Settings')).not.toBeInTheDocument();
   });
 });

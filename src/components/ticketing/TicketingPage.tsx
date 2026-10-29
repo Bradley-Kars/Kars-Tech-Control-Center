@@ -375,7 +375,6 @@ export function TicketingPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Ticketing</h1>
           <div className="flex items-center gap-2">
-            {from_mock && <Badge variant="info">MC-1 · mock data</Badge>}
             <span className="text-xs font-semibold font-mono">
               MC-1b · live bridge
             </span>

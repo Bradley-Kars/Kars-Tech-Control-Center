@@ -99,7 +99,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={isDisabled}
         className={[
-          'inline-flex items-center justify-center font-[var(--kts-font-mono)] font-semibold',
+          'inline-flex items-center justify-center font-[var(--kts-font-sans)] font-semibold',
           'transition-all duration-[var(--kts-motion-fast)] ease-[var(--kts-easing-ease-out)]',
           'rounded-[var(--kts-radius-base)]',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kts-brand-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--kts-bg-primary)]',

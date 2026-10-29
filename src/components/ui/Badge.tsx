@@ -55,7 +55,7 @@ export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
       <span
         ref={ref}
         className={[
-          'inline-flex items-center font-[var(--kts-font-mono)] font-medium',
+          'inline-flex items-center font-[var(--kts-font-sans)] font-medium',
           'border-0',
           v.base,
           className,
