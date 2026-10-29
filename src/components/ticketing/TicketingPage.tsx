@@ -5,6 +5,7 @@
 // Tailscale-User-Login header it trusts from loopback, W3).
 // No new libraries.
 
+import { ChevronDown } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '../layout/PageHeader';
 import { Card } from '../ui/Card';
@@ -396,31 +397,37 @@ export function TicketingPage() {
         </div>
         <div className="flex flex-col gap-2">
           <Label>Status</Label>
-          <select
-            value={editStatus}
-            onChange={(e) => setEditStatus(e.currentTarget.value)}
-            className="border rounded px-2 py-1 text-sm w-full"
-            data-testid="edit-status"
-          >
-            <option value="new">New</option>
-            <option value="open">Open</option>
-            <option value="in-progress">In Progress</option>
-            <option value="waiting">Waiting</option>
-            <option value="closed">Closed</option>
-          </select>
+          <div className="relative">
+            <select
+              value={editStatus}
+              onChange={(e) => setEditStatus(e.currentTarget.value)}
+              className="border rounded px-2 py-1 text-sm w-full pr-8"
+              data-testid="edit-status"
+            >
+              <option value="new">New</option>
+              <option value="open">Open</option>
+              <option value="in-progress">In Progress</option>
+              <option value="waiting">Waiting</option>
+              <option value="closed">Closed</option>
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--kts-text-tertiary)] size-4 pointer-events-none" />
+          </div>
         </div>
         <div className="flex flex-col gap-2">
           <Label>Priority</Label>
-          <select
-            value={editPriority}
-            onChange={(e) => setEditPriority(e.currentTarget.value)}
-            className="border rounded px-2 py-1 text-sm w-full"
-            data-testid="edit-priority"
-          >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
+          <div className="relative">
+            <select
+              value={editPriority}
+              onChange={(e) => setEditPriority(e.currentTarget.value)}
+              className="border rounded px-2 py-1 text-sm w-full pr-8"
+              data-testid="edit-priority"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--kts-text-tertiary)] size-4 pointer-events-none" />
+          </div>
         </div>
       </div>
 
@@ -522,15 +529,18 @@ export function TicketingPage() {
                   <div className="flex gap-4">
                     <div className="flex-col gap-1">
                       <Label>Priority</Label>
-                      <select
-                        value={createPriority}
-                        onChange={(e) => setCreatePriority(e.currentTarget.value)}
-                        className="border rounded px-2 py-1 text-sm w-full"
-                      >
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                      </select>
+                      <div className="relative">
+                        <select
+                          value={createPriority}
+                          onChange={(e) => setCreatePriority(e.currentTarget.value)}
+                          className="border rounded px-2 py-1 text-sm w-full pr-8"
+                        >
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                        </select>
+                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--kts-text-tertiary)] size-4 pointer-events-none" />
+                      </div>
                     </div>
                     <div className="flex-col gap-1">
                       <Label>Client</Label>
@@ -559,10 +569,11 @@ export function TicketingPage() {
             <div className="flex flex-wrap gap-4 items-end pt-2 pr-6 pb-2 pl-6">
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-mono text-[var(--kts-text-secondary)]">Status</label>
+              <div className="relative">
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.currentTarget.value as any)}
-                  className="border rounded px-2 py-1 text-sm w-full"
+                  className="border rounded px-2 py-1 text-sm w-full pr-8"
                 >
                   <option value="all">All</option>
                   <option value="open">Open</option>
@@ -570,6 +581,8 @@ export function TicketingPage() {
                   <option value="waiting">Waiting</option>
                   <option value="closed">Closed</option>
                 </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--kts-text-tertiary)] size-4 pointer-events-none" />
+              </div>
               </div>
               <div className="flex flex-col gap-2 flex-1">
                 <label className="text-xs font-mono text-[var(--kts-text-secondary)]">Search</label>
@@ -581,15 +594,18 @@ export function TicketingPage() {
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-mono text-[var(--kts-text-secondary)]">Sort by</label>
+              <div className="relative">
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.currentTarget.value as any)}
-                  className="border rounded px-2 py-1 text-sm w-full"
+                  className="border rounded px-2 py-1 text-sm w-full pr-8"
                 >
                   <option value="priority">Priority</option>
                   <option value="due">Due</option>
                   <option value="updated">Updated</option>
                 </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--kts-text-tertiary)] size-4 pointer-events-none" />
+              </div>
               </div>
             </div>
 
