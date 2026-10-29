@@ -3,21 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { Button, IconButton } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Input } from '../ui/Input';
-import { DeviceAvatar } from '../ui/Avatar';
+import { Avatar } from '../ui/Avatar';
 import { Tooltip } from '../ui/Tooltip';
-import { useKiosk } from '../../hooks/useKiosk';
 import {
-  getServers,
-  meshcentralReboot,
-  meshcentralShutdown,
-  kdeConnectRingDevice,
-  phoneScreenshotSave,
-  launchRustdesk,
   alertList,
   alertAcknowledge,
   alertAcknowledgeAll,
 } from '../../lib/tauri-commands';
-import type { Alert, ServerConfig } from '../../lib/types';
+import type { Alert } from '../../lib/types';
+import {
+  Menu,
+  Search,
+  Bell,
+  RefreshCw,
+  Terminal,
+} from 'lucide-react';
+import { routeTitle } from '../../config/nav';
 
 interface TopBarProps {
   location: { pathname: string };
@@ -53,49 +54,35 @@ const SEVERITY_DOT: Record<string, string> = {
   info: 'var(--kts-status-pending)',
 };
 
-const QUICK_ACTIONS = [
-  { id: 'refresh', label: 'Refresh All', icon: '↻', shortcut: '⌘R', action: 'refresh' },
-  { id: 'reboot-unraid', label: 'Reboot Unraid', icon: '🔄', shortcut: '', action: 'reboot-unraid', variant: 'amber' as const },
-  { id: 'shutdown-unraid', label: 'Shutdown Unraid', icon: '⏻', shortcut: '', action: 'shutdown-unraid', variant: 'danger' as const },
-  { id: 'ring-phone', label: 'Ring Phone', icon: '🔔', shortcut: '', action: 'ring-phone' },
-  { id: 'screenshot-phone', label: 'Screenshot Phone', icon: '📱', shortcut: '', action: 'screenshot-phone' },
-  { id: 'rustdesk', label: 'Launch RustDesk', icon: '🖥', shortcut: '', action: 'rustdesk' },
-];
-
 export function TopBar({
   location,
   onMenuClick,
   onCommandPalette,
 }: TopBarProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [showQuickActions, setShowQuickActions] = useState(false);
+  const [showActionsMenu, setShowActionsMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [servers, setServers] = useState<ServerConfig[]>([]);
-  const [confirmPending, setConfirmPending] = useState<string | null>(null);
-  const quickActionsRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  const confirmRef = useRef<{ action: string; timer: number } | null>(null);
-  const { isKiosk, toggleKiosk } = useKiosk();
+  const actionsMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   // Click outside handlers
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (quickActionsRef.current && !quickActionsRef.current.contains(e.target as Node)) {
-        setShowQuickActions(false);
-      }
       if (notificationsRef.current && !notificationsRef.current.contains(e.target as Node)) {
         setShowNotifications(false);
       }
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
         setShowUserMenu(false);
       }
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(e.target as Node)) {
+        setShowActionsMenu(false);
+      }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
@@ -109,22 +96,16 @@ export function TopBar({
         searchRef.current?.focus();
       }
       if (e.key === 'Escape') {
-        setShowQuickActions(false);
         setShowNotifications(false);
         setShowUserMenu(false);
+        setShowActionsMenu(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onCommandPalette]);
 
-  // Load servers once (MC-first quick actions resolve targets by device_type)
-  useEffect(() => {
-    getServers().then(setServers).catch(() => {});
-  }, []);
-
-  // Live alerts feed (bell badge + dropdown), refreshed on mount, on every
-  // fleet refresh (⌘R / sidebar / dashboard), and when the dropdown opens.
+  // Live alerts feed (bell badge + dropdown)
   const refreshAlerts = useCallback(async () => {
     try {
       const data = await alertList({ limit: 20 });
@@ -145,136 +126,6 @@ export function TopBar({
     window.addEventListener('kts:refresh', onFleetRefresh);
     return () => window.removeEventListener('kts:refresh', onFleetRefresh);
   }, [refreshAlerts]);
-
-  // Two-click confirm for destructive actions (reboot/shutdown): first click
-  // arms for 4s and warns, second click within the window executes.
-  const armConfirm = useCallback((id: string, label: string): boolean => {
-    if (confirmRef.current?.action === id) {
-      window.clearTimeout(confirmRef.current.timer);
-      confirmRef.current = null;
-      setConfirmPending(null);
-      return true;
-    }
-    if (confirmRef.current) window.clearTimeout(confirmRef.current.timer);
-    const timer = window.setTimeout(() => {
-      confirmRef.current = null;
-      setConfirmPending(null);
-    }, 4000);
-    confirmRef.current = { action: id, timer };
-    setConfirmPending(id);
-    toast({
-      type: 'warning',
-      title: `Confirm: ${label}`,
-      message: 'Click again within 4 seconds to proceed.',
-      duration: 4000,
-    });
-    return false;
-  }, []);
-
-  useEffect(
-    () => () => {
-      if (confirmRef.current) window.clearTimeout(confirmRef.current.timer);
-    },
-    [],
-  );
-
-  const unraidServer = servers.find((s) => s.device_type === 'unraid');
-  const phoneServer = servers.find((s) => s.device_type === 'phone');
-
-  const noServer = (label: string) =>
-    toast({ type: 'error', title: `${label} not configured`, message: 'No matching server in servers.json.' });
-
-  // Quick-action executor — MeshCentral first (HARD RULE), KDE Connect for the
-  // ring (phone isn't MC-enrolled), ADB only inside the screenshot command.
-  const runAction = useCallback(
-    async (action: string) => {
-      switch (action) {
-        case 'refresh':
-          window.dispatchEvent(new CustomEvent('kts:refresh'));
-          toast({ type: 'info', title: 'Refreshing fleet', message: 'Re-querying all devices and services.' });
-          return;
-        case 'reboot-unraid': {
-          if (!unraidServer) return noServer('Unraid');
-          if (!armConfirm('reboot-unraid', 'Reboot Unraid')) return;
-          try {
-            await meshcentralReboot(unraidServer.id);
-            toast({ type: 'success', title: 'Unraid rebooting', message: 'Command sent via MeshCentral.' });
-          } catch (e) {
-            toast({ type: 'error', title: 'Reboot failed', message: String(e) });
-          }
-          return;
-        }
-        case 'shutdown-unraid': {
-          if (!unraidServer) return noServer('Unraid');
-          if (!armConfirm('shutdown-unraid', 'Shutdown Unraid')) return;
-          try {
-            await meshcentralShutdown(unraidServer.id);
-            toast({ type: 'success', title: 'Unraid shutting down', message: 'Command sent via MeshCentral.' });
-          } catch (e) {
-            toast({ type: 'error', title: 'Shutdown failed', message: String(e) });
-          }
-          return;
-        }
-        case 'ring-phone': {
-          if (!phoneServer) return noServer('Phone');
-          try {
-            await kdeConnectRingDevice(phoneServer.id);
-            toast({ type: 'success', title: 'Phone ringing', message: 'KDE Connect ring sent to the S24.' });
-          } catch (e) {
-            toast({
-              type: 'error',
-              title: 'Ring failed',
-              message: `${String(e)} — KDE Connect on the phone may be offline.`,
-            });
-          }
-          return;
-        }
-        case 'screenshot-phone': {
-          if (!phoneServer) return noServer('Phone');
-          try {
-            const path = await phoneScreenshotSave(phoneServer.id);
-            toast({
-              type: 'success',
-              title: 'Screenshot saved',
-              message: path,
-              duration: 10000,
-              action: {
-                label: 'Copy path',
-                onClick: () => void navigator.clipboard.writeText(path),
-              },
-            });
-          } catch (e) {
-            toast({ type: 'error', title: 'Screenshot failed', message: String(e) });
-          }
-          return;
-        }
-        case 'rustdesk': {
-          if (!phoneServer) return noServer('Phone');
-          try {
-            await launchRustdesk(phoneServer.id);
-            toast({ type: 'success', title: 'RustDesk launching', message: 'Connecting to the S24 Ultra.' });
-          } catch (e) {
-            toast({ type: 'error', title: 'RustDesk failed', message: String(e) });
-          }
-          return;
-        }
-      }
-    },
-    [unraidServer, phoneServer, armConfirm],
-  );
-
-  // Dashboard dispatches these with no listener — execute them here (TopBar is
-  // always mounted inside AppLayout).
-  useEffect(() => {
-    const ring = () => void runAction('ring-phone');
-    const shot = () => void runAction('screenshot-phone');
-    window.addEventListener('kts:ring-phone', ring);
-    window.addEventListener('kts:screenshot-phone', shot);
-    return () => {
-      window.removeEventListener('kts:ring-phone', ring);
-      window.removeEventListener('kts:screenshot-phone', shot);
-    };
-  }, [runAction]);
 
   const unackCount = alerts.filter((a) => !a.acknowledged).length;
 
@@ -298,105 +149,117 @@ export function TopBar({
     }
   };
 
-  // Page title from route
-  const pageTitle = useMemo(() => {
-    const path = location.pathname;
-    if (path === '/dashboard') return 'Fleet Overview';
-    if (path.startsWith('/device/')) {
-      const device = path.split('/device/')[1];
-      const labels: Record<string, string> = {
-        local: 'This Machine',
-        unraid: 'Unraid Server',
-        phone: 'Galaxy S24 Ultra',
-        ally: 'ROG Ally',
-        laptop: 'Senpai Laptop',
-      };
-      return labels[device] || 'Device';
-    }
-    if (path.startsWith('/service/')) {
-      const service = path.split('/service/')[1];
-      const labels: Record<string, string> = {
-        docker: 'Docker',
-        storage: 'Storage',
-        system: 'System',
-        network: 'Network',
-        lidarr: 'Lidarr',
-        homeassistant: 'Home Assistant',
-        nextcloud: 'Nextcloud',
-        adguard: 'AdGuard',
-        myspeed: 'MySpeed',
-      };
-      return labels[service] || 'Service';
-    }
-    if (path.startsWith('/settings')) return 'Settings';
-    return 'KTS Master Control';
-  }, [location.pathname]);
+  // Page title from route (breadcrumb)
+  const pageTitle = useMemo(() => routeTitle(location.pathname), [location.pathname]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      // TODO: Implement global search
       console.log('Search:', searchQuery);
       setSearchQuery('');
     }
   };
 
+  const handleRefresh = () => {
+    window.dispatchEvent(new CustomEvent('kts:refresh'));
+    toast({ type: 'info', title: 'Refreshing fleet', message: 'Re-querying all devices and services.' });
+  };
+
+  const openCommandPalette = () => {
+    onCommandPalette();
+    searchRef.current?.focus();
+  };
+
   return (
     <header
-      className="top-bar flex items-center justify-between gap-4"
+      className="top-bar flex items-center justify-between gap-2"
       style={{
-        height: '56px',
+        height: '48px',
         padding: '0 var(--kts-space-6)',
         background: 'var(--kts-bg-secondary)',
         borderBottom: '1px solid var(--kts-border-default)',
         position: 'sticky',
         top: 0,
         zIndex: 'var(--kts-z-sticky)',
+        minWidth: 0, // allow inner flex items to shrink
       }}
     >
-      {/* Left: Menu + Page Title */}
-      <div className="flex items-center gap-4 min-w-0">
+      {/* Left: Hamburger + truncated page title (+ mobile search icon button) */}
+      <div className="flex items-center gap-2 min-w-0">
         <Tooltip content="Menu" position="bottom">
           <IconButton
             variant="ghost"
             size="sm"
             onClick={onMenuClick}
             aria-label="Open navigation menu"
-            className="md:hidden"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
+            <Menu width="18" height="18" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </IconButton>
         </Tooltip>
 
-        <Tooltip content="Command Palette (⌘K)" position="bottom">
-          <IconButton
-            variant="ghost"
-            size="sm"
-            onClick={onCommandPalette}
-            aria-label="Open Command Palette"
-          >
-            <kbd className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[var(--kts-radius-sm)] font-[var(--kts-font-mono)] text-[10px] text-[var(--kts-text-tertiary)] bg-[var(--kts-bg-tertiary)] border border-[var(--kts-border-default)]">
-              ⌘K
-            </kbd>
-          </IconButton>
-        </Tooltip>
-
-        <h1 className="font-[var(--kts-font-heading)] font-semibold text-[var(--kts-text-primary)] truncate" style={{ fontSize: 'var(--kts-font-size-xl)', letterSpacing: '-0.02em' }}>
+        <span className="flex-1 min-w-0 truncate font-[var(--kts-font-sans)] font-medium text-[var(--kts-text-primary)]" style={{ fontSize: 'var(--kts-font-size-sm)' }}>
           {pageTitle}
-        </h1>
+        </span>
+
+        {/* Mobile: search icon button (< 640px) */}
+        <div className="sm:hidden flex items-center gap-2">
+          <Tooltip content="Search" position="bottom">
+            <IconButton
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowActionsMenu(!showActionsMenu)}
+              aria-label="Search"
+              aria-expanded={showActionsMenu}
+            >
+              <Search width="16" height="16" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </IconButton>
+          </Tooltip>
+          {showActionsMenu && (
+            <div className="absolute left-0 top-full mt-1 z-[var(--kts-z-dropdown)] w-[260px]" style={{
+              background: 'var(--kts-bg-secondary)',
+              border: '1px solid var(--kts-border-default)',
+              borderRadius: 'var(--kts-radius-md)',
+              boxShadow: 'var(--kts-shadow-lg)',
+              overflow: 'hidden',
+              animation: 'dropdown-slide-in 0.15s ease-out',
+            }}>
+              <div className="px-3 py-2 border-b border-[var(--kts-border-default)]">
+                <span className="kicker text-[var(--kts-font-size-xs)]">Search</span>
+              </div>
+              <div className="px-2 py-2">
+                <form onSubmit={handleSearch} className="relative">
+                  <Input
+                    ref={searchRef}
+                    type="search"
+                    placeholder="Search or jump to…"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    size="sm"
+                    leftIcon={
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                      </svg>
+                    }
+                    rightIcon={
+                      <kbd className="font-[var(--kts-font-mono)] text-[10px]">⌘K</kbd>
+                    }
+                    className="w-full"
+                  />
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Center: Global Search */}
-      <div className="flex-1 max-w-xl mx-4 hidden md:block">
+      {/* Center: Global Search (fixed-width slot, does not move between pages) */}
+      <div className="w-[480px] shrink-0 min-w-0 hidden sm:flex">
         <form onSubmit={handleSearch} className="relative w-full">
           <Input
             ref={searchRef}
             type="search"
-            placeholder="Search devices, services, actions... (⌘K)"
+            placeholder="Search or jump to…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             size="sm"
@@ -406,84 +269,69 @@ export function TopBar({
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
             }
+            rightIcon={
+              <kbd className="font-[var(--kts-font-mono)] text-[10px]">⌘K</kbd>
+            }
             className="w-full"
           />
         </form>
       </div>
 
-      {/* Right: Quick Actions, Notifications, Kiosk Toggle, User */}
-      <div className="flex items-center gap-2">
-        {/* Quick Actions */}
-        <div className="relative" ref={quickActionsRef}>
-          <Tooltip content="Quick Actions" position="bottom">
+      {/* Right: Actions dropdown, Notifications, Kiosk Toggle, User */}
+      <div className="flex items-center gap-2 min-w-0">
+        {/* Actions — single dropdown button, one line, whitespace-nowrap */}
+        <div className="relative hidden sm:flex" ref={actionsMenuRef}>
+          <Tooltip content="Actions" position="bottom">
             <Button
               variant="ghost"
               size="sm"
-              leftIcon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>}
-              onClick={() => setShowQuickActions(!showQuickActions)}
-              aria-label="Quick Actions"
-              aria-expanded={showQuickActions}
+              onClick={() => setShowActionsMenu(!showActionsMenu)}
+              aria-label="Actions"
+              aria-expanded={showActionsMenu}
+              className="flex flex-row items-center gap-2 px-2 whitespace-nowrap"
+              style={{ gap: '8px' }}
             >
-              Actions
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={showQuickActions ? 'rotate-180' : ''} style={{ transition: 'transform var(--kts-motion-fast)' }}>
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
+              <Terminal width="16" height="16" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <span className="hidden sm:inline-block ml-2 font-[var(--kts-font-sans)] text-[var(--kts-font-size-sm)]">
+                Actions
+              </span>
             </Button>
           </Tooltip>
-
-          {showQuickActions && (
-            <div
-              className="absolute right-0 top-full mt-2 z-[var(--kts-z-dropdown)]"
-              style={{
-                minWidth: '220px',
-                background: 'var(--kts-bg-secondary)',
-                border: '1px solid var(--kts-border-default)',
-                borderRadius: 'var(--kts-radius-md)',
-                boxShadow: 'var(--kts-shadow-lg)',
-                overflow: 'hidden',
-                animation: 'dropdown-slide-in 0.15s ease-out',
-              }}
-            >
+          {showActionsMenu && (
+            <div className="absolute right-0 top-full mt-2 z-[var(--kts-z-dropdown)] w-48" style={{
+              background: 'var(--kts-bg-secondary)',
+              border: '1px solid var(--kts-border-default)',
+              borderRadius: 'var(--kts-radius-md)',
+              boxShadow: 'var(--kts-shadow-lg)',
+              overflow: 'hidden',
+              animation: 'dropdown-slide-in 0.15s ease-out',
+            }}>
               <div className="px-3 py-2 border-b border-[var(--kts-border-default)]">
-                <span className="kicker text-[var(--kts-font-size-xs)]">Quick Actions</span>
+                <span className="kicker text-[var(--kts-font-size-xs)]">Actions</span>
               </div>
               <div className="py-1">
-                {QUICK_ACTIONS.map((action) => (
-                  <Button
-                    key={action.id}
-                    variant={
-                      confirmPending === action.action
-                        ? 'danger'
-                        : action.variant === 'amber'
-                          ? 'amber'
-                          : action.variant === 'danger'
-                            ? 'danger'
-                            : 'ghost'
-                    }
-                    size="sm"
-                    fullWidth
-                    leftIcon={<span style={{ fontSize: '14px' }}>{action.icon}</span>}
-                    onClick={() => {
-                      // Keep the menu open while a destructive confirm is only
-                      // armed — the second click executes, then it closes.
-                      const willArm =
-                        (action.action === 'reboot-unraid' || action.action === 'shutdown-unraid') &&
-                        confirmPending !== action.action;
-                      if (!willArm) setShowQuickActions(false);
-                      void runAction(action.action);
-                    }}
-                    className="justify-start"
-                  >
-                    <span className="flex-1">
-                      {confirmPending === action.action ? `Confirm: ${action.label}` : action.label}
-                    </span>
-                    {action.shortcut && (
-                      <kbd className="px-1.5 py-0.5 rounded-[var(--kts-radius-sm)] font-[var(--kts-font-mono)] text-[10px] text-[var(--kts-text-tertiary)] bg-[var(--kts-bg-tertiary)] border border-[var(--kts-border-default)]">
-                        {action.shortcut}
-                      </kbd>
-                    )}
-                  </Button>
-                ))}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  fullWidth
+                  onClick={() => { setShowActionsMenu(false); void handleRefresh(); }}
+                  aria-label="Refresh all data"
+                  className="justify-start px-3"
+                >
+                  <RefreshCw width="16" height="16" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <span className="ml-2 text-[var(--kts-font-sans)] text-[var(--kts-font-size-sm)]">Refresh</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  fullWidth
+                  onClick={() => { setShowActionsMenu(false); void openCommandPalette(); }}
+                  aria-label="Open command palette"
+                  className="justify-start px-3"
+                >
+                  <Menu width="16" height="16" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <span className="ml-2 text-[var(--kts-font-sans)] text-[var(--kts-font-size-sm)]">Command palette</span>
+                </Button>
               </div>
             </div>
           )}
@@ -503,10 +351,7 @@ export function TopBar({
               aria-label="Notifications"
               aria-expanded={showNotifications}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-              </svg>
+              <Bell width="18" height="18" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               {unackCount > 0 && (
                 <Badge
                   variant={alerts.some((a) => !a.acknowledged && a.severity === 'critical') ? 'danger' : 'info'}
@@ -590,51 +435,38 @@ export function TopBar({
           )}
         </div>
 
-        {/* Kiosk Toggle */}
-        <Tooltip content={isKiosk ? 'Exit Kiosk Mode (F11)' : 'Enter Kiosk Mode (F11)'} position="bottom">
-          <IconButton
-            variant={isKiosk ? 'primary' : 'ghost'}
-            size="sm"
-            onClick={toggleKiosk}
-            aria-label={isKiosk ? 'Exit Kiosk Mode' : 'Enter Kiosk Mode'}
-            aria-pressed={isKiosk}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              {isKiosk ? (
-                <>
-                  <path d="M4 4h16v16H4z" />
-                  <path d="M9 9h6v6H9z" />
-                </>
-              ) : (
-                <>
-                  <path d="M4 4h16v16H4z" />
-                  <path d="M9 9h6v6H9z" />
-                  <path d="M2 12h20" strokeDasharray="4 4" />
-                </>
-              )}
-            </svg>
-          </IconButton>
-        </Tooltip>
-
         {/* User Menu */}
         <div className="relative" ref={userMenuRef}>
           <Tooltip content="User Menu" position="bottom">
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
               onClick={() => setShowUserMenu(!showUserMenu)}
               aria-label="User Menu"
               aria-expanded={showUserMenu}
-              className="gap-2 pl-1.5"
+              className="inline-flex items-center gap-2 rounded-[var(--kts-radius-base)] px-1.5 min-w-0 transition-colors hover:bg-[var(--kts-interactive-hover)] focus:outline-none overflow-hidden"
+              style={{
+                height: '36px',
+                padding: 0,
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                font: 'inherit',
+                color: 'inherit',
+              }}
             >
-              <span className="flex items-center gap-2">
-                <DeviceAvatar type="desktop" name="Bradley" status="online" size="sm" />
-                <span className="hidden sm:block font-medium text-[var(--kts-text-primary)] text-[var(--kts-font-size-sm)]">Bradley</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={showUserMenu ? 'rotate-180' : ''} style={{ transition: 'transform var(--kts-motion-fast)' }}>
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </span>
-            </Button>
+              <Avatar
+                name="Bradley"
+                status="online"
+                size="sm"
+                fontClass="font-semibold"
+                fontSize="14px"
+                style={{
+                  background: 'var(--kts-brand-primary)',
+                  width: '32px',
+                  height: '32px',
+                }}
+              />
+              <span className="hidden sm:block font-medium text-[var(--kts-text-primary)] text-[var(--kts-font-size-sm)] truncate max-w-[140px]">Bradley</span>
+            </button>
           </Tooltip>
 
           {showUserMenu && (
@@ -651,7 +483,18 @@ export function TopBar({
             >
               <div className="px-4 py-3 border-b border-[var(--kts-border-default)]">
                 <div className="flex items-center gap-3">
-                  <DeviceAvatar type="desktop" name="Bradley" status="online" size="base" />
+                  <Avatar
+                    name="Bradley"
+                    status="online"
+                    size="base"
+                    fontClass="font-semibold"
+                    fontSize="14px"
+                    style={{
+                      background: 'var(--kts-brand-primary)',
+                      width: '40px',
+                      height: '40px',
+                    }}
+                  />
                   <div>
                     <p className="font-medium text-[var(--kts-text-primary)] text-[var(--kts-font-size-sm)]">Bradley Kars</p>
                     <p className="text-[var(--kts-text-tertiary)] text-[var(--kts-font-size-xs)]">admin@karstechsolutions.com</p>
@@ -660,20 +503,19 @@ export function TopBar({
               </div>
               <div className="py-1">
                 {[
-                  { label: 'Settings', icon: '⚙', action: 'settings' },
-                  { label: 'Alerts', icon: '🔔', action: 'alerts' },
+                  { label: 'Settings', action: 'settings' },
+                  { label: 'Alerts', action: 'alerts' },
                 ].map((item) => (
                   <Button
                     key={item.action}
                     variant="ghost"
                     size="sm"
                     fullWidth
-                    leftIcon={<span style={{ fontSize: '14px' }}>{item.icon}</span>}
                     onClick={() => {
                       setShowUserMenu(false);
                       navigate(item.action === 'settings' ? '/settings' : '/alerts');
                     }}
-                    className="justify-start"
+                    className="justify-start px-3"
                   >
                     {item.label}
                   </Button>
@@ -685,17 +527,4 @@ export function TopBar({
       </div>
     </header>
   );
-}
-
-// Keyframes for dropdown
-if (typeof document !== 'undefined' && !document.getElementById('kts-dropdown-keyframes')) {
-  const style = document.createElement('style');
-  style.id = 'kts-dropdown-keyframes';
-  style.textContent = `
-    @keyframes dropdown-slide-in {
-      from { opacity: 0; transform: translateY(-8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-  `;
-  document.head.appendChild(style);
 }

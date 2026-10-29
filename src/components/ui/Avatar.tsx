@@ -9,6 +9,8 @@ export interface AvatarProps extends HTMLAttributes<HTMLDivElement> {
   status?: 'online' | 'offline' | 'busy' | 'away';
   statusPosition?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
   fallback?: ReactNode;
+  fontClass?: string;
+  fontSize?: string;
 }
 
 const sizeStyles = {
@@ -56,7 +58,7 @@ function getColorFromName(name: string): string {
 }
 
 export const Avatar = forwardRef<HTMLDivElement, AvatarProps>(
-  ({ src, alt, name, size = 'base', shape = 'circle', status, statusPosition = 'bottom-right', fallback, className = '', style, ...props }, ref) => {
+  ({ src, alt, name, size = 'base', shape = 'circle', status, statusPosition = 'bottom-right', fallback, className = '', style, fontClass, fontSize, ...props }, ref) => {
     const s = sizeStyles[size];
     const borderRadius = shape === 'circle' ? '50%' : 'var(--kts-radius-base)';
     const statusColor = status ? statusColors[status] : undefined;
@@ -70,12 +72,15 @@ export const Avatar = forwardRef<HTMLDivElement, AvatarProps>(
 
     const fallbackContent = fallback ?? (name ? (
       <span
-        className="font-[var(--kts-font-heading)] font-semibold text-white"
-        style={{ fontSize: s.fontSize, lineHeight: 1 }}
+        className={[
+          'font-[var(--kts-font-sans)] font-semibold text-white',
+          fontClass,
+        ].filter(Boolean).join(' ')}
+        style={{ fontSize: fontSize ?? s.fontSize, lineHeight: 1 }}
       >
         {getInitials(name)}
       </span>
-    ) : (
+) : (
       <svg width={parseInt(s.size) * 0.5} height={parseInt(s.size) * 0.5} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
         <circle cx="12" cy="7" r="4" />
@@ -257,7 +262,7 @@ const deviceColors: Record<DeviceType, string> = {
   phone: 'var(--kts-brand-secondary)',
   handheld: '#8B5CF6',
   laptop: '#06B6D4',
-  desktop: '#EC4899',
+  desktop: 'var(--kts-brand-primary)',
   server: '#22C55E',
   router: '#F97316',
   nas: '#84CC16',

@@ -197,7 +197,7 @@ export function Table<T = any>({
                 <th
                   key={col.key}
                   className={[
-                    'font-[var(--kts-font-mono)] font-medium uppercase tracking-[0.08em] text-[var(--kts-text-secondary)]',
+                    'font-[var(--kts-font-sans)] font-medium uppercase tracking-[0.08em] text-[var(--kts-text-secondary)]',
                     col.headerAlign === 'center' && 'text-center',
                     col.headerAlign === 'right' && 'text-right',
                     col.sortable && 'cursor-pointer select-none hover:text-[var(--kts-brand-primary)]',
