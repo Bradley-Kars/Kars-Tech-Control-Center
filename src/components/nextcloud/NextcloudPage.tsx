@@ -59,10 +59,12 @@ export function NextcloudPage({ server }: { server: ServerConfig }) {
   const [users, setUsers] = useState<NextcloudUser[]>([]);
   const [activity, setActivity] = useState<NextcloudActivity | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'activity' | 'storage'>('overview');
 
   const fetchData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const [infoRes, statusRes, storageRes, usersRes, activityRes] = await Promise.all([
         getNextcloudInfo(server.id),
@@ -77,7 +79,7 @@ export function NextcloudPage({ server }: { server: ServerConfig }) {
       setUsers(usersRes);
       setActivity(activityRes);
     } catch (err) {
-      console.error('Failed to fetch Nextcloud data:', err);
+      setError(String(err));
     } finally {
       setLoading(false);
     }
@@ -99,6 +101,9 @@ export function NextcloudPage({ server }: { server: ServerConfig }) {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="text-sm text-red bg-red/10 border border-red/20 rounded-lg px-3 py-2 font-mono">{error}</div>
+      )}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-heading font-bold">Nextcloud</h1>
         <span className={`px-2 py-1 text-xs font-mono rounded ${

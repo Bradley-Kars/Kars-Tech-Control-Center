@@ -32,11 +32,13 @@ export function HomeAssistantPage({ server }: { server: ServerConfig }) {
   const [states, setStates] = useState<HAState[]>([]);
   const [config, setConfig] = useState<HAConfig | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'states'>('overview');
   const [filterDomain, setFilterDomain] = useState<string>('');
 
   const fetchData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const [statesRes, configRes] = await Promise.allSettled([
         getHomeAssistantStates(server.id),
@@ -45,7 +47,7 @@ export function HomeAssistantPage({ server }: { server: ServerConfig }) {
       if (statesRes.status === 'fulfilled') setStates(statesRes.value);
       if (configRes.status === 'fulfilled') setConfig(configRes.value);
     } catch (err) {
-      console.error('Failed to fetch Home Assistant data:', err);
+      setError(String(err));
     } finally {
       setLoading(false);
     }
@@ -92,6 +94,9 @@ export function HomeAssistantPage({ server }: { server: ServerConfig }) {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="text-sm text-red bg-red/10 border border-red/20 rounded-lg px-3 py-2 font-mono">{error}</div>
+      )}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-heading font-bold">Home Assistant</h1>
         <div className="flex items-center gap-4 text-sm">

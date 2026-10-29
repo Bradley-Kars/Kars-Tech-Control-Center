@@ -82,10 +82,12 @@ export function LidarrPage({ server }: { server: ServerConfig }) {
   const [wanted, setWanted] = useState<LidarrWantedMissing | null>(null);
   const [diskspace, setDiskspace] = useState<LidarrDiskSpace[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'artists' | 'albums' | 'wanted' | 'diskspace'>('overview');
 
   const fetchData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const [statusRes, artistsRes, albumsRes, wantedRes, diskspaceRes] = await Promise.allSettled([
         getLidarrStatus(server.id),
@@ -100,7 +102,7 @@ export function LidarrPage({ server }: { server: ServerConfig }) {
       if (wantedRes.status === 'fulfilled') setWanted(wantedRes.value);
       if (diskspaceRes.status === 'fulfilled') setDiskspace(diskspaceRes.value);
     } catch (err) {
-      console.error('Failed to fetch Lidarr data:', err);
+      setError(String(err));
     } finally {
       setLoading(false);
     }
@@ -148,6 +150,9 @@ export function LidarrPage({ server }: { server: ServerConfig }) {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="text-sm text-red bg-red/10 border border-red/20 rounded-lg px-3 py-2 font-mono">{error}</div>
+      )}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-heading font-bold">Lidarr</h1>
       </div>

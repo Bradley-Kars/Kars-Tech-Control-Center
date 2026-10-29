@@ -7,13 +7,17 @@ interface Props { server: ServerConfig; }
 export function NetworkPage({ server }: Props) {
   const [interfaces, setInterfaces] = useState('');
   const [tailscale, setTailscale] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    setError(null);
     try {
       const [i, t] = await Promise.all([getNetworkInterfaces(server.id), getTailscalePeers(server.id)]);
       setInterfaces(i || '');
       setTailscale(t || '');
-    } catch { /* empty */ }
+    } catch (err) {
+      setError(String(err));
+    }
   }, [server.id]);
 
   useEffect(() => { load(); }, [load]);
@@ -24,6 +28,10 @@ export function NetworkPage({ server }: Props) {
         <h1 className="text-xl font-heading font-bold">Network</h1>
         <button onClick={load} className="btn btn-ghost btn-sm">Refresh</button>
       </div>
+
+      {error && (
+        <div className="text-sm text-red bg-red/10 border border-red/20 rounded-lg px-3 py-2 font-mono">{error}</div>
+      )}
 
       <div className="card p-4">
         <div className="kicker mb-3">Network Interfaces</div>

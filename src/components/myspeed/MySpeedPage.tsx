@@ -40,10 +40,12 @@ interface MySpeedSummary {
 export function MySpeedPage({ server }: { server: ServerConfig }) {
   const [summary, setSummary] = useState<MySpeedSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [chartData, setChartData] = useState<Array<{ time: string; download: number; upload: number; ping: number }>>([]);
 
   const fetchData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const summaryRes = await getMySpeedSummary(server.id, 50);
       setSummary(summaryRes);
@@ -59,7 +61,7 @@ export function MySpeedPage({ server }: { server: ServerConfig }) {
         }));
       setChartData(chartPoints);
     } catch (err) {
-      console.error('Failed to fetch MySpeed data:', err);
+      setError(String(err));
     } finally {
       setLoading(false);
     }
@@ -96,6 +98,9 @@ export function MySpeedPage({ server }: { server: ServerConfig }) {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="text-sm text-red bg-red/10 border border-red/20 rounded-lg px-3 py-2 font-mono">{error}</div>
+      )}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-heading font-bold">MySpeed</h1>
         <div className="flex items-center gap-4 text-sm">
