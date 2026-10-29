@@ -63,7 +63,7 @@ export function Gauge({
   const innerDiameter = 2 * radius - strokeWidth;
   const maxTextWidth = Math.max(innerDiameter - 8, 8);
   const fittedFontSize = Math.max(
-    8,
+    10,
     Math.min(parseFloat(config.fontSize), maxTextWidth / Math.max(rawText.length * 0.62, 1))
   );
 
