@@ -1,11 +1,11 @@
-// MC-1b — Ticketing page (W1/W2)
+// Ticketing page (W1/W2)
 // Mobile-first, reuse existing UI components (Card, Badge, Input, Button, Label).
 // No @tauri-apps imports — data flows through src/lib/api.ts (same origin,
 // API under /api). Identity comes from the bridge (X-API-Token or the
 // Tailscale-User-Login header it trusts from loopback, W3).
 // No new libraries.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Input } from '../ui/Input';
@@ -18,7 +18,6 @@ import {
   listTickets,
   updateTicket,
   type CreateTicketInput,
-  type TicketSummary,
   type WorklogEntryInput,
 } from '../../lib/api';
 
@@ -43,12 +42,10 @@ interface TicketRow {
 
 interface TicketOverview {
   tickets: TicketRow[];
-  from_mock: boolean;
   offline_reason: 'none' | 'unreachable' | 'unauthorized' | 'bad_response' | 'other';
 }
 
 const CLOSED_STATUSES = new Set(['closed', 'cancelled', 'resolved']);
-const OPEN_STATUSES = new Set(['new', 'open', 'in-progress', 'triaged', 'waiting']);
 const WAITING_STATUSES = new Set(['waiting', 'pending']);
 
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
@@ -95,18 +92,8 @@ function ErrorBanner({ error, onRetry }: { error: string; onRetry: () => void })
   );
 }
 
-function StatCard({ label, value }: { label: string; value: number | string }) {
-  return (
-    <Card variant="subtle" className="flex-1 min-w-[140px] p-4">
-      <div className="text-sm opacity-70">{label}</div>
-      <div className="text-3xl font-semibold mt-1">{value}</div>
-    </Card>
-  );
-}
-
 function TicketRowItem({ ticket, onSelect }: { ticket: TicketRow; onSelect: (t: TicketRow) => void }) {
   const isClosed = CLOSED_STATUSES.has(ticket.status);
-  const isWaiting = WAITING_STATUSES.has(ticket.status);
   const isOverdue = false; // No due dates in current data model
 
   return (
@@ -142,6 +129,15 @@ export function TicketingPage() {
   const [createTitle, setCreateTitle] = useState('');
   const [createClient, setCreateClient] = useState('');
   const [createPriority, setCreatePriority] = useState('medium');
+
+  // Inline edit state for the selected ticket
+  const [editTitle, setEditTitle] = useState('');
+  const [editStatus, setEditStatus] = useState('');
+  const [editPriority, setEditPriority] = useState('');
+
+  // Worklog state for the selected ticket
+  const [worklogEntry, setWorklogEntry] = useState('');
+  const [worklogHours, setWorklogHours] = useState('0.5');
 
   // Filter state
   const [filterStatus, setFilterStatus] = useState<'all' | 'open' | 'picks' | 'closed'>('all');
@@ -216,7 +212,7 @@ export function TicketingPage() {
               id: t.id,
               title: t.title,
               status: t.status,
-              client_id: t.client_id ?? '',
+              client_id: t.client_name ?? '',
               priority: t.priority ?? 'medium',
               hours: 0,
               total: 0,
@@ -231,7 +227,6 @@ export function TicketingPage() {
           console.error('[ticketing] list failed:', err);
           setData({
             tickets: [],
-            from_mock: false,
             offline_reason: (err as { status?: number }).status === 401 ? 'unauthorized' : 'unreachable',
           });
         }
@@ -244,7 +239,7 @@ export function TicketingPage() {
     };
   }, []);
 
-  const refetch = async () => {
+  const refetch = useCallback(async () => {
     try {
       const res = await listTickets();
       setData({
@@ -252,26 +247,24 @@ export function TicketingPage() {
           id: t.id,
           title: t.title,
           status: t.status,
-          client_id: t.client_id ?? '',
+          client_id: t.client_name ?? '',
           priority: t.priority ?? 'medium',
           hours: 0,
           total: 0,
           invoice_number: null,
           no_charge: false,
         })),
-        from_mock: false,
         offline_reason: 'none',
       });
     } catch (err) {
       console.error('[ticketing] refetch failed:', err);
       const offline: TicketOverview = {
         tickets: [],
-        from_mock: false,
         offline_reason: (err as { status?: number }).status === 401 ? 'unauthorized' : 'unreachable',
       };
       setData(offline);
     }
-  };
+  }, []);
 
   // Create ticket
   const handleCreateTicket = async (e: React.FormEvent) => {
@@ -298,18 +291,16 @@ export function TicketingPage() {
   // Add worklog
   const handleAddWorklog = async () => {
     if (!selected) return;
-    const entryInput = document.getElementById(`worklog-input-${selected.id}`) as HTMLInputElement | null;
-    const hoursInput = document.getElementById(`worklog-hours-${selected.id}`) as HTMLInputElement | null;
-    if (!entryInput?.value.trim()) return;
+    if (!worklogEntry.trim()) return;
     try {
       const input: WorklogEntryInput = {
-        entry: entryInput.value,
-        hours: parseFloat(hoursInput?.value || '0.5') || 0.5,
+        entry: worklogEntry,
+        hours: parseFloat(worklogHours || '0.5') || 0.5,
         payment: 'uninvoiced',
       };
       await addWorklog(selected.id, input);
-      entryInput.value = '';
-      hoursInput.value = '0.5';
+      setWorklogEntry('');
+      setWorklogHours('0.5');
       await refetch();
     } catch (err) {
       console.error('[ticketing] worklog failed:', err);
@@ -325,7 +316,19 @@ export function TicketingPage() {
       await refetch();
       const refreshed = await listTickets();
       setSelected(
-        refreshed.tickets.find((t) => t.id === selected.id) ?? selected,
+        refreshed.tickets
+          .map((t) => ({
+            id: t.id,
+            title: t.title,
+            status: t.status,
+            client_id: t.client_name ?? '',
+            priority: t.priority ?? 'medium',
+            hours: 0,
+            total: 0,
+            invoice_number: null,
+            no_charge: false,
+          }))
+          .find((t) => t.id === selected.id) ?? selected,
       );
     } catch (err) {
       console.error('[ticketing] status change failed:', err);
@@ -334,15 +337,34 @@ export function TicketingPage() {
   };
 
   // Update ticket inline
-  const handleUpdateTicket = async (updates: Record<string, unknown>) => {
+  const handleUpdateTicket = async () => {
     if (!selected) return;
+    const fields: Record<string, unknown> = {};
+    if (editTitle.trim() && editTitle !== selected.title) fields.title = editTitle.trim();
+    if (editPriority && editPriority !== (selected.priority ?? '')) fields.priority = editPriority;
+    if (Object.keys(fields).length === 0) return;
     try {
-      await updateTicket(selected.id, updates);
+      await updateTicket(selected.id, fields);
       await refetch();
       const refreshed = await listTickets();
       setSelected(
-        refreshed.tickets.find((t) => t.id === selected.id) ?? selected,
+        refreshed.tickets
+          .map((t) => ({
+            id: t.id,
+            title: t.title,
+            status: t.status,
+            client_id: t.client_name ?? '',
+            priority: t.priority ?? 'medium',
+            hours: 0,
+            total: 0,
+            invoice_number: null,
+            no_charge: false,
+          }))
+          .find((t) => t.id === selected.id) ?? selected,
       );
+      setEditTitle(selected.title);
+      setEditStatus(selected.status);
+      setEditPriority(selected.priority ?? '');
     } catch (err) {
       console.error('[ticketing] update failed:', err);
       alert(`Failed to update: ${err}`);
@@ -367,6 +389,102 @@ export function TicketingPage() {
 
   const { tickets, offline_reason } = data;
 
+  // Selected ticket detail panel (inline edit + worklog + status change)
+  const detailPanel = selected ? (
+    <Card variant="subtle" className="p-4 space-y-4" data-testid="ticket-detail">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Ticket {selected.id}</h2>
+        <Button variant="outline" size="sm" onClick={() => setSelected(null)}>
+          Close
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="flex flex-col gap-2">
+          <Label>Title</Label>
+          <Input
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.currentTarget.value)}
+            data-testid="edit-title"
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label>Status</Label>
+          <select
+            value={editStatus}
+            onChange={(e) => setEditStatus(e.currentTarget.value)}
+            className="border rounded px-2 py-1 text-sm w-full"
+            data-testid="edit-status"
+          >
+            <option value="new">New</option>
+            <option value="open">Open</option>
+            <option value="in-progress">In Progress</option>
+            <option value="waiting">Waiting</option>
+            <option value="closed">Closed</option>
+          </select>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label>Priority</Label>
+          <select
+            value={editPriority}
+            onChange={(e) => setEditPriority(e.currentTarget.value)}
+            className="border rounded px-2 py-1 text-sm w-full"
+            data-testid="edit-priority"
+          >
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+      </div>
+
+      <Button variant="primary" onClick={handleUpdateTicket} data-testid="save-ticket">
+        Save changes
+      </Button>
+
+      <Button
+        variant="danger"
+        size="sm"
+        onClick={() => handleChangeStatus(editStatus || selected.status)}
+        data-testid="change-status"
+      >
+        Change status to {editStatus || selected.status}
+      </Button>
+
+      <div className="border-t pt-4">
+        <h3 className="text-sm font-semibold mb-2">Add worklog</h3>
+        <div className="flex flex-col gap-2 md:flex-row md:items-end">
+          <div className="flex-1 min-w-0">
+            <Label>Entry</Label>
+            <Input
+              value={worklogEntry}
+              onChange={(e) => setWorklogEntry(e.currentTarget.value)}
+              placeholder="Work done…"
+              data-testid="worklog-entry"
+            />
+          </div>
+          <div className="w-full md:w-24">
+            <Label>Hours</Label>
+            <Input
+              type="number"
+              value={worklogHours}
+              onChange={(e) => setWorklogHours(e.currentTarget.value)}
+              data-testid="worklog-hours"
+            />
+          </div>
+          <Button
+            variant="primary"
+            onClick={handleAddWorklog}
+            disabled={!worklogEntry.trim()}
+            data-testid="add-worklog"
+          >
+            Add
+          </Button>
+        </div>
+      </div>
+    </Card>
+  ) : null;
+
   // Mobile view: cards
   if (isMobile) {
     return (
@@ -375,19 +493,15 @@ export function TicketingPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Ticketing</h1>
           <div className="flex items-center gap-2">
-            {from_mock && <Badge variant="info">MC-1 · mock data</Badge>}
-            <span className="text-xs font-semibold font-mono">
-              MC-1b · live bridge
-            </span>
             <Button onClick={() => setCreating(!creating)}>
               {creating ? 'Cancel' : 'New Ticket'}
             </Button>
           </div>
         </div>
 
-        {/* OFF-1 offline banner */}
-        {data.offline_reason && data.offline_reason !== 'none' && (
-          <ErrorBanner error={data.offline_reason} onRetry={() => refetch()} />
+        {/* Offline banner */}
+        {offline_reason !== 'none' && (
+          <ErrorBanner error={offline_reason} onRetry={() => refetch()} />
         )}
 
         {/* Create ticket form */}
@@ -436,6 +550,8 @@ export function TicketingPage() {
           </Card>
         )}
 
+        {detailPanel}
+
         {/* Ticket list - cards on mobile */}
         <div className="space-y-3">
           {filteredTickets.length === 0 ? (
@@ -471,8 +587,8 @@ export function TicketingPage() {
       </div>
 
       {/* Error banner */}
-      {data.offline_reason && data.offline_reason !== 'none' && (
-        <ErrorBanner error={data.offline_reason} onRetry={() => refetch()} />
+      {offline_reason !== 'none' && (
+        <ErrorBanner error={offline_reason} onRetry={() => refetch()} />
       )}
 
       {/* Quick add */}
@@ -521,81 +637,83 @@ export function TicketingPage() {
         </Card>
         )}
 
-        {/* Controls: filter, search, sort */}
-        <div className="flex flex-wrap gap-4 items-end">
-          <div className="flex flex-col gap-2">
-            <label className="text-xs font-mono text-[var(--kts-text-secondary)]">Status</label>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.currentTarget.value as any)}
-              className="border rounded px-2 py-1 text-sm w-full"
-            >
-              <option value="all">All</option>
-              <option value="open">Open</option>
-              <option value="picks">Picks</option>
-              <option value="closed">Closed</option>
-            </select>
-          </div>
-          <div className="flex flex-col gap-2 flex-1">
-            <label className="text-xs font-mono text-[var(--kts-text-secondary)]">Search</label>
-            <Input
-              value={searchText}
-              onChange={(e) => setSearchText(e.currentTarget.value)}
-              placeholder="Search id, title, client…"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-xs font-mono text-[var(--kts-text-secondary)]">Sort by</label>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.currentTarget.value as any)}
-              className="border rounded px-2 py-1 text-sm w-full"
-            >
-              <option value="rating">Priority</option>
-              <option value="capture_date">Capture date</option>
-              <option value="edit_date">Edit date</option>
-            </select>
-          </div>
-        </div>
+      {detailPanel}
 
-        {/* Ticket table */}
-        <Card variant="subtle" className="p-4">
-          <table className="w-full text-sm" data-testid="ticket-table">
-            <thead>
-              <tr className="text-left border-b border-[var(--kts-border-default)]">
-                <th className="p-3">ID</th>
-                <th className="p-3">Title</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Priority</th>
-                <th className="p-3">Client</th>
-                <th className="p-3 text-right">Hours</th>
-                <th className="p-3 text-right">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTickets.map((t) => (
-                <tr
-                  key={t.id}
-                  className="border-b border-[var(--kts-border-default)] cursor-pointer hover:bg-[var(--kts-bg-tertiary)]"
-                  onClick={() => setSelected(t)}
-                  data-testid={`ticket-row-${t.id}`}
-                >
-                  <td className="p-3 font-mono">{t.id}</td>
-                  <td className="p-3">{t.title}</td>
-                  <td className="p-3">
-                    <StatusChip status={t.status} />
-                  </td>
-                  <td className="p-3">
-                    <PriorityChip priority={t.priority} />
-                  </td>
-                  <td className="p-3 font-mono">{t.client_id}</td>
-                  <td className="p-3 text-right">{t.hours}</td>
-                  <td className="p-3 text-right">{t.total.toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
+      {/* Controls: filter, search, sort */}
+      <div className="flex flex-wrap gap-4 items-end">
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-mono text-[var(--kts-text-secondary)]">Status</label>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.currentTarget.value as any)}
+            className="border rounded px-2 py-1 text-sm w-full"
+          >
+            <option value="all">All</option>
+            <option value="open">Open</option>
+            <option value="picks">Picks</option>
+            <option value="closed">Closed</option>
+          </select>
+        </div>
+        <div className="flex flex-col gap-2 flex-1">
+          <label className="text-xs font-mono text-[var(--kts-text-secondary)]">Search</label>
+          <Input
+            value={searchText}
+            onChange={(e) => setSearchText(e.currentTarget.value)}
+            placeholder="Search id, title, client…"
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-mono text-[var(--kts-text-secondary)]">Sort by</label>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.currentTarget.value as any)}
+            className="border rounded px-2 py-1 text-sm w-full"
+          >
+            <option value="rating">Priority</option>
+            <option value="capture_date">Capture date</option>
+            <option value="edit_date">Edit date</option>
+          </select>
+        </div>
       </div>
-    );
-  }
+
+      {/* Ticket table */}
+      <Card variant="subtle" className="p-4">
+        <table className="w-full text-sm" data-testid="ticket-table">
+          <thead>
+            <tr className="text-left border-b border-[var(--kts-border-default)]">
+              <th className="p-3">ID</th>
+              <th className="p-3">Title</th>
+              <th className="p-3">Status</th>
+              <th className="p-3">Priority</th>
+              <th className="p-3">Client</th>
+              <th className="p-3 text-right">Hours</th>
+              <th className="p-3 text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredTickets.map((t) => (
+              <tr
+                key={t.id}
+                className="border-b border-[var(--kts-border-default)] cursor-pointer hover:bg-[var(--kts-bg-tertiary)]"
+                onClick={() => setSelected(t)}
+                data-testid={`ticket-row-${t.id}`}
+              >
+                <td className="p-3 font-mono">{t.id}</td>
+                <td className="p-3">{t.title}</td>
+                <td className="p-3">
+                  <StatusChip status={t.status} />
+                </td>
+                <td className="p-3">
+                  <PriorityChip priority={t.priority} />
+                </td>
+                <td className="p-3 font-mono">{t.client_id}</td>
+                <td className="p-3 text-right">{t.hours}</td>
+                <td className="p-3 text-right">{t.total.toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
