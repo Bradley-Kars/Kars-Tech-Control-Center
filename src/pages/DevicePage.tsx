@@ -142,6 +142,7 @@ function LocalDevice() {
   const mem = system?.memory_usage_pct ?? 0;
   const gpuUtil = gpu?.utilization_pct ?? null;
   const cpuTemp = thermal?.cpu_temp_c ?? thermal?.average ?? null;
+  const offline = !loading && system == null;
 
   return (
     <div className="space-y-6">
@@ -150,19 +151,19 @@ function LocalDevice() {
       {/* Vitals */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card padded>
-          <Gauge size="base" value={cpu} variant={loading ? 'default' : cpu > 80 ? 'danger' : cpu > 50 ? 'warning' : 'success'} label="CPU" showValue loading={loading} />
+          <Gauge size="base" value={cpu} variant={offline ? 'default' : cpu > 80 ? 'danger' : cpu > 50 ? 'warning' : 'success'} label="CPU" showValue loading={loading} />
         </Card>
         <Card padded>
-          <Gauge size="base" value={mem} variant={loading ? 'default' : mem > 85 ? 'danger' : mem > 60 ? 'warning' : 'success'} label="Memory" showValue loading={loading} />
+          <Gauge size="base" value={mem} variant={offline ? 'default' : mem > 85 ? 'danger' : mem > 60 ? 'warning' : 'success'} label="Memory" showValue loading={loading} />
         </Card>
         <Card padded>
-          <Gauge size="base" value={gpuUtil ?? 0} variant={loading ? 'default' : 'info'} label="GPU" showValue={gpuUtil != null} loading={loading} />
+          <Gauge size="base" value={gpuUtil ?? 0} variant={offline || gpuUtil == null ? 'default' : 'info'} label="GPU" showValue={gpuUtil != null} loading={loading} />
           {gpuUtil == null && (
             <p className="text-center text-[var(--kts-text-tertiary)]" style={{ fontSize: 'var(--kts-font-size-xs)' }}>No dGPU</p>
           )}
         </Card>
         <Card padded>
-          <Gauge size="base" value={cpuTemp != null ? Math.min(100, cpuTemp) : 0} variant={loading || cpuTemp == null ? 'default' : cpuTemp > 80 ? 'danger' : cpuTemp > 65 ? 'warning' : 'success'} label="Temp" showValue={cpuTemp != null} loading={loading} valueFormatter={cpuTemp != null ? () => `${Math.round(cpuTemp)}°C` : undefined} />
+          <Gauge size="base" value={cpuTemp != null ? Math.min(100, cpuTemp) : 0} variant={offline || cpuTemp == null ? 'default' : cpuTemp > 80 ? 'danger' : cpuTemp > 65 ? 'warning' : 'success'} label="Temp" showValue={cpuTemp != null} loading={loading} valueFormatter={cpuTemp != null ? () => `${Math.round(cpuTemp)}°C` : undefined} />
           {cpuTemp == null && (
             <p className="text-center text-[var(--kts-text-tertiary)]" style={{ fontSize: 'var(--kts-font-size-xs)' }}>No sensor</p>
           )}
@@ -251,6 +252,7 @@ function UnraidDevice() {
   const mem = stats?.memory_usage_pct ?? 0;
   const tempSensors = stats?.temperature_sensors as Array<{ name: string; value: number }> | undefined;
   const hottest = tempSensors?.length ? Math.max(...tempSensors.map((s) => s.value)) : (stats?.temp_avg ?? null);
+  const offline = !loading && !connected;
 
   const runPowerAction = async () => {
     if (!server || !confirmAction) return;
@@ -400,16 +402,16 @@ function UnraidDevice() {
           {/* Vitals */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card padded>
-              <Gauge size="base" value={cpu} variant={loading ? 'default' : cpu > 80 ? 'danger' : cpu > 50 ? 'warning' : 'success'} label="CPU" showValue loading={loading} />
+              <Gauge size="base" value={cpu} variant={offline ? 'default' : cpu > 80 ? 'danger' : cpu > 50 ? 'warning' : 'success'} label="CPU" showValue loading={loading} />
             </Card>
             <Card padded>
-              <Gauge size="base" value={mem} variant={loading ? 'default' : mem > 85 ? 'danger' : mem > 60 ? 'warning' : 'success'} label="Memory" showValue loading={loading} />
+              <Gauge size="base" value={mem} variant={offline ? 'default' : mem > 85 ? 'danger' : mem > 60 ? 'warning' : 'success'} label="Memory" showValue loading={loading} />
             </Card>
             <Card padded>
               <Gauge
                 size="base"
                 value={hottest != null ? Math.min(100, hottest) : 0}
-                variant={loading || hottest == null ? 'default' : hottest > 75 ? 'danger' : hottest > 55 ? 'warning' : 'success'}
+                variant={offline || hottest == null ? 'default' : hottest > 75 ? 'danger' : hottest > 55 ? 'warning' : 'success'}
                 label="Hottest"
                 showValue={hottest != null}
                 loading={loading}
