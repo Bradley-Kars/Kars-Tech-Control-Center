@@ -37,28 +37,33 @@ export function Sidebar({
         style={{ minHeight: '60px' }}
       >
         {collapsed ? (
-          <Tooltip content="Expand sidebar" position="right">
-            <IconButton
-              variant="ghost"
-              size="sm"
-              onClick={onToggleCollapse}
-              aria-label="Expand sidebar"
-            >
-              <ChevronRight width="18" height="18" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </IconButton>
-          </Tooltip>
+          <div className="flex items-center justify-center gap-2">
+            <img
+              src="/favicon.svg"
+              alt="KTS Master Control logo"
+              className="shrink-0"
+              style={{ width: 24, height: 24, borderRadius: 6 }}
+            />
+            <Tooltip content="Expand sidebar" position="right">
+              <IconButton
+                variant="ghost"
+                size="sm"
+                onClick={onToggleCollapse}
+                aria-label="Expand sidebar"
+              >
+                <ChevronRight width="18" height="18" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </IconButton>
+            </Tooltip>
+          </div>
         ) : (
           <>
             <div className="flex-shrink-0">
-              <div style={{
-                width: '32px', height: '32px', borderRadius: '8px',
-                background: 'var(--kts-brand-primary)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A1628" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 12h4l2-7 4 14 2-7h6" />
-                </svg>
-              </div>
+              <img
+                src="/favicon.svg"
+                alt="KTS Master Control logo"
+                className="shrink-0"
+                style={{ width: 32, height: 32, borderRadius: 8 }}
+              />
             </div>
             <div className="flex-1 min-w-0">
               <span className="font-[var(--kts-font-heading)] font-bold text-[var(--kts-text-primary)] block leading-tight" style={{ fontSize: '15px', letterSpacing: '-0.01em' }}>
