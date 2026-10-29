@@ -83,7 +83,7 @@ function ErrorBanner({ error, onRetry }: { error: string; onRetry: () => void })
         <span className="text-lg font-bold">⚠</span>
         <div className="flex-1">
           <div className="text-sm font-semibold">{error}</div>
-          <Button variant="outline" size="sm" onClick={onRetry}>
+          <Button className="min-h-[44px] min-w-[44px]" variant="outline" size="sm" onClick={onRetry}>
             Retry
           </Button>
         </div>
@@ -398,7 +398,7 @@ export function TicketingPage() {
     <Card variant="subtle" className="p-4 space-y-4" data-testid="ticket-detail">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Ticket {selected.id}</h2>
-        <Button variant="outline" size="sm" onClick={() => setSelected(null)}>
+        <Button className="min-h-[44px] min-w-[44px]" variant="outline" size="sm" onClick={() => setSelected(null)}>
           Close
         </Button>
       </div>
@@ -442,11 +442,11 @@ export function TicketingPage() {
         </div>
       </div>
 
-      <Button variant="primary" onClick={handleUpdateTicket} data-testid="save-ticket">
+      <Button className="min-h-[44px] min-w-[44px]" variant="primary" onClick={handleUpdateTicket} data-testid="save-ticket">
         Save changes
       </Button>
 
-      <Button
+      <Button className="min-h-[44px] min-w-[44px]"
         variant="danger"
         size="sm"
         onClick={() => handleChangeStatus(editStatus || selected.status)}
@@ -476,7 +476,7 @@ export function TicketingPage() {
               data-testid="worklog-hours"
             />
           </div>
-          <Button
+          <Button className="min-h-[44px] min-w-[44px]"
             variant="primary"
             onClick={handleAddWorklog}
             disabled={!worklogEntry.trim()}
@@ -497,7 +497,7 @@ export function TicketingPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Ticketing</h1>
           <div className="flex items-center gap-2">
-            <Button onClick={() => setCreating(!creating)}>
+            <Button className="min-h-[44px] min-w-[44px]" onClick={() => setCreating(!creating)}>
               {creating ? 'Cancel' : 'New Ticket'}
             </Button>
           </div>
@@ -543,10 +543,10 @@ export function TicketingPage() {
                 </div>
               </div>
               <div className="flex gap-2 mt-2">
-                <Button variant="primary" onClick={handleCreateTicket} disabled={!createTitle.trim()}>
+                <Button className="min-h-[44px] min-w-[44px]" variant="primary" onClick={handleCreateTicket} disabled={!createTitle.trim()}>
                   Create
                 </Button>
-                <Button variant="outline" onClick={() => setCreating(false)}>
+                <Button className="min-h-[44px] min-w-[44px]" variant="outline" onClick={() => setCreating(false)}>
                   Cancel
                 </Button>
               </div>
@@ -584,7 +584,7 @@ export function TicketingPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="primary" size="sm" onClick={() => setCreating(!creating)}>
+          <Button className="min-h-[44px] min-w-[44px]" variant="primary" size="sm" onClick={() => setCreating(!creating)}>
             {creating ? 'Cancel' : 'New Ticket'}
           </Button>
         </div>
@@ -630,10 +630,10 @@ export function TicketingPage() {
               </div>
             </div>
             <div className="flex gap-2 mt-4">
-              <Button variant="primary" onClick={handleCreateTicket} disabled={!createTitle.trim()}>
+              <Button className="min-h-[44px] min-w-[44px]" variant="primary" onClick={handleCreateTicket} disabled={!createTitle.trim()}>
                 Create
               </Button>
-              <Button variant="outline" onClick={() => setCreating(false)}>
+              <Button className="min-h-[44px] min-w-[44px]" variant="outline" onClick={() => setCreating(false)}>
                 Cancel
               </Button>
             </div>
