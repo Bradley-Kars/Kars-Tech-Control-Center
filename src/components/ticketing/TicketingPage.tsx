@@ -6,6 +6,7 @@
 // No new libraries.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { PageHeader } from '../layout/PageHeader';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Input } from '../ui/Input';
@@ -124,6 +125,7 @@ function TicketRowItem({ ticket, onSelect }: { ticket: TicketRow; onSelect: (t: 
 export function TicketingPage() {
   const [data, setData] = useState<TicketOverview | null>(null);
   const [loading, setLoading] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
   const [selected, setSelected] = useState<TicketRow | null>(null);
   const [creating, setCreating] = useState(false);
   const [createTitle, setCreateTitle] = useState('');
@@ -229,10 +231,8 @@ export function TicketingPage() {
       } catch (err) {
         if (mounted) {
           console.error('[ticketing] list failed:', err);
-          setData({
-            tickets: [],
-            offline_reason: (err as { status?: number }).status === 401 ? 'unauthorized' : 'unreachable',
-          });
+          setListError(err instanceof Error ? err.message : 'Failed to load tickets');
+          setLoading(false);
         }
       } finally {
         if (mounted) setLoading(false);
@@ -375,24 +375,6 @@ export function TicketingPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="p-6 space-y-6" data-testid="ticketing-page">
-        <div className="text-center opacity-50">Loading ticketing…</div>
-      </div>
-    );
-  }
-
-  if (!data) {
-    return (
-      <div className="p-6 space-y-6" data-testid="ticketing-page">
-        <ErrorBanner error="Failed to load tickets" onRetry={() => refetch()} />
-      </div>
-    );
-  }
-
-  const { tickets, offline_reason } = data;
-
   // Selected ticket detail panel (inline edit + worklog + status change)
   const detailPanel = selected ? (
     <Card variant="subtle" className="p-4 space-y-4" data-testid="ticket-detail">
@@ -446,7 +428,8 @@ export function TicketingPage() {
         Save changes
       </Button>
 
-      <Button className="min-h-[44px] min-w-[44px]"
+      <Button
+        className="min-h-[44px] min-w-[44px]"
         variant="danger"
         size="sm"
         onClick={() => handleChangeStatus(editStatus || selected.status)}
@@ -489,236 +472,188 @@ export function TicketingPage() {
     </Card>
   ) : null;
 
-  // Mobile view: cards
-  if (isMobile) {
-    return (
-      <div className="p-4 space-y-4" data-testid="ticketing-page">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Ticketing</h1>
-          <div className="flex items-center gap-2">
-            <Button className="min-h-[44px] min-w-[44px]" onClick={() => setCreating(!creating)}>
-              {creating ? 'Cancel' : 'New Ticket'}
-            </Button>
-          </div>
-        </div>
+  const subtitle = useMemo(() => {
+    const openCount = filteredTickets.filter((t) => !CLOSED_STATUSES.has(t.status)).length;
+    return `${openCount} open`;
+  }, [filteredTickets]);
 
-        {/* Offline banner */}
-        {offline_reason !== 'none' && (
-          <ErrorBanner error={offline_reason} onRetry={() => refetch()} />
-        )}
+  const offline_reason = data?.offline_reason ?? 'none';
 
-        {/* Create ticket form */}
-        {creating && (
-          <Card variant="subtle" className="p-4">
-            <form onSubmit={handleCreateTicket} className="flex flex-col gap-2">
-              <div className="flex flex-col gap-1">
-                <Label>Title</Label>
-                <Input
-                  value={createTitle}
-                  onChange={(e) => setCreateTitle(e.currentTarget.value)}
-                  placeholder="Ticket title"
-                />
-              </div>
-              <div className="flex gap-2">
-                <div className="flex-col gap-1">
-                  <Label>Priority</Label>
-                  <select
-                    value={createPriority}
-                    onChange={(e) => setCreatePriority(e.currentTarget.value)}
-                    className="border rounded px-2 py-1 text-sm w-full"
-                  >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                  </select>
-                </div>
-                <div className="flex-col gap-1">
-                  <Label>Client</Label>
-                  <Input
-                    value={createClient}
-                    onChange={(e) => setCreateClient(e.currentTarget.value)}
-                    placeholder="Client (optional)"
-                  />
-                </div>
-              </div>
-              <div className="flex gap-2 mt-2">
-                <Button className="min-h-[44px] min-w-[44px]" variant="primary" onClick={handleCreateTicket} disabled={!createTitle.trim()}>
-                  Create
-                </Button>
-                <Button className="min-h-[44px] min-w-[44px]" variant="outline" onClick={() => setCreating(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </Card>
-        )}
-
-        {detailPanel}
-
-        {/* Ticket list - cards on mobile */}
-        <div className="space-y-3">
-          {filteredTickets.length === 0 ? (
-            <div className="text-center py-8 text-[var(--kts-text-secondary)]">
-              No tickets found.
-            </div>
-          ) : (
-            tickets.map((t) => (
-              <TicketRowItem key={t.id} ticket={t} onSelect={setSelected} />
-            ))
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Desktop view: table
   return (
-    <div className="p-6 space-y-6" data-testid="ticketing-page">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col">
-          <h1 className="text-xl font-semibold">Ticketing</h1>
-          <div className="text-sm opacity-70">
-            {filteredTickets.length} ticket{filteredTickets.length !== 1 ? 's' : ''}
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button className="min-h-[44px] min-w-[44px]" variant="primary" size="sm" onClick={() => setCreating(!creating)}>
+    <div className="flex flex-col h-full min-w-0" data-testid="ticketing-page">
+      <PageHeader
+        title="Ticketing"
+        description={subtitle}
+        actions={
+          <Button variant="primary" size="sm" onClick={() => setCreating(!creating)}>
             {creating ? 'Cancel' : 'New Ticket'}
           </Button>
-        </div>
-      </div>
+        }
+      />
 
-      {/* Error banner */}
-      {offline_reason !== 'none' && (
-        <ErrorBanner error={offline_reason} onRetry={() => refetch()} />
-      )}
+      <div className="flex-1 min-w-0 overflow-y-auto">
+        {loading ? (
+          <div className="px-6 pt-6 pb-6 pl-6 text-center opacity-50">
+            Loading ticketing…
+          </div>
+        ) : !data && listError ? (
+          <div className="px-6 pt-6 pb-6 pl-6">
+            <ErrorBanner error={listError} onRetry={() => refetch()} />
+          </div>
+        ) : (
+          <>
+            {offline_reason !== 'none' && (
+              <div className="pt-6 pr-6 pb-2 pl-6">
+                <ErrorBanner error={offline_reason} onRetry={() => refetch()} />
+              </div>
+            )}
 
-      {/* Quick add */}
-      {creating && (
-        <Card variant="subtle" className="p-4">
-          <form onSubmit={handleCreateTicket} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <Label>Title</Label>
-              <Input
-                value={createTitle}
-                onChange={(e) => setCreateTitle(e.currentTarget.value)}
-                placeholder="Ticket title"
-              />
-            </div>
-            <div className="flex gap-4">
-              <div className="flex-col gap-1">
-                <Label>Priority</Label>
+            {creating && (
+              <div className="pt-2 pr-6 pb-2 pl-6">
+                <form onSubmit={handleCreateTicket} className="space-y-4">
+                  <div className="flex flex-col gap-1">
+                    <Label>Title</Label>
+                    <Input
+                      value={createTitle}
+                      onChange={(e) => setCreateTitle(e.currentTarget.value)}
+                      placeholder="Ticket title"
+                    />
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="flex-col gap-1">
+                      <Label>Priority</Label>
+                      <select
+                        value={createPriority}
+                        onChange={(e) => setCreatePriority(e.currentTarget.value)}
+                        className="border rounded px-2 py-1 text-sm w-full"
+                      >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                      </select>
+                    </div>
+                    <div className="flex-col gap-1">
+                      <Label>Client</Label>
+                      <Input
+                        value={createClient}
+                        onChange={(e) => setCreateClient(e.currentTarget.value)}
+                        placeholder="Client (optional)"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <Button variant="primary" onClick={handleCreateTicket} disabled={!createTitle.trim()}>
+                      Create
+                    </Button>
+                    <Button variant="outline" onClick={() => setCreating(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {detailPanel}
+
+            {/* Controls: filter, search, sort */}
+            <div className="flex flex-wrap gap-4 items-end pt-2 pr-6 pb-2 pl-6">
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-mono text-[var(--kts-text-secondary)]">Status</label>
                 <select
-                  value={createPriority}
-                  onChange={(e) => setCreatePriority(e.currentTarget.value)}
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.currentTarget.value as any)}
                   className="border rounded px-2 py-1 text-sm w-full"
                 >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
+                  <option value="all">All</option>
+                  <option value="open">Open</option>
+                  <option value="mine">Mine</option>
+                  <option value="waiting">Waiting</option>
+                  <option value="closed">Closed</option>
                 </select>
               </div>
-              <div className="flex-col gap-1">
-                <Label>Client</Label>
+              <div className="flex flex-col gap-2 flex-1">
+                <label className="text-xs font-mono text-[var(--kts-text-secondary)]">Search</label>
                 <Input
-                  value={createClient}
-                  onChange={(e) => setCreateClient(e.currentTarget.value)}
-                  placeholder="Client (optional)"
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.currentTarget.value)}
+                  placeholder="Search id, title, client…"
                 />
               </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-mono text-[var(--kts-text-secondary)]">Sort by</label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.currentTarget.value as any)}
+                  className="border rounded px-2 py-1 text-sm w-full"
+                >
+                  <option value="priority">Priority</option>
+                  <option value="due">Due</option>
+                  <option value="updated">Updated</option>
+                </select>
+              </div>
             </div>
-            <div className="flex gap-2 mt-4">
-              <Button className="min-h-[44px] min-w-[44px]" variant="primary" onClick={handleCreateTicket} disabled={!createTitle.trim()}>
-                Create
-              </Button>
-              <Button className="min-h-[44px] min-w-[44px]" variant="outline" onClick={() => setCreating(false)}>
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </Card>
+
+            {/* Ticket table (desktop) */}
+            {!isMobile && filteredTickets.length > 0 && (
+              <div className="pt-2 pr-6 pb-6 pl-6">
+                <Card variant="subtle" className="p-4">
+                  <table className="w-full text-sm" data-testid="ticket-table">
+                    <thead>
+                      <tr className="text-left border-b border-[var(--kts-border-default)]">
+                        <th className="p-3">ID</th>
+                        <th className="p-3">Title</th>
+                        <th className="p-3">Status</th>
+                        <th className="p-3">Priority</th>
+                        <th className="p-3">Client</th>
+                        <th className="p-3 text-right">Hours</th>
+                        <th className="p-3 text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredTickets.map((t) => (
+                        <tr
+                          key={t.id}
+                          className="border-b border-[var(--kts-border-default)] cursor-pointer hover:bg-[var(--kts-bg-tertiary)]"
+                          onClick={() => setSelected(t)}
+                          data-testid={`ticket-row-${t.id}`}
+                        >
+                          <td className="p-3 font-mono">{t.id}</td>
+                          <td className="p-3">{t.title}</td>
+                          <td className="p-3">
+                            <StatusChip status={t.status} />
+                          </td>
+                          <td className="p-3">
+                            <PriorityChip priority={t.priority} />
+                          </td>
+                          <td className="p-3 font-mono">{t.client_id}</td>
+                          <td className="p-3 text-right">{t.hours}</td>
+                          <td className="p-3 text-right">{t.total.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </Card>
+              </div>
+            )}
+
+            {/* Ticket cards (mobile) */}
+            {isMobile && filteredTickets.length > 0 && (
+              <div className="pt-6 pr-6 pb-6 pl-6 space-y-3">
+                {filteredTickets.map((t) => (
+                  <TicketRowItem key={t.id} ticket={t} onSelect={setSelected} />
+                ))}
+              </div>
+            )}
+
+            {/* Empty state */}
+            {filteredTickets.length === 0 && (
+              <div className="pt-6 pr-6 pb-6 pl-6 text-center py-8 text-[var(--kts-text-secondary)]">
+                No tickets found.
+              </div>
+            )}
+          </>
         )}
-
-      {detailPanel}
-
-      {/* Controls: filter, search, sort */}
-      <div className="flex flex-wrap gap-4 items-end">
-        <div className="flex flex-col gap-2">
-          <label className="text-xs font-mono text-[var(--kts-text-secondary)]">Status</label>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.currentTarget.value as any)}
-            className="border rounded px-2 py-1 text-sm w-full"
-          >
-            <option value="all">All</option>
-            <option value="open">Open</option>
-            <option value="mine">Mine</option>
-            <option value="waiting">Waiting</option>
-            <option value="closed">Closed</option>
-          </select>
-        </div>
-        <div className="flex flex-col gap-2 flex-1">
-          <label className="text-xs font-mono text-[var(--kts-text-secondary)]">Search</label>
-          <Input
-            value={searchText}
-            onChange={(e) => setSearchText(e.currentTarget.value)}
-            placeholder="Search id, title, client…"
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-xs font-mono text-[var(--kts-text-secondary)]">Sort by</label>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.currentTarget.value as any)}
-            className="border rounded px-2 py-1 text-sm w-full"
-          >
-            <option value="priority">Priority</option>
-            <option value="due">Due</option>
-            <option value="updated">Updated</option>
-          </select>
-        </div>
       </div>
-
-      {/* Ticket table */}
-      <Card variant="subtle" className="p-4">
-        <table className="w-full text-sm" data-testid="ticket-table">
-          <thead>
-            <tr className="text-left border-b border-[var(--kts-border-default)]">
-              <th className="p-3">ID</th>
-              <th className="p-3">Title</th>
-              <th className="p-3">Status</th>
-              <th className="p-3">Priority</th>
-              <th className="p-3">Client</th>
-              <th className="p-3 text-right">Hours</th>
-              <th className="p-3 text-right">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredTickets.map((t) => (
-              <tr
-                key={t.id}
-                className="border-b border-[var(--kts-border-default)] cursor-pointer hover:bg-[var(--kts-bg-tertiary)]"
-                onClick={() => setSelected(t)}
-                data-testid={`ticket-row-${t.id}`}
-              >
-                <td className="p-3 font-mono">{t.id}</td>
-                <td className="p-3">{t.title}</td>
-                <td className="p-3">
-                  <StatusChip status={t.status} />
-                </td>
-                <td className="p-3">
-                  <PriorityChip priority={t.priority} />
-                </td>
-                <td className="p-3 font-mono">{t.client_id}</td>
-                <td className="p-3 text-right">{t.hours}</td>
-                <td className="p-3 text-right">{t.total.toFixed(2)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
     </div>
   );
 }

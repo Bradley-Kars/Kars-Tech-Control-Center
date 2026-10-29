@@ -31,6 +31,28 @@ export function getAuthToken(): string {
   return authToken;
 }
 
+/**
+ * Human-facing error message for a failed ticket-API request.
+ * Network failure and non-JSON responses are reported before status codes,
+ * since a connection error or an HTML page is a different class of problem
+ * than an HTTP status from a real API endpoint.
+ */
+export function ticketRequestError(
+  status: number | null,
+  isJson: boolean,
+): string {
+  if (status === null) {
+    return "Can't reach the ticket server.";
+  }
+  if (!isJson) {
+    return 'The server returned a web page instead of data. The API address may be wrong.';
+  }
+  if (status === 401) return "You're not signed in to this server.";
+  if (status === 403) return "Your account isn't allowed to do that.";
+  if (status >= 500 && status < 600) return "The ticket server had a problem. Try again.";
+  return `Request failed with status ${status}`;
+}
+
 export interface ApiError extends Error {
   status: number;
   detail: string;
@@ -46,23 +68,33 @@ async function request<T>(
   if (t) headers['X-API-Token'] = t;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    });
+  } catch {
+    const err = new Error(ticketRequestError(null, false)) as ApiError;
+    err.status = 0;
+    err.detail = 'Network request failed';
+    throw err;
+  }
 
   if (!res.ok) {
+    const contentType = res.headers.get('content-type') ?? '';
+    const isJson = contentType.includes('application/json');
     let detail = res.statusText;
-    try {
-      const json = await res.json();
-      if (json && typeof json === 'object' && json.detail) detail = String(json.detail);
-    } catch {
-      // not json — keep statusText
+    if (isJson) {
+      try {
+        const json = await res.json();
+        if (json && typeof json === 'object' && json.detail) detail = String(json.detail);
+      } catch {
+        // body is not valid JSON despite content-type; keep statusText
+      }
     }
-    const err = new Error(
-      `${method} ${path} -> ${res.status} ${detail}`,
-    ) as ApiError;
+    const err = new Error(ticketRequestError(res.status, isJson)) as ApiError;
     err.status = res.status;
     err.detail = detail;
     throw err;

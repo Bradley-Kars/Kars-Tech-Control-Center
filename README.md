@@ -30,3 +30,17 @@ If you are developing a production application, we recommend enabling type-aware
 ```
 
 See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+
+## Development proxy
+
+The Vite dev server proxies `/api` to the bridge backend so `npm run dev` can load real data without a separate backend on the dev port:
+
+```bash
+# Default: proxies /api to http://127.0.0.1:8798
+npm run dev
+
+# Override the proxy target:
+VITE_API_PROXY=http://127.0.0.1:8798 npm run dev
+```
+
+No real hostnames are hard-coded; the target is read from `VITE_API_PROXY` and falls back to `http://127.0.0.1:8798`.

@@ -136,32 +136,44 @@ describe('TicketingPage (with mocked bridge API)', () => {
     expect(updateTicket).toHaveBeenCalledWith('TKT-2026-001', expect.objectContaining({ title: 'Updated title' }));
   });
 
-  it('error state shows a Retry button when list fails', async () => {
-    const err: any = new Error('boom');
-    err.status = 500;
+  it('error state shows ONLY error card with Retry on list failure', async () => {
+    const err: any = new Error("Can't reach the ticket server.");
+    err.status = 0;
     mockListTickets.mockRejectedValue(err);
     render(<TicketingPage />);
-    await waitFor(() => expect(screen.getByText('unreachable')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Can't reach the ticket server.")).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /Retry/i })).toBeInTheDocument();
+    // No tickets list rendered on error
+    expect(screen.queryByTestId('ticket-table')).not.toBeInTheDocument();
+    expect(screen.queryByText('No tickets found.')).not.toBeInTheDocument();
   });
 
-  it('Retry reloads the ticket list', async () => {
-    const err: any = new Error('boom');
-    err.status = 500;
+  it('Retry reloads the ticket list after error', async () => {
+    const err: any = new Error("Can't reach the ticket server.");
+    err.status = 0;
     mockListTickets.mockRejectedValueOnce(err).mockResolvedValue({ count: 3, tickets: baseTickets });
     render(<TicketingPage />);
-    await waitFor(() => expect(screen.getByText('unreachable')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Can't reach the ticket server.")).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: /Retry/i }));
     await waitFor(() => expect(screen.getByText('Email deliverability remediation')).toBeInTheDocument());
     expect(listTickets).toHaveBeenCalledTimes(2);
   });
 
-  it('unauthorized (401) shows unauthorized error', async () => {
-    const err: any = new Error('unauthorized');
+  it('unauthorized (401) shows specific error', async () => {
+    const err: any = new Error("You're not signed in to this server.");
     err.status = 401;
     mockListTickets.mockRejectedValue(err);
     render(<TicketingPage />);
-    await waitFor(() => expect(screen.getByText('unauthorized')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("You're not signed in to this server.")).toBeInTheDocument());
+  });
+
+  it('shows No tickets found only on success with zero tickets', async () => {
+    mockListTickets.mockResolvedValue({ count: 0, tickets: [] });
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('No tickets found.')).toBeInTheDocument());
+    // No error banner on empty success
+    expect(screen.queryByText(/Failed to load/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('ticket-table')).not.toBeInTheDocument();
   });
 
   it('search filters results by title', async () => {
