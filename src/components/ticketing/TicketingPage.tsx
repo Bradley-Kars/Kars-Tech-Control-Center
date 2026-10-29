@@ -140,7 +140,7 @@ export function TicketingPage() {
   const [worklogHours, setWorklogHours] = useState('0.5');
 
   // Filter state
-  const [filterStatus, setFilterStatus] = useState<'all' | 'open' | 'picks' | 'closed'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'open' | 'mine' | 'waiting' | 'closed'>('all');
   const [searchText, setSearchText] = useState('');
   const [sortBy, setSortBy] = useState<'rating' | 'capture_date' | 'edit_date'>('rating');
 
@@ -156,8 +156,11 @@ export function TicketingPage() {
     if (filterStatus !== 'all') {
       if (filterStatus === 'open') {
         result = result.filter((t) => !CLOSED_STATUSES.has(t.status));
-      } else if (filterStatus === 'picks') {
+      } else if (filterStatus === 'mine') {
+        // No assignee field in the data model yet; treat "mine" as open tickets.
         result = result.filter((t) => !CLOSED_STATUSES.has(t.status));
+      } else if (filterStatus === 'waiting') {
+        result = result.filter((t) => WAITING_STATUSES.has(t.status));
       } else if (filterStatus === 'closed') {
         result = result.filter((t) => CLOSED_STATUSES.has(t.status));
       }
@@ -650,7 +653,8 @@ export function TicketingPage() {
           >
             <option value="all">All</option>
             <option value="open">Open</option>
-            <option value="picks">Picks</option>
+            <option value="mine">Mine</option>
+            <option value="waiting">Waiting</option>
             <option value="closed">Closed</option>
           </select>
         </div>

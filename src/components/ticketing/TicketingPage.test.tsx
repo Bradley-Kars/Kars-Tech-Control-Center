@@ -175,4 +175,33 @@ describe('TicketingPage (with mocked bridge API)', () => {
       expect(screen.queryByText('Email deliverability remediation')).not.toBeInTheDocument();
     });
   });
+
+  it('filters by waiting status', async () => {
+    const waiting = [{ id: 'W-1', title: 'Waiting on parts', status: 'waiting', client_name: 'CUS-000001', priority: 'low' }];
+    mockListTickets.mockResolvedValue({ count: 1, tickets: waiting });
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Waiting on parts')).toBeInTheDocument());
+
+    // Switch to Waiting filter
+    const statusSelect = screen.getAllByRole('combobox')[0];
+    fireEvent.click(statusSelect);
+    fireEvent.change(statusSelect, { target: { value: "waiting" } });
+    await waitFor(() => {
+      expect(screen.getByText('Waiting on parts')).toBeInTheDocument();
+      expect(screen.queryByText('Email deliverability remediation')).not.toBeInTheDocument();
+    });
+  });
+
+  it('filters by mine status (open tickets)', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Microphone and speaker setup')).toBeInTheDocument());
+
+    const statusSelect = screen.getAllByRole('combobox')[0];
+    fireEvent.click(statusSelect);
+    fireEvent.change(statusSelect, { target: { value: "mine" } });
+    await waitFor(() => {
+      expect(screen.getByText('Microphone and speaker setup')).toBeInTheDocument();
+      expect(screen.queryByText('Email deliverability remediation')).not.toBeInTheDocument();
+    });
+  });
 });
