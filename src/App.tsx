@@ -169,8 +169,8 @@ function AppLayout() {
           'sidebar fixed left-0 top-0 z-[var(--kts-z-sticky)] h-full transition-all duration-[var(--kts-motion-base)] ease-[var(--kts-easing-ease-out)]',
           isMobile
             ? sidebarOpen
-              ? 'w-[232px] translate-x-0'
-              : '-translate-x-full w-[232px]'
+              ? 'w-full translate-x-0'
+              : '-translate-x-full w-full'
             : sidebarCollapsed
             ? 'w-[56px]'
             : 'w-[232px]',
