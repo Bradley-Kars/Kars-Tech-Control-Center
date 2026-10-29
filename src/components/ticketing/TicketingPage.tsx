@@ -142,7 +142,7 @@ export function TicketingPage() {
   // Filter state
   const [filterStatus, setFilterStatus] = useState<'all' | 'open' | 'mine' | 'waiting' | 'closed'>('all');
   const [searchText, setSearchText] = useState('');
-  const [sortBy, setSortBy] = useState<'rating' | 'capture_date' | 'edit_date'>('rating');
+  const [sortBy, setSortBy] = useState<'priority' | 'due' | 'updated'>('priority');
 
   // View mode (mobile vs desktop)
   const [isMobile, setIsMobile] = useState(false);
@@ -178,16 +178,17 @@ export function TicketingPage() {
     }
 
     // Sort
-    if (sortBy === 'rating') {
+    if (sortBy === 'priority') {
       result = result.sort((a, b) => {
         const pa = PRIORITY_ORDER[a.priority ?? 'medium'] ?? 1;
         const pb = PRIORITY_ORDER[b.priority ?? 'medium'] ?? 1;
         return pa - pb;
       });
-    } else if (sortBy === 'capture_date') {
-      result = result.sort((a, b) => a.id.localeCompare(b.id));
-    } else if (sortBy === 'edit_date') {
-      result = result.sort((a, b) => a.id.localeCompare(b.id));
+    } else if (sortBy === 'due') {
+      // No due-date field in the data model; sort by updated_at as a proxy.
+      result = result.sort((a, b) => (a.updated_at ?? '').localeCompare(b.updated_at ?? ''));
+    } else if (sortBy === 'updated') {
+      result = result.sort((a, b) => (a.updated_at ?? '').localeCompare(b.updated_at ?? ''));
     }
 
     return result;
@@ -673,9 +674,9 @@ export function TicketingPage() {
             onChange={(e) => setSortBy(e.currentTarget.value as any)}
             className="border rounded px-2 py-1 text-sm w-full"
           >
-            <option value="rating">Priority</option>
-            <option value="capture_date">Capture date</option>
-            <option value="edit_date">Edit date</option>
+            <option value="priority">Priority</option>
+            <option value="due">Due</option>
+            <option value="updated">Updated</option>
           </select>
         </div>
       </div>

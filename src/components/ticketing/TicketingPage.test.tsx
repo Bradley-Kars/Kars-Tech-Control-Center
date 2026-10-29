@@ -198,10 +198,30 @@ describe('TicketingPage (with mocked bridge API)', () => {
 
     const statusSelect = screen.getAllByRole('combobox')[0];
     fireEvent.click(statusSelect);
-    fireEvent.change(statusSelect, { target: { value: "mine" } });
+    fireEvent.change(statusSelect, { target: { value: 'mine' } });
     await waitFor(() => {
       expect(screen.getByText('Microphone and speaker setup')).toBeInTheDocument();
       expect(screen.queryByText('Email deliverability remediation')).not.toBeInTheDocument();
     });
+  });
+
+  it('sorts by priority with high first (default)', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
+    const table = screen.getByTestId('ticket-table');
+    const rows = Array.from(table.querySelectorAll('[data-testid^="ticket-row-"]'));
+    expect(rows.map((r) => r.getAttribute('data-testid'))).toEqual([
+      'ticket-row-TKT-2026-003', // high
+      'ticket-row-TKT-2026-001', // medium
+      'ticket-row-TKT-2026-002', // medium
+    ]);
+  });
+
+  it('can switch sort to due without crashing', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
+    const sortSelect = screen.getAllByRole('combobox')[1];
+    fireEvent.change(sortSelect, { target: { value: 'due' } });
+    await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
   });
 });
