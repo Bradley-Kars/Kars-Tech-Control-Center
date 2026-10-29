@@ -183,7 +183,12 @@ const positionStyles: Record<NonNullable<ToastManagerProps['position']>, React.C
 };
 
 export function ToastManager({ toasts, onClose, position = 'top-right', maxToasts = 5, gap = 8 }: ToastManagerProps) {
-  const visibleToasts = toasts.slice(-maxToasts);
+  // Dedupe identical toasts (same type + title), keeping the latest.
+  const deduped = toasts.reduce<Record<string, ToastItem>>((acc, t) => {
+    acc[`${t.type}:${t.title}`] = t;
+    return acc;
+  }, {});
+  const visibleToasts = Object.values(deduped).slice(-maxToasts);
 
   if (visibleToasts.length === 0) return null;
 
