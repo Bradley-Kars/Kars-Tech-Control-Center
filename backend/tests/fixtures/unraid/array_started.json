@@ -1,0 +1,32 @@
+{
+  "state": "STARTED",
+  "disks": [
+    {
+      "device": "sda",
+      "name": "disk1",
+      "size": "8.00 TB",
+      "used": "2.00 TB",
+      "temperature": 35,
+      "smart_status": "PASSED",
+      "spun_up": true
+    },
+    {
+      "device": "sdb",
+      "name": "disk2",
+      "size": "8.00 TB",
+      "used": "1.50 TB",
+      "temperature": 42,
+      "smart_status": "PASSED",
+      "spun_up": true
+    }
+  ],
+  "parity": {
+    "status": "active",
+    "sync": 100.0
+  },
+  "capacity": {
+    "total": "16.00 TB",
+    "used": "3.50 TB",
+    "free": "12.50 TB"
+  }
+}

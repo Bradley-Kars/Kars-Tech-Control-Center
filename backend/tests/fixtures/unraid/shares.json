@@ -1,0 +1,16 @@
+{
+  "shares": [
+    {
+      "name": "array",
+      "path": "/mnt/array",
+      "free": "4.00 TB",
+      "used": "2.00 TB"
+    },
+    {
+      "name": "media",
+      "path": "/mnt/media",
+      "free": "6.00 TB",
+      "used": "1.00 TB"
+    }
+  ]
+}

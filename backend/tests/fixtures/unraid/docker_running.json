@@ -1,0 +1,16 @@
+{
+  "containers": [
+    {
+      "name": "nextcloud",
+      "image": "nextcloud:latest",
+      "state": "running",
+      "status": "Up 2 weeks"
+    },
+    {
+      "name": "lidarr",
+      "image": "lidarr/lidarr:latest",
+      "state": "running",
+      "status": "Up 3 days"
+    }
+  ]
+}

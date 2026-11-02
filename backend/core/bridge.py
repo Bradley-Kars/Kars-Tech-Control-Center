@@ -1284,6 +1284,74 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
             "actor": request.state.actor_id,
         }
 
+    # --- Unraid monitoring (H2c slice 2) ---
+    # GET-only endpoints for Unraid array/docker status. Auth via
+    # KTS_UNRAID_TOKEN env var (bearer token, read scope required).
+    # No secrets in code; token read from env at request time.
+    @app.get("/api/unraid/array")
+    def unraid_array(request: Request):
+        from .services.unraid_service import RealUnraidClient
+        token = request.headers.get("authorization", "").replace("Bearer ", "", 1)
+        if not token:
+            token = os.environ.get("KTS_UNRAID_TOKEN", "")
+        if not token:
+            return JSONResponse({"detail": "KTS_UNRAID_TOKEN not configured"}, status_code=503)
+        client = RealUnraidClient(token=token)
+        try:
+            return client.get_array()
+        except PermissionError as e:
+            return JSONResponse({"detail": str(e)}, status_code=403)
+        except Exception as e:
+            return JSONResponse({"detail": str(e)}, status_code=502)
+
+    @app.get("/api/unraid/shares")
+    def unraid_shares(request: Request):
+        from .services.unraid_service import RealUnraidClient
+        token = request.headers.get("authorization", "").replace("Bearer ", "", 1)
+        if not token:
+            token = os.environ.get("KTS_UNRAID_TOKEN", "")
+        if not token:
+            return JSONResponse({"detail": "KTS_UNRAID_TOKEN not configured"}, status_code=503)
+        client = RealUnraidClient(token=token)
+        try:
+            return client.get_shares()
+        except PermissionError as e:
+            return JSONResponse({"detail": str(e)}, status_code=403)
+        except Exception as e:
+            return JSONResponse({"detail": str(e)}, status_code=502)
+
+    @app.get("/api/unraid/docker")
+    def unraid_docker(request: Request):
+        from .services.unraid_service import RealUnraidClient
+        token = request.headers.get("authorization", "").replace("Bearer ", "", 1)
+        if not token:
+            token = os.environ.get("KTS_UNRAID_TOKEN", "")
+        if not token:
+            return JSONResponse({"detail": "KTS_UNRAID_TOKEN not configured"}, status_code=503)
+        client = RealUnraidClient(token=token)
+        try:
+            return client.get_docker()
+        except PermissionError as e:
+            return JSONResponse({"detail": str(e)}, status_code=403)
+        except Exception as e:
+            return JSONResponse({"detail": str(e)}, status_code=502)
+
+    @app.get("/api/unraid/summary")
+    def unraid_summary(request: Request):
+        from .services.unraid_service import RealUnraidClient
+        token = request.headers.get("authorization", "").replace("Bearer ", "", 1)
+        if not token:
+            token = os.environ.get("KTS_UNRAID_TOKEN", "")
+        if not token:
+            return JSONResponse({"detail": "KTS_UNRAID_TOKEN not configured"}, status_code=503)
+        client = RealUnraidClient(token=token)
+        try:
+            return client.get_summary()
+        except PermissionError as e:
+            return JSONResponse({"detail": str(e)}, status_code=403)
+        except Exception as e:
+            return JSONResponse({"detail": str(e)}, status_code=502)
+
     # TrustedHostMiddleware runs outermost (added last), so a forged Host
     # header is rejected with 400 before authentication runs (W5.3).
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=_ALLOWED_HOSTS)
