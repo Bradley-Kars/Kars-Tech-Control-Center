@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode, useState } from 'react';
+import { useEffect, useRef, useState, useId, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Button, IconButton } from './Button';
 
@@ -183,12 +183,7 @@ const positionStyles: Record<NonNullable<ToastManagerProps['position']>, React.C
 };
 
 export function ToastManager({ toasts, onClose, position = 'top-right', maxToasts = 5, gap = 8 }: ToastManagerProps) {
-  // Dedupe identical toasts (same type + title), keeping the latest.
-  const deduped = toasts.reduce<Record<string, ToastItem>>((acc, t) => {
-    acc[`${t.type}:${t.title}`] = t;
-    return acc;
-  }, {});
-  const visibleToasts = Object.values(deduped).slice(-maxToasts);
+  const visibleToasts = toasts.slice(-maxToasts);
 
   if (visibleToasts.length === 0) return null;
 
@@ -212,8 +207,8 @@ export function ToastManager({ toasts, onClose, position = 'top-right', maxToast
     </div>
   );
 
-  const portalRoot = document.getElementById('toast-portal') ?? document.body;
-  return createPortal(container, portalRoot);
+  const portalRoot = typeof document !== 'undefined' ? document.getElementById('toast-portal') : null;
+  return createPortal(container, portalRoot ?? document.body);
 }
 
 // Toast Hook for easy usage
@@ -221,7 +216,7 @@ export function useToast() {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const addToast = (toast: Omit<ToastProps, 'id' | 'onClose'>) => {
-    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const id = useId();
     const newToast: ToastItem = { ...toast, id, key: id, onClose: removeToast };
     setToasts((prev) => [...prev, newToast]);
     return id;

@@ -275,9 +275,9 @@ export function DeviceAvatar({ type, name, status, size = 'base', className = ''
   const statusColor = status ? statusColors[status] : undefined;
 
   return (
-    <div
-      className={['device-avatar inline-flex', className].filter(Boolean).join(' ')}
-      style={{
+      <div
+        className={['device-avatar inline-flex group', className].filter(Boolean).join(' ')}
+        style={{
         width: s.size,
         height: s.size,
         borderRadius: 'var(--kts-radius-base)',

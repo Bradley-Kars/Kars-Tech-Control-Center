@@ -1,4 +1,4 @@
-import { forwardRef, type InputHTMLAttributes, type TextareaHTMLAttributes, type SelectHTMLAttributes, type ReactNode } from 'react';
+import { forwardRef, useId, type InputHTMLAttributes, type TextareaHTMLAttributes, type SelectHTMLAttributes, type ReactNode } from 'react';
 
 export type InputSize = 'xs' | 'sm' | 'base' | 'lg';
 
@@ -22,7 +22,7 @@ const sizeStyles: Record<InputSize, { padding: string; fontSize: string; iconSiz
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, hint, error, size = 'base', leftIcon, rightIcon, fullWidth = true, className = '', style, id, ...props }, ref) => {
     const s = sizeStyles[size];
-    const inputId = id ?? `input-${Math.random().toString(36).slice(2, 9)}`;
+    const inputId = id ?? useId();
     const hintId = hint ? `${inputId}-hint` : undefined;
     const errorId = error ? `${inputId}-error` : undefined;
 
@@ -129,7 +129,7 @@ export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElemen
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ label, hint, error, size = 'base', fullWidth = true, minRows = 3, className = '', style, id, ...props }, ref) => {
     const s = sizeStyles[size];
-    const textareaId = id ?? `textarea-${Math.random().toString(36).slice(2, 9)}`;
+    const textareaId = id ?? useId();
     const hintId = hint ? `${textareaId}-hint` : undefined;
     const errorId = error ? `${textareaId}-error` : undefined;
 
@@ -217,7 +217,7 @@ export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({ label, hint, error, size = 'base', fullWidth = true, options, placeholder, className = '', style, id, ...props }, ref) => {
     const s = sizeStyles[size];
-    const selectId = id ?? `select-${Math.random().toString(36).slice(2, 9)}`;
+    const selectId = id ?? useId();
     const hintId = hint ? `${selectId}-hint` : undefined;
     const errorId = error ? `${selectId}-error` : undefined;
 
@@ -235,6 +235,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           <select
             ref={ref}
             id={selectId}
+            defaultValue=""
             className={[
               'w-full appearance-none',
               'bg-[var(--kts-bg-tertiary)]',
@@ -263,7 +264,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             {...props}
           >
             {placeholder && (
-              <option value="" disabled selected hidden>
+              <option value="" disabled hidden>
                 {placeholder}
               </option>
             )}

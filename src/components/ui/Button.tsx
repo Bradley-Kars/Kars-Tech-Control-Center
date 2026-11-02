@@ -98,6 +98,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         disabled={isDisabled}
+        type="button"
         className={[
           'inline-flex items-center justify-center font-[var(--kts-font-sans)] font-semibold',
           'transition-all duration-[var(--kts-motion-fast)] ease-[var(--kts-easing-ease-out)]',
@@ -181,6 +182,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       <button
         ref={ref}
         disabled={isDisabled}
+        type="button"
         aria-label={ariaLabel}
         className={[
           'inline-flex items-center justify-center',

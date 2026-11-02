@@ -53,7 +53,7 @@ export function Gauge({
 }: GaugeProps) {
   const config = sizeConfig[size];
   const colors = variantColors[variant];
-  const radius = thickness ?? config.radius;
+  const radius = config.radius;
   const strokeWidth = thickness ?? config.strokeWidth;
   const circumference = 2 * Math.PI * radius;
   const clampedValue = Math.max(0, Math.min(100, value));
@@ -211,7 +211,7 @@ export function ArcGauge({
 }: ArcGaugeProps) {
   const config = sizeConfig[size];
   const colors = variantColors[variant];
-  const radius = thickness ?? config.radius;
+  const radius = config.radius;
   const strokeWidth = thickness ?? config.strokeWidth;
   const angleRange = maxAngle - minAngle;
   const clampedValue = Math.max(0, Math.min(100, value));

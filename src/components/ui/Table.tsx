@@ -1,6 +1,8 @@
-import { type InputHTMLAttributes, type ReactNode, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { IconButton } from './Button';
 import { SkeletonTable } from './Skeleton';
+import { Checkbox } from './Checkbox';
+import { Select } from './Input';
 
 export type ColumnAlign = 'left' | 'center' | 'right';
 export type SortDirection = 'asc' | 'desc' | null;
@@ -47,48 +49,6 @@ export interface TableProps<T = any> {
   className?: string;
   style?: React.CSSProperties;
   rowClassName?: (row: T, index: number) => string;
-}
-
-function Checkbox({ checked, indeterminate, onChange, disabled, className = '', ...props }: {
-  checked?: boolean;
-  indeterminate?: boolean;
-  onChange?: (checked: boolean) => void;
-  disabled?: boolean;
-  className?: string;
-} & Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'type' | 'checked' | 'disabled'>) {
-  return (
-    <label className={`inline-flex items-center cursor-pointer ${className}`}>
-      <input
-        type="checkbox"
-        checked={checked}
-        disabled={disabled}
-        onChange={(e) => onChange?.(e.target.checked)}
-        className="sr-only peer"
-        {...props}
-      />
-      <div
-        className={[
-          'w-4 h-4 rounded-[var(--kts-radius-sm)] border-2 flex items-center justify-center',
-          'transition-all duration-[var(--kts-motion-fast)]',
-          'peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--kts-brand-primary)] peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[var(--kts-bg-primary)]',
-          'peer-disabled:opacity-50 peer-disabled:cursor-not-allowed',
-          checked && 'bg-[var(--kts-brand-primary)] border-[var(--kts-brand-primary)]',
-          !checked && !indeterminate && 'border-[var(--kts-border-default)] bg-transparent',
-          indeterminate && 'bg-[var(--kts-brand-primary)] border-[var(--kts-brand-primary)]',
-        ].join(' ')}
-        aria-hidden="true"
-      >
-        {checked && (
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-        )}
-        {indeterminate && !checked && (
-          <div className="w-3 h-0.5 bg-white rounded" />
-        )}
-      </div>
-    </label>
-  );
 }
 
 export function Table<T = any>({
@@ -185,12 +145,12 @@ export function Table<T = any>({
                     borderRight: bordered ? '1px solid var(--kts-border-default)' : 'none',
                   }}
                 >
-                  <Checkbox
-                    checked={allSelected}
-                    indeterminate={someSelected && !allSelected}
-                    onChange={handleSelectAll}
-                    disabled={data.length === 0}
-                  />
+                    <Checkbox
+                      checked={allSelected}
+                      indeterminate={someSelected && !allSelected}
+                      onChange={handleSelectAll as any}
+                      disabled={data.length === 0}
+                    />
                 </th>
               )}
               {columns.map((col, i) => (
@@ -277,10 +237,10 @@ export function Table<T = any>({
                           borderRight: bordered ? '1px solid var(--kts-border-default)' : 'none',
                         }}
                       >
-                        <Checkbox
-                          checked={isSelected}
-                          onChange={(checked) => handleSelectRow(rowKey, checked)}
-                        />
+                      <Checkbox
+                        checked={isSelected}
+                        onChange={((checked: boolean) => handleSelectRow(rowKey, checked)) as any}
+                      />
                       </td>
                     )}
                     {columns.map((col, i) => {
@@ -306,9 +266,12 @@ export function Table<T = any>({
                             minWidth: col.minWidth,
                             maxWidth: col.maxWidth,
                           }}
-                          title={String(cellContent)}
-                        >
-                          {cellContent}
+                          >
+                          {typeof cellContent === 'string' ? (
+                            <span title={String(cellContent)}>{cellContent}</span>
+                          ) : (
+                            <span>{cellContent}</span>
+                          )}
                         </td>
                       );
                     })}
@@ -414,39 +377,5 @@ function TablePagination({ page, pageSize, total, onPageChange, onPageSizeChange
         </IconButton>
       </div>
     </div>
-  );
-}
-
-// Simple Select for pagination (inline to avoid circular deps)
-interface SelectProps {
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  size: 'xs' | 'sm' | 'base';
-  options: { value: string; label: string }[];
-}
-
-function Select({ value, onChange, size, options }: SelectProps) {
-  const sizeStyles = {
-    xs: 'px-2 py-1 text-[11px]',
-    sm: 'px-2.5 py-1.5 text-[12px]',
-    base: 'px-3 py-2 text-[13px]',
-  };
-
-  return (
-    <select
-      value={value}
-      onChange={onChange}
-      className={[
-        'appearance-none bg-[var(--kts-bg-tertiary)] text-[var(--kts-text-primary)] border border-[var(--kts-border-default)]',
-        'rounded-[var(--kts-radius-sm)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--kts-brand-primary)] focus-visible:border-transparent',
-        'pr-7 cursor-pointer',
-        sizeStyles[size],
-      ].join(' ')}
-      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238B9DB3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center' }}
-    >
-      {options.map((opt) => (
-        <option key={opt.value} value={opt.value}>{opt.label}</option>
-      ))}
-    </select>
   );
 }

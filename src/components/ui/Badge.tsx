@@ -8,11 +8,7 @@ export type BadgeVariant =
   | 'info'
   | 'brand'
   | 'amber'
-  | 'subtle'
-  | 'subtle-success'
-  | 'subtle-warning'
-  | 'subtle-danger'
-  | 'subtle-info';
+  | 'subtle';
 
 export type BadgeSize = 'xs' | 'sm' | 'base';
 
@@ -38,12 +34,8 @@ const variantStyles: Record<BadgeVariant, { base: string; dotColor: string }> = 
   info: { base: 'bg-[var(--kts-status-pending-bg)] text-[var(--kts-status-pending)]', dotColor: 'var(--kts-status-pending)' },
   brand: { base: 'bg-[var(--kts-brand-primary-bg)] text-[var(--kts-brand-primary)]', dotColor: 'var(--kts-brand-primary)' },
   amber: { base: 'bg-[var(--kts-brand-secondary-bg)] text-[var(--kts-brand-secondary)]', dotColor: 'var(--kts-brand-secondary)' },
-  // Subtle variants — lighter background, no border
+  // Subtle variant — lighter background, no border
   subtle: { base: 'bg-[var(--kts-interactive-hover)] text-[var(--kts-text-secondary)]', dotColor: 'var(--kts-text-secondary)' },
-  'subtle-success': { base: 'bg-[var(--kts-status-running-bg)] text-[var(--kts-status-running)]', dotColor: 'var(--kts-status-running)' },
-  'subtle-warning': { base: 'bg-[var(--kts-status-warning-bg)] text-[var(--kts-status-warning)]', dotColor: 'var(--kts-status-warning)' },
-  'subtle-danger': { base: 'bg-[var(--kts-status-error-bg)] text-[var(--kts-status-error)]', dotColor: 'var(--kts-status-error)' },
-  'subtle-info': { base: 'bg-[var(--kts-status-pending-bg)] text-[var(--kts-status-pending)]', dotColor: 'var(--kts-status-pending)' },
 };
 
 export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(

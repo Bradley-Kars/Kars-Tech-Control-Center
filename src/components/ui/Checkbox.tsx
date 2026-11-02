@@ -1,4 +1,4 @@
-import { forwardRef, type InputHTMLAttributes } from 'react';
+import { forwardRef, useId, type InputHTMLAttributes } from 'react';
 
 export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'size'> {
   label?: string;
@@ -16,7 +16,7 @@ const sizeStyles = {
 export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
   ({ label, description, indeterminate = false, size = 'base', className = '', style, disabled, checked, onChange, id, ...props }, ref) => {
     const s = sizeStyles[size];
-    const inputId = id ?? `checkbox-${Math.random().toString(36).slice(2, 9)}`;
+    const inputId = id ?? useId();
 
     return (
       <label
@@ -159,7 +159,7 @@ const radioSizeStyles = {
 export const Radio = forwardRef<HTMLInputElement, RadioProps>(
   ({ label, description, size = 'base', className = '', style, disabled, checked, onChange, id, ...props }, ref) => {
     const s = radioSizeStyles[size];
-    const inputId = id ?? `radio-${Math.random().toString(36).slice(2, 9)}`;
+    const inputId = id ?? useId();
 
     return (
       <label
@@ -294,7 +294,7 @@ const switchSizeStyles = {
 export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
   ({ label, description, size = 'base', className = '', style, disabled, checked, onChange, id, ...props }, ref) => {
     const s = switchSizeStyles[size];
-    const inputId = id ?? `switch-${Math.random().toString(36).slice(2, 9)}`;
+    const inputId = id ?? useId();
 
     return (
       <label

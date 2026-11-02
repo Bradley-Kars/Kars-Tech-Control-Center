@@ -46,6 +46,7 @@ export function Modal({
   const overlayRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
+  const bodyScrollLockRef = useRef(0);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -79,7 +80,12 @@ export function Modal({
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    document.body.style.overflow = 'hidden';
+
+    // Increment body scroll lock counter
+    bodyScrollLockRef.current += 1;
+    if (bodyScrollLockRef.current === 1) {
+      document.body.style.overflow = 'hidden';
+    }
 
     // Focus first focusable element
     setTimeout(() => {
@@ -91,7 +97,13 @@ export function Modal({
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
+
+      // Decrement body scroll lock counter
+      bodyScrollLockRef.current -= 1;
+      if (bodyScrollLockRef.current <= 0) {
+        document.body.style.overflow = '';
+      }
+
       previousActiveElement.current?.focus();
     };
   }, [isOpen, onClose, closeOnEscape]);
@@ -209,8 +221,8 @@ export function Modal({
   );
 
   // Render to portal target (body by default)
-  const portalRoot = document.getElementById('modal-portal') ?? document.body;
-  return createPortal(modalContent, portalRoot);
+  const portalRoot = typeof document !== 'undefined' ? document.getElementById('modal-portal') : null;
+  return createPortal(modalContent, portalRoot ?? document.body);
 }
 
 // Keyframes for modal animations

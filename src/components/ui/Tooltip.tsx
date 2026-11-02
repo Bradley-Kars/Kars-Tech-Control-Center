@@ -181,20 +181,33 @@ export function Tooltip({
     </div>
   ) : null;
 
-  const portalRoot = document.getElementById('tooltip-portal') ?? document.body;
+  const portalRoot = typeof document !== 'undefined' ? document.getElementById('tooltip-portal') : null;
+  const portalTarget = portalRoot ?? document.body;
 
   return (
     <>
       {isValidElement(childElement)
         ? cloneElement(childElement as ReactElement<any>, {
-            onMouseEnter: handleMouseEnter,
-            onMouseLeave: handleMouseLeave,
-            onFocus: handleMouseEnter,
-            onBlur: handleMouseLeave,
+            onMouseEnter: (e: React.MouseEvent) => {
+              handleMouseEnter();
+              (childElement as ReactElement<any>).props.onMouseEnter?.(e);
+            },
+            onMouseLeave: (e: React.MouseEvent) => {
+              handleMouseLeave();
+              (childElement as ReactElement<any>).props.onMouseLeave?.(e);
+            },
+            onFocus: (e: React.FocusEvent) => {
+              handleMouseEnter();
+              (childElement as ReactElement<any>).props.onFocus?.(e);
+            },
+            onBlur: (e: React.FocusEvent) => {
+              handleMouseLeave();
+              (childElement as ReactElement<any>).props.onBlur?.(e);
+            },
             ref: triggerRef,
           })
         : childElement}
-      {createPortal(tooltipContent, portalRoot)}
+      {createPortal(tooltipContent, portalTarget)}
     </>
   );
 }
