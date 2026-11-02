@@ -182,7 +182,7 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
       {error && (
         <div
           className="px-4 py-2 text-sm"
-          style={{ background: 'var(--kts-color-danger-bg, #fee2e2)', color: 'var(--kts-color-danger, #dc2626)' }}
+          style={{ background: 'var(--kts-status-error-bg)', color: 'var(--kts-status-error)' }}
         >
           {error}
           <button className="ml-2 underline" onClick={() => setError(null)}>dismiss</button>
@@ -231,9 +231,9 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
   const isSystem = msg.role === 'system';
 
   const bg = isUser
-    ? 'var(--kts-color-accent-bg, #dbeafe)'
+    ? 'var(--kts-brand-primary-bg)'
     : isSystem
-    ? 'var(--kts-bg-tertiary, #f3f4f6)'
+    ? 'var(--kts-bg-tertiary)'
     : 'var(--kts-bg-secondary)';
   const color = isSystem ? 'var(--kts-text-secondary)' : 'var(--kts-text-primary)';
 

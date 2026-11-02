@@ -3,6 +3,7 @@ import { meshcentralListDevices, meshcentralGetEnrollmentInfo, meshcentralSyncFl
 import { Card, CardSection } from '../components/ui/Card';
 import { Button, IconButton } from '../components/ui/Button';
 import { Badge, StatusBadge } from '../components/ui/Badge';
+import { Checkbox } from '../components/ui/Checkbox';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Modal } from '../components/ui/Modal';
 import { ToastManager, useToast } from '../components/ui/Toast';
@@ -39,6 +40,13 @@ interface BatchCommand {
   args?: string[];
 }
 
+interface BatchResult {
+  device_id: string;
+  success: boolean;
+  output?: string;
+  error?: string;
+}
+
 export function MeshCentralPage() {
   const { toasts, removeToast, addToast } = useToast();
   const [devices, setDevices] = useState<MeshDevice[]>([]);
@@ -49,7 +57,7 @@ export function MeshCentralPage() {
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [batchCommands, setBatchCommands] = useState<BatchCommand[]>([{ command: '', args: [] }]);
   const [batchRunning, setBatchRunning] = useState(false);
-  const [batchResults, setBatchResults] = useState<any[]>([]);
+  const [batchResults, setBatchResults] = useState<BatchResult[]>([]);
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
 
@@ -330,11 +338,9 @@ export function MeshCentralPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
                 {devices.filter(d => d.conn >= 1).map(device => (
                   <label key={device.id} className="flex items-center gap-2 p-2 rounded border transition-colors hover:bg-[var(--kts-interactive-hover)] cursor-pointer">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={selectedDevices.includes(device.id)}
                       onChange={() => toggleDeviceSelection(device.id)}
-                      className="w-4 h-4 accent-[var(--kts-brand-primary)]"
                     />
                     <span className="font-mono text-sm">{device.name}</span>
                     <Badge variant={device.conn === 2 ? 'success' : 'warning'} size="xs">
@@ -465,12 +471,10 @@ export function MeshCentralPage() {
                   </>
                 )}
                 <Tooltip content="Select for batch commands" position="bottom">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={selectedDevices.includes(device.id)}
                     onChange={() => toggleDeviceSelection(device.id)}
                     disabled={!isOnline}
-                    className="w-4 h-4 accent-[var(--kts-brand-primary)] mt-1"
                     aria-label={`Select ${device.name} for batch commands`}
                   />
                 </Tooltip>

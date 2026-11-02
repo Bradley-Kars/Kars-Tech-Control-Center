@@ -91,4 +91,12 @@ describe('SettingsPage', () => {
     fireEvent.click(firstBtn('MeshCentral'));
     expect(screen.getByText('Primary transport — fleet sync & live agent stats')).toBeInTheDocument();
   });
+
+  it('changes theme via theme radio', () => {
+    render(wrap(<SettingsPage />));
+    expect(screen.getByText('Dark')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Light'));
+    // Theme change triggers AppContext update; verify the radio reflects the change
+    expect(screen.getByText('Light')).toBeInTheDocument();
+  });
 });

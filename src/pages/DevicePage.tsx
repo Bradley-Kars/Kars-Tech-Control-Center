@@ -258,16 +258,10 @@ function UnraidDevice() {
     if (!server || !confirmAction) return;
     setBusy(true);
     try {
-      // MeshCentral is the PRIMARY transport — direct GraphQL/SSH only as fallback
-      if (mcEnrolled) {
-        if (confirmAction === 'reboot') await meshcentralReboot(server.id);
-        else await meshcentralShutdown(server.id);
-        addToast({ type: 'success', title: 'Power command sent', message: `${confirmAction === 'reboot' ? 'Reboot' : 'Shutdown'} issued via MeshCentral` });
-      } else {
-        if (confirmAction === 'reboot') await meshcentralReboot(server.id);
-        else await meshcentralShutdown(server.id);
-        addToast({ type: 'success', title: 'Power command sent', message: `${confirmAction === 'reboot' ? 'Reboot' : 'Shutdown'} issued via direct transport` });
-      }
+      // MeshCentral is the primary transport for power commands
+      if (confirmAction === 'reboot') await meshcentralReboot(server.id);
+      else await meshcentralShutdown(server.id);
+      addToast({ type: 'success', title: 'Power command sent', message: `${confirmAction === 'reboot' ? 'Reboot' : 'Shutdown'} issued via MeshCentral` });
     } catch (e) {
       addToast({ type: 'error', title: 'Power command failed', message: e instanceof Error ? e.message : 'Unknown error' });
     } finally {

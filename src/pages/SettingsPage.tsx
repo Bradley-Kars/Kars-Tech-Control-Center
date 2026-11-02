@@ -231,7 +231,7 @@ export function SettingsPage() {
       />
 
       <div className="flex-1 min-w-0 overflow-hidden">
-        {isDesktop && (
+        {isDesktop ? (
           <div className="grid gap-[24px] items-start min-w-0" style={{ gridTemplateColumns: '200px minmax(0,1fr)' }}>
             <nav
               className="border-r border-[var(--kts-border-default)] sticky top-[48px] h-[calc(100vh-48px)] overflow-y-auto"
@@ -245,7 +245,7 @@ export function SettingsPage() {
                     key={section.id}
                     onClick={() => setActiveSection(section.id)}
                     className={[
-                      'flex flex-row items-center gap-3 px-3 py-3 text-left transition-colors duration-[var(--kts-motion-fast)]',
+                      'flex flex-row items-center gap-3 px-3 py-3 text-left transition-all duration-[var(--kts-motion-fast)]',
                       'rounded-[var(--kts-radius-md)] border border-transparent whitespace-nowrap',
                       active
                         ? 'bg-[var(--kts-brand-primary-bg)] text-[var(--kts-brand-primary)] border-[var(--kts-border-focus)]'
@@ -262,8 +262,7 @@ export function SettingsPage() {
             </nav>
             <div className="overflow-y-auto min-h-0 pt-0 pr-6 pb-6 pl-6">{contentPane}</div>
           </div>
-        )}
-        {!isDesktop && (
+        ) : (
           <div className="flex flex-col min-h-0">
             <div className="border-b border-[var(--kts-border-default)] bg-[var(--kts-bg-secondary)]">
               <div className="flex overflow-x-auto px-4 py-3 no-scrollbar gap-2">

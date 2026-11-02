@@ -1,4 +1,4 @@
-import { invoke as rawInvoke, Channel } from '@tauri-apps/api/core';
+import { invoke as rawInvoke, Channel, isTauri as isTauriCheck } from '@tauri-apps/api/core';
 import type {
   ServerConfig, GpuInfo, SmartInfo, TestConnectionResult,
   RestServiceHealth, PlexIdentity, PlexLibrary,
@@ -11,7 +11,7 @@ import type {
 
 export type { Alert, AlertFilter, AlertSeverity, MetricPoint, MetricSeries };
 
-const isTauri = typeof window !== 'undefined' && !!(window as any).__TAURI__;
+const isTauri = typeof window !== 'undefined' && (!!(window as any).__TAURI__ || isTauriCheck());
 
 async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   if (!isTauri) {

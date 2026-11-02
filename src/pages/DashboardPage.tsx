@@ -168,7 +168,7 @@ export function DashboardPage() {
         result.push({
           deviceType: 'local',
           server: { id: 'local', name: 'This Machine', device_type: 'local', hostname: 'localhost' },
-          stats: localStats?.system ? { ...localStats.system, connected: true } : { connected: false },
+          stats: localStats ? { ...localStats, connected: true } : { connected: false },
         });
       } else {
         const server = servers.find((s) => matchesDeviceOrder(dt, s.device_type));
@@ -220,9 +220,13 @@ export function DashboardPage() {
       }
     });
 
-    // Persist newly-computed breaches into the alert DB (dedup against open rows)
+    return items.slice(0, 8);
+  }, [devices]);
+
+  // Persist newly-computed breaches into the alert DB (dedup against open rows)
+  useEffect(() => {
     const openKeys = new Set(dbAlerts.map((a) => `${a.device_id ?? ''}|${a.title}`));
-    items
+    alerts
       .filter((it) => it.type !== 'info')
       .forEach((it) => {
         const key = `${it.device ?? ''}|${it.title}`;
@@ -237,8 +241,11 @@ export function DashboardPage() {
           ).catch(() => {});
         }
       });
+  }, [devices]);
 
-    // Merge open Alert Center rows not already represented by a computed breach
+  // Merge open Alert Center rows not already represented by a computed breach
+  const alertsWithDb = useMemo(() => {
+    const items = [...alerts];
     dbAlerts.forEach((a) => {
       const key = `${a.device_id ?? ''}|${a.title}`;
       if (items.every((it) => `${it.device ?? ''}|${it.title}` !== key)) {
@@ -250,9 +257,8 @@ export function DashboardPage() {
         });
       }
     });
-
     return items.slice(0, 8);
-  }, [devices, dbAlerts]);
+  }, [alerts, dbAlerts]);
 
   // Quick actions based on available devices
   const quickActions = useMemo(() => {
@@ -338,14 +344,14 @@ export function DashboardPage() {
       </div>
 
       {/* Critical Alerts — outside the grid so appearing/disappearing never reshuffles tiles */}
-      {alerts.length > 0 && (
+      {alertsWithDb.length > 0 && (
         <div>
           <Card variant="red" className="animate-slide-up">
             <CardSection title="Critical Alerts" action={
-              <Badge variant="danger" size="sm" dot>{alerts.length}</Badge>
+              <Badge variant="danger" size="sm" dot>{alertsWithDb.length}</Badge>
             }>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {alerts.map((alert, i) => (
+                {alertsWithDb.map((alert, i) => (
                   <div
                     key={i}
                     className="flex items-start gap-3 p-3 rounded-[var(--kts-radius-base)]"
@@ -497,7 +503,6 @@ export function DashboardPage() {
                 { id: 'nextcloud', label: 'Nextcloud', icon: '☁', path: '/service/nextcloud' },
                 { id: 'homeassistant', label: 'Home Assistant', icon: '🏠', path: '/service/homeassistant' },
                 { id: 'adguard', label: 'AdGuard', icon: '🛡', path: '/service/adguard' },
-                { id: 'myspeed', label: 'MySpeed', icon: '⚡', path: '/service/myspeed' },
                 { id: 'lidarr', label: 'Lidarr', icon: '🎵', path: '/service/lidarr' },
               ].map((svc) => (
                 <Link key={svc.id} to={svc.path} className="group">

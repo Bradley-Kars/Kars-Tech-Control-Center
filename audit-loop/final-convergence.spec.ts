@@ -1,0 +1,34 @@
+import { test, expect } from '@playwright/test';
+import * as fs from 'fs';
+
+const SHOT_DIR = '/home/slayerbrk/GitHub/Kars-Tech-Control-Center/audit-loop/final-convergence/shots';
+fs.mkdirSync(SHOT_DIR, { recursive: true });
+
+const ROUTES = [
+  '/', '/dashboard', '/device/local', '/device/unraid', '/device/phone',
+  '/device/ally', '/device/laptop', '/device/nonexistent',
+  '/service/docker', '/service/storage', '/service/system', '/service/network',
+  '/service/lidarr', '/service/homeassistant', '/service/nextcloud', '/service/adguard',
+  '/service/myspeed', '/service/nonexistent',
+  '/meshcentral', '/fleet-command', '/compliance', '/alerts', '/chat', '/ticketing',
+  '/settings', '/settings/appearance', '/settings/notifications',
+  '/settings/shortcuts', '/settings/meshcentral', '/settings/about',
+];
+
+test.use({ baseURL: 'http://localhost:5174', viewport: { width: 375, height: 812 } });
+
+for (const route of ROUTES) {
+  test(`Final convergence 375px: ${route}`, async ({ page }) => {
+    const errors: string[] = [];
+    page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+    page.on('pageerror', (err) => { errors.push(err.message); });
+
+    await page.goto(route, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.waitForTimeout(2000);
+
+    const safe = route.replace(/\//g, '_') || 'root';
+    await page.screenshot({ path: `${SHOT_DIR}/final-375-${safe}.png`, fullPage: true });
+    fs.writeFileSync(`${SHOT_DIR}/final-375-${safe}-errors.log`, errors.join('\n'));
+    console.log(`375px ${route}: errors=${errors.length}`);
+  });
+}

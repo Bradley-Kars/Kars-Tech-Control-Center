@@ -111,19 +111,31 @@ function loadJsonFile(filePath: string): any | null {
 /**
  * Apply environment variable overrides
  * Format: KTS_DEVICE_UNRAID_SERVER_SSH_PASSWORD=secret
+ * Only whitelisted paths are allowed to prevent overwriting structural config.
  */
+const ALLOWED_ENV_PATHS = [
+  'servers',
+  'tailscale',
+  'network',
+  'dashboard',
+];
+
 function applyEnvOverrides(config: any): void {
   const prefix = 'KTS_';
-  
+
   for (const [key, value] of Object.entries(process.env)) {
     if (!key.startsWith(prefix)) continue;
-    
+
     const path = key.slice(prefix.length)
       .toLowerCase()
       .split('_')
       .map(part => part.charAt(0).toUpperCase() + part.slice(1))
       .join('.');
-    
+
+    // Whitelist check: only allow known top-level paths
+    const topLevel = path.split('.')[0];
+    if (!ALLOWED_ENV_PATHS.includes(topLevel)) continue;
+
     setNestedValue(config, path, value);
   }
 }
@@ -230,8 +242,8 @@ export function getDeviceConfig(deviceId: string): any | null {
   const publicDevice = deviceMap.get(deviceId);
   if (!publicDevice) return null;
 
-  // Merge with private device config
-  const privateDevice = privateConfig?.devices?.[deviceId] || {};
+  // Merge with private device config (devices array in private config, keyed by id)
+  const privateDevice = privateConfig?.devices?.find((d: any) => d.id === deviceId) || {};
   return deepMerge(publicDevice, privateDevice);
 }
 

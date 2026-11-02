@@ -10,7 +10,6 @@ import { NetworkPage } from '../components/network/NetworkPage';
 import { NextcloudPage } from '../components/nextcloud/NextcloudPage';
 import { LidarrPage } from '../components/lidarr/LidarrPage';
 import { HomeAssistantPage } from '../components/homeassistant/HomeAssistantPage';
-import { MySpeedPage } from '../components/myspeed/MySpeedPage';
 import { AdGuardPage } from '../components/adguard/AdGuardPage';
 import { useNavigate } from 'react-router-dom';
 import type { PageId } from '../lib/serviceRegistry';
@@ -23,7 +22,6 @@ const SERVICE_META: Record<string, { label: string; icon: string; description: s
   nextcloud: { label: 'Nextcloud', icon: '☁', description: 'File sync & share' },
   lidarr: { label: 'Lidarr', icon: '🎵', description: 'Music collection' },
   homeassistant: { label: 'Home Assistant', icon: '🏠', description: 'Home automation' },
-  myspeed: { label: 'MySpeed', icon: '📊', description: 'Speed test history' },
   adguard: { label: 'AdGuard Home', icon: '🛡', description: 'DNS filtering' },
 };
 
@@ -107,9 +105,6 @@ export function ServicePage() {
       break;
     case 'homeassistant':
       body = <HomeAssistantPage server={unraidServer} />;
-      break;
-    case 'myspeed':
-      body = <MySpeedPage server={unraidServer} />;
       break;
     case 'adguard':
       body = <AdGuardPage server={unraidServer} />;

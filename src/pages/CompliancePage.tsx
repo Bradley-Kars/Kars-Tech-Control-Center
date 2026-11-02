@@ -114,14 +114,19 @@ export function CompliancePage() {
       if (ok) {
         next.pending = 0;
         next.checkedAt = new Date().toLocaleTimeString();
+        toast({
+          type: 'success',
+          title: `${server.name}: updated`,
+          message: 'Packages upgraded via MeshCentral.',
+        });
+      } else {
+        toast({
+          type: 'error',
+          title: `${server.name}: update failed`,
+          message: results[0]?.stderr || 'See device logs.',
+        });
       }
       patch(server.id, next);
-      toast({
-        type: ok ? 'success' : 'error',
-        title: ok ? `${server.name}: updated` : `${server.name}: update failed`,
-        message: ok ? 'Packages upgraded via MeshCentral.' : (results[0]?.stderr || 'See device logs.'),
-      });
-      if (ok) void checkAll(); // refresh this device's count
     } catch (e) {
       patch(server.id, { updating: false, lastUpdateOk: false });
       toast({ type: 'error', title: `${server.name}: update failed`, message: String(e) });
