@@ -40,6 +40,103 @@ const emptyCompliance = (): DeviceCompliance => ({
   lastUpdateOk: null,
 });
 
+/**
+ * Shell server row — one row per non-phone device in the compliance table.
+ */
+function ShellServerRow({
+  server,
+  compliance,
+  enrolled,
+  checkingAll,
+  confirmUpdate,
+  onCheck,
+  onUpdate,
+}: {
+  server: ServerConfig;
+  compliance: DeviceCompliance | undefined;
+  enrolled: boolean;
+  checkingAll: boolean;
+  confirmUpdate: string | null;
+  onCheck: () => void;
+  onUpdate: (server: ServerConfig) => void;
+}) {
+  const c = compliance;
+  return (
+    <div
+      key={server.id}
+      className="grid items-center px-4 py-3"
+      style={{ gridTemplateColumns: 'minmax(160px,1.4fr) 1fr 1fr auto auto', gap: '12px' }}
+    >
+      <div className="min-w-0">
+        <span className="text-[var(--kts-font-size-sm)] font-medium text-[var(--kts-text-primary)]">
+          {server.name}
+        </span>
+        <span className="block text-[var(--kts-font-size-xs)] text-[var(--kts-text-tertiary)] truncate">
+          {server.hostname}
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
+        {statusBadge(c)}
+        {c?.lastUpdateOk === true && <Badge variant="info" size="xs">updated</Badge>}
+        {c?.lastUpdateOk === false && <Badge variant="danger" size="xs">update failed</Badge>}
+      </div>
+      <span className="text-[var(--kts-font-size-xs)] text-[var(--kts-text-secondary)]">
+        {c?.checkedAt ?? '—'}
+      </span>
+      <span title={enrolled ? 'MeshCentral enrolled' : 'Not enrolled — SSH fallback'}>
+        {enrolled ? '🟢 MC' : '⚪ direct'}
+      </span>
+      <div className="flex justify-end gap-2">
+        <Button size="xs" variant="ghost" onClick={() => void onCheck()} disabled={checkingAll}>
+          Check
+        </Button>
+        <Button
+          size="xs"
+          variant={confirmUpdate === server.id ? 'danger' : 'secondary'}
+          loading={c?.updating}
+          disabled={c?.updating || checkingAll}
+          onClick={() => onUpdate(server)}
+        >
+          {confirmUpdate === server.id ? 'Confirm?' : 'Update'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Phone server row — one row per phone device (OS-managed, read-only).
+ */
+function PhoneServerRow({ server }: { server: ServerConfig }) {
+  return (
+    <div
+      key={server.id}
+      className="grid items-center px-4 py-3 opacity-60"
+      style={{ gridTemplateColumns: 'minmax(160px,1.4fr) 1fr 1fr auto auto', gap: '12px' }}
+    >
+      <div className="min-w-0">
+        <span className="text-[var(--kts-font-size-sm)] font-medium text-[var(--kts-text-primary)]">
+          {server.name}
+        </span>
+        <span className="block text-[var(--kts-font-size-xs)] text-[var(--kts-text-tertiary)] truncate">
+          {server.hostname}
+        </span>
+      </div>
+      <Badge variant="subtle" size="sm">OS-managed (Play Store)</Badge>
+      <span className="text-[var(--kts-font-size-xs)] text-[var(--kts-text-secondary)]">—</span>
+      <span>📲 ADB</span>
+      <span className="text-right" />
+    </div>
+  );
+}
+
+function statusBadge(c: DeviceCompliance | undefined) {
+  if (!c || c.pending === null || c.pending === undefined) return <Badge variant="subtle" size="sm">Not checked</Badge>;
+  if (c.pending === 0) return <Badge variant="success" size="sm">Compliant</Badge>;
+  if (c.pending > 0 && c.pending < 10) return <Badge variant="warning" size="sm">{c.pending} pending</Badge>;
+  return <Badge variant="danger" size="sm">{c.pending} pending</Badge>;
+}
+
 export function CompliancePage() {
   const { servers } = useServers();
   const [state, setState] = useState<Record<string, DeviceCompliance>>({});
@@ -49,6 +146,11 @@ export function CompliancePage() {
 
   const shellServers = useMemo(
     () => servers.filter((s) => s.device_type !== 'phone'),
+    [servers],
+  );
+
+  const phoneServers = useMemo(
+    () => servers.filter((s) => s.device_type === 'phone'),
     [servers],
   );
 
@@ -151,18 +253,13 @@ export function CompliancePage() {
     });
   };
 
-  const statusBadge = (c: DeviceCompliance | undefined) => {
-    if (!c || c.pending === null || c.pending === undefined) return <Badge variant="subtle" size="sm">Not checked</Badge>;
-    if (c.pending === 0) return <Badge variant="success" size="sm">Compliant</Badge>;
-    if (c.pending > 0 && c.pending < 10) return <Badge variant="warning" size="sm">{c.pending} pending</Badge>;
-    return <Badge variant="danger" size="sm">{c.pending} pending</Badge>;
-  };
-
   const totalPending = shellServers.reduce(
     (acc, s) => acc + (state[s.id]?.pending ?? 0),
     0,
   );
   const checkedCount = shellServers.filter((s) => state[s.id]?.pending !== null && state[s.id]?.pending !== undefined).length;
+
+  const hasDevices = shellServers.length > 0 || phoneServers.length > 0;
 
   return (
     <div className="space-y-6">
@@ -187,83 +284,47 @@ export function CompliancePage() {
       </div>
 
       {/* Coverage table */}
-      <Card>
-        <div
-          className="grid items-center px-4 py-2.5 border-b border-[var(--kts-border-default)] text-[var(--kts-font-size-xs)] font-[var(--kts-font-mono)] uppercase tracking-wider text-[var(--kts-text-tertiary)]"
-          style={{ gridTemplateColumns: 'minmax(160px,1.4fr) 1fr 1fr auto auto', gap: '12px' }}
-        >
-          <span>Device</span>
-          <span>Status</span>
-          <span>Last checked</span>
-          <span>Agent</span>
-          <span className="text-right">Action</span>
+      {!hasDevices ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <p className="text-[var(--kts-text-secondary)] text-sm max-w-md mx-auto">
+            No devices to check for compliance. Enroll devices in MeshCentral first, then run a compliance check.
+          </p>
         </div>
-        <div className="divide-y divide-[var(--kts-border-default)]">
-          {shellServers.map((s) => {
-            const c = state[s.id];
-            const enrolled = s.meshcentral_status === 'enrolled';
-            return (
-              <div
-                key={s.id}
-                className="grid items-center px-4 py-3"
-                style={{ gridTemplateColumns: 'minmax(160px,1.4fr) 1fr 1fr auto auto', gap: '12px' }}
-              >
-                <div className="min-w-0">
-                  <span className="text-[var(--kts-font-size-sm)] font-medium text-[var(--kts-text-primary)]">
-                    {s.name}
-                  </span>
-                  <span className="block text-[var(--kts-font-size-xs)] text-[var(--kts-text-tertiary)] truncate">
-                    {s.hostname}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {statusBadge(c)}
-                  {c?.lastUpdateOk === true && <Badge variant="info" size="xs">updated</Badge>}
-                  {c?.lastUpdateOk === false && <Badge variant="danger" size="xs">update failed</Badge>}
-                </div>
-                <span className="text-[var(--kts-font-size-xs)] text-[var(--kts-text-secondary)]">
-                  {c?.checkedAt ?? '—'}
-                </span>
-                <span title={enrolled ? 'MeshCentral enrolled' : 'Not enrolled — SSH fallback'}>
-                  {enrolled ? '🟢 MC' : '⚪ direct'}
-                </span>
-                <div className="flex justify-end gap-2">
-                  <Button size="xs" variant="ghost" onClick={() => void checkAll()} disabled={checkingAll}>
-                    Check
-                  </Button>
-                  <Button
-                    size="xs"
-                    variant={confirmUpdate === s.id ? 'danger' : 'secondary'}
-                    loading={c?.updating}
-                    disabled={c?.updating || checkingAll}
-                    onClick={() => onUpdateClick(s)}
-                  >
-                    {confirmUpdate === s.id ? 'Confirm?' : 'Update'}
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
-          {servers
-            .filter((s) => s.device_type === 'phone')
-            .map((s) => (
-              <div
-                key={s.id}
-                className="grid items-center px-4 py-3 opacity-60"
-                style={{ gridTemplateColumns: 'minmax(160px,1.4fr) 1fr 1fr auto auto', gap: '12px' }}
-              >
-                <div className="min-w-0">
-                  <span className="text-[var(--kts-font-size-sm)] font-medium text-[var(--kts-text-primary)]">{s.name}</span>
-                  <span className="block text-[var(--kts-font-size-xs)] text-[var(--kts-text-tertiary)] truncate">{s.hostname}</span>
-                </div>
-                <Badge variant="subtle" size="sm">OS-managed (Play Store)</Badge>
-                <span className="text-[var(--kts-font-size-xs)] text-[var(--kts-text-secondary)]">—</span>
-                <span>📲 ADB</span>
-                <span className="text-right" />
-              </div>
+      ) : (
+        <Card>
+          <div
+            className="grid items-center px-4 py-2.5 border-b border-[var(--kts-border-default)] text-[var(--kts-font-size-xs)] font-[var(--kts-font-mono)] uppercase tracking-wider text-[var(--kts-text-tertiary)]"
+            style={{ gridTemplateColumns: 'minmax(160px,1.4fr) 1fr 1fr auto auto', gap: '12px' }}
+          >
+            <span>Device</span>
+            <span>Status</span>
+            <span>Last checked</span>
+            <span>Agent</span>
+            <span className="text-right">Action</span>
+          </div>
+          <div className="divide-y divide-[var(--kts-border-default)]">
+            {shellServers.map((s) => {
+              const c = state[s.id];
+              const enrolled = s.meshcentral_status === 'enrolled';
+              return (
+                <ShellServerRow
+                  key={s.id}
+                  server={s}
+                  compliance={c}
+                  enrolled={enrolled}
+                  checkingAll={checkingAll}
+                  confirmUpdate={confirmUpdate}
+                  onCheck={() => void checkAll()}
+                  onUpdate={onUpdateClick}
+                />
+              );
+            })}
+            {phoneServers.map((s) => (
+              <PhoneServerRow key={s.id} server={s} />
             ))}
-        </div>
-      </Card>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
