@@ -36,7 +36,7 @@ const wrap = () => (
 );
 
 const setServers = (servers: any[], loading = false, error: string | null = null) => {
-  mockUseServers.mockReturnValue({ servers, loading, error });
+  mockUseServers.mockReturnValue({ servers, loading, error } as any);
 };
 
 describe('FleetCommandPage', () => {

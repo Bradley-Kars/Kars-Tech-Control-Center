@@ -37,12 +37,14 @@ describe('AlertCenter', () => {
   it('populated state: shows alert items when alerts exist', async () => {
     mockAlertList.mockResolvedValue([
       {
-        id: '1',
+        id: '1' as any,
         title: 'High CPU on Unraid',
+        message: 'CPU usage above 90%',
         severity: 'critical',
         source: 'meshcentral',
         acknowledged: false,
         created_at: '2026-01-15T10:30:00Z',
+        updated_at: '2026-01-15T10:30:00Z',
       },
     ]);
     render(<AlertCenter />);
