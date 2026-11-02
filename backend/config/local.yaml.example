@@ -1,0 +1,5 @@
+# KTS Backend — Local configuration override (gitignored, DO NOT COMMIT)
+# Copy this file to backend/config/local.yaml and fill in your values.
+# Environment variable KTS_COMPANY_EMAIL takes precedence over this file.
+
+contact_email: "owner@example.com"

@@ -10,10 +10,10 @@ KTS Master Control (App Root)
 │   └── Quick Actions
 ├── Devices
 │   ├── 🖥  This Machine (Local)        ← Omarchy host
-│   ├── 🗄  Unraid Server               ← home-server.tailf6d3b4.ts.net
-│   ├── 📱 Galaxy S24 Ultra             ← bradleys-s24-ultra.tailf6d3b4.ts.net
-│   ├── 🎮 ROG Ally                     ← lgbtally.tailf6d3b4.ts.net
-│   └── 💻 Senpai Laptop                ← senpais-laptop.tailf6d3b4.ts.net
+│   ├── 🗄  Unraid Server               ← <device>.<tailnet>.ts.net
+│   ├── 📱 Galaxy S24 Ultra             ← <device>.<tailnet>.ts.net
+│   ├── 🎮 ROG Ally                     ← <device>.<tailnet>.ts.net
+│   └── 💻 Senpai Laptop                ← <device>.<tailnet>.ts.net
 ├── Services (Unraid-hosted)
 │   ├── 🐳 Docker                       ← Container management
 │   ├── 💾 Storage                      ← Array, disks, SMART, shares

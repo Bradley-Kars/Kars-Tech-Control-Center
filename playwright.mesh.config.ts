@@ -15,7 +15,7 @@ export default defineConfig({
     url: 'http://localhost:5174/',
     timeout: 60000,
     reuseExistingServer: false,
-    cwd: '/home/slayerbrk/GitHub/Kars-Tech-Control-Center',
+    cwd: '<cwd>/Kars-Tech-Control-Center',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 });

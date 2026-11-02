@@ -11,7 +11,7 @@ pass() { echo "  ✓ $1"; PASS=$((PASS+1)); }
 fail() { echo "  ✗ $1 — $2"; FAIL=$((FAIL+1)); }
 skip() { echo "  ○ $1 — $2"; SKIP=$((SKIP+1)); }
 
-ADB_HOST="b-s24-ultra.tailf6d3b4.ts.net"
+ADB_HOST="<device>-ultra.<tailnet>.ts.net"
 ADB_PORT="36887"
 ADB="adb -s $ADB_HOST:$ADB_PORT"
 

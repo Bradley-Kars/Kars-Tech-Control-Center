@@ -37,7 +37,7 @@ const mockLaunchAgent = vi.mocked(allyLaunchAgent);
 const allyServer = {
   id: 'rog-ally',
   name: 'ROG Ally',
-  hostname: 'lgbtally.tailf6d3b4.ts.net',
+  hostname: '<device>.<tailnet>.ts.net',
   username: 'ally',
   port: 22,
   device_type: 'steamdeck',

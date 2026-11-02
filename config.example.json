@@ -38,7 +38,7 @@
       }
     },
     {
-      "id": "senpai-laptop",
+      "id": "<device>-laptop",
       "name": "Senpai Laptop",
       "type": "bazzite",
       "role": "workstation",
@@ -119,7 +119,7 @@
       "id": "mobile",
       "name": "Mobile Devices",
       "description": "Laptops, handhelds, phones",
-      "deviceIds": ["senpai-laptop", "rog-ally", "galaxy-s24"],
+      "deviceIds": ["<device>-laptop", "rog-ally", "galaxy-s24"],
       "icon": "📱",
       "color": "#8B5CF6"
     },
@@ -127,7 +127,7 @@
       "id": "workstations",
       "name": "Workstations",
       "description": "Primary workstations",
-      "deviceIds": ["this-machine", "senpai-laptop"],
+      "deviceIds": ["this-machine", "<device>-laptop"],
       "icon": "💻",
       "color": "#EF4444"
     }

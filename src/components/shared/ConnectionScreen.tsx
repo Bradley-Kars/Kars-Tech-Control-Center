@@ -8,7 +8,7 @@ interface Props {
 
 export function ConnectionScreen({ onConnect }: Props) {
   const [deviceType, setDeviceType] = useState<'unraid' | 'phone' | 'steamdeck'>('unraid');
-  const [hostname, setHostname] = useState('home-server.tailf6d3b4.ts.net');
+  const [hostname, setHostname] = useState('<device>.<tailnet>.ts.net');
   const [port, setPort] = useState(22);
   const [username, setUsername] = useState('root');
   const [password, setPassword] = useState('');
@@ -156,7 +156,7 @@ export function ConnectionScreen({ onConnect }: Props) {
             <div className="space-y-4 pt-2 border-t border-line">
               <div>
                 <label className="block text-xs text-muted mb-1.5 font-mono">ADB Serial (optional)</label>
-                <input value={adbSerial} onChange={e => setAdbSerial(e.target.value)} placeholder="e.g. b-s24-ultra.tailf6d3b4.ts.net:36887"
+                <input value={adbSerial} onChange={e => setAdbSerial(e.target.value)} placeholder="e.g. <device>-ultra.<tailnet>.ts.net:36887"
                   className="w-full bg-ink border border-line rounded-lg px-3 py-2.5 text-sm text-off font-mono focus:border-teal focus:outline-none" />
                 <p className="text-xs text-muted mt-1">Leave empty to use hostname:port</p>
               </div>

@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
+import * as path from 'path';
 
-const SHOT_DIR = '/home/slayerbrk/GitHub/Kars-Tech-Control-Center/audit-loop/verify-staging/shots';
+const SHOT_DIR = path.join(__dirname, 'shots');
 fs.mkdirSync(SHOT_DIR, { recursive: true });
 
 test.use({ baseURL: 'http://localhost:8798', viewport: { width: 1440, height: 900 } });

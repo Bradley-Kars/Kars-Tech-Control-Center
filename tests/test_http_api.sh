@@ -12,11 +12,11 @@ fail() { echo "  ✗ $1 — $2"; FAIL=$((FAIL+1)); }
 skip() { echo "  ○ $1 — $2"; SKIP=$((SKIP+1)); }
 
 # Service URLs (via Tailscale)
-ADGUARD_URL="https://adguard.tailf6d3b4.ts.net:8443"
-ADGUARD_USER="slayerbrk"
+ADGUARD_URL="https://adguard.<tailnet>.ts.net:8443"
+ADGUARD_USER="<user>"
 ADGUARD_PASS="${ADGUARD_PASS:?set ADGUARD_PASS in your shell}"
-MYSPEED_URL="http://myspeed.tailf6d3b4.ts.net:3052"
-NEXTCLOUD_URL="https://nextcloud.tailf6d3b4.ts.net"
+MYSPEED_URL="http://myspeed.<tailnet>.ts.net:3052"
+NEXTCLOUD_URL="https://nextcloud.<tailnet>.ts.net"
 
 echo "=== HTTP API Integration Tests ==="
 

@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
+import * as path from 'path';
 
-const SHOT_DIR = '/home/slayerbrk/GitHub/Kars-Tech-Control-Center/audit-loop/cycle-1/shots';
+const SHOT_DIR = path.join(__dirname, 'shots');
 fs.mkdirSync(SHOT_DIR, { recursive: true });
 
 // Different lens than cycle 0: extreme viewports 320px and 1920px

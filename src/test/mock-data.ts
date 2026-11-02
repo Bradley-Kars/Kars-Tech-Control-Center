@@ -1,22 +1,22 @@
 export const mockServerConfig = {
   id: 'test-server-1',
   name: 'Test Unraid Server',
-  hostname: 'home-server.tailf6d3b4.ts.net',
+  hostname: '<device>.<tailnet>.ts.net',
   port: 22,
   username: 'root',
   auth: { type: 'password' as const, password: 'test-password' },
   device_type: 'unraid',
   api_key: 'test-api-key-123',
   service_keys: {
-    nextcloud_user: 'slayerbrk',
+    nextcloud_user: '<user>',
     nextcloud_pass: 'test-nc-pass',
     lidarr_api_key: 'test-lidarr-key',
     homeassistant_token: 'test-ha-token',
     myspeed_db_path: '/mnt/user/appdata/myspeed/storage.db',
     myspeed_url: 'http://localhost:5216',
-    adguard_user: 'slayerbrk',
+    adguard_user: '<user>',
     adguard_pass: 'test-adguard-pass',
-    adguard_url: 'https://adguard.tailf6d3b4.ts.net:8443',
+    adguard_url: 'https://adguard.<tailnet>.ts.net:8443',
   },
 };
 
@@ -232,16 +232,16 @@ export const mockNextcloudStorage = {
 };
 
 export const mockNextcloudUsers = [
-  { id: 'slayerbrk', display_name: 'slayerbrk', enabled: true, email: 'test@example.com', last_login: 1724000000, groups: ['admin'], backend: 'MySQL' },
+  { id: '<user>', display_name: '<user>', enabled: true, email: 'test@example.com', last_login: 1724000000, groups: ['admin'], backend: 'MySQL' },
   { id: 'admin', display_name: 'Admin', enabled: true, email: 'admin@example.com', last_login: 1724000000, groups: ['admin'], backend: 'MySQL' },
   { id: 'guest', display_name: 'Guest', enabled: true, email: null, last_login: 1724000000, groups: ['guest'], backend: 'MySQL' },
 ];
 
 export const mockNextcloudActivity = {
   activities: [
-    { app: 'files', subject: 'You created "test.txt"', timestamp: 1724000000, type: 'file', user: 'slayerbrk' },
-    { app: 'files', subject: 'You uploaded "photo.jpg"', timestamp: 1724000001, type: 'file', user: 'slayerbrk' },
-    { app: 'files', subject: 'You deleted "old.txt"', timestamp: 1724000002, type: 'file', user: 'slayerbrk' },
+    { app: 'files', subject: 'You created "test.txt"', timestamp: 1724000000, type: 'file', user: '<user>' },
+    { app: 'files', subject: 'You uploaded "photo.jpg"', timestamp: 1724000001, type: 'file', user: '<user>' },
+    { app: 'files', subject: 'You deleted "old.txt"', timestamp: 1724000002, type: 'file', user: '<user>' },
   ],
 };
 

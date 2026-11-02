@@ -109,7 +109,7 @@ ui:
       logo_size: 140
       show_contact: true
       contact_phone: "(218) 656-0574"
-      contact_email: "Bradley.Kars@KarsTechSolutions.com"
+      contact_email: "owner@example.com"
       contact_web: "karstechsolutions.com"
     cards:
       - id: "open-tickets"

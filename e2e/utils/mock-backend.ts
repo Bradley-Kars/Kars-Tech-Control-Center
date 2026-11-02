@@ -4,9 +4,9 @@ export async function mockAllTauriCommands(page: Page) {
   await page.addInitScript(() => {
     const mockData: Record<string, unknown> = {
       get_servers: [
-        { id: 'test-server-1', name: 'Test Server', hostname: 'home-server.tailf6d3b4.ts.net', username: 'root', auth: { password: 'test' }, api_key: 'test-key', device_type: 'unraid', service_keys: { nextcloud_user: 'slayerbrk', nextcloud_pass: 'pass', lidarr_api_key: 'key', homeassistant_token: 'token', myspeed_db_path: '/tmp/test.db', myspeed_url: 'http://localhost:5216', adguard_user: 'slayerbrk', adguard_pass: 'pass', adguard_url: 'https://adguard.tailf6d3b4.ts.net:8443' } },
-        { id: 'test-phone-1', name: 'Galaxy S24', hostname: 'b-s24-ultra.tailf6d3b4.ts.net', username: 'root', auth: { password: 'test' }, device_type: 'phone', service_keys: { phone_adb_serial: 'b-s24-ultra.tailf6d3b4.ts.net:36887', kdeconnect_device_id: '7cc37f37453c42f2b5713a505ec547c1', phone_rustdesk_id: '1321035736' } },
-        { id: 'test-steamdeck-1', name: 'ROG Ally', hostname: 'lgbtally.tailf6d3b4.ts.net', username: 'LGBT_Ally', auth: { password: 'test-pass' }, device_type: 'steamdeck', service_keys: { steamdeck_rustdesk_id: '2306695', steamdeck_rustdesk_password: 'test-pass', steamdeck_kdeconnect_device_id: 'ally-device-id' } }
+        { id: 'test-server-1', name: 'Test Server', hostname: '<device>.<tailnet>.ts.net', username: 'root', auth: { password: 'test' }, api_key: 'test-key', device_type: 'unraid', service_keys: { nextcloud_user: '<user>', nextcloud_pass: 'pass', lidarr_api_key: 'key', homeassistant_token: 'token', myspeed_db_path: '/tmp/test.db', myspeed_url: 'http://localhost:5216', adguard_user: '<user>', adguard_pass: 'pass', adguard_url: 'https://adguard.<tailnet>.ts.net:8443' } },
+        { id: 'test-phone-1', name: 'Galaxy S24', hostname: '<device>-ultra.<tailnet>.ts.net', username: 'root', auth: { password: 'test' }, device_type: 'phone', service_keys: { phone_adb_serial: '<device>-ultra.<tailnet>.ts.net:36887', kdeconnect_device_id: '7cc37f37453c42f2b5713a505ec547c1', phone_rustdesk_id: '1321035736' } },
+        { id: 'test-steamdeck-1', name: 'ROG Ally', hostname: '<device>.<tailnet>.ts.net', username: '<device>_Ally', auth: { password: 'test-pass' }, device_type: 'steamdeck', service_keys: { steamdeck_rustdesk_id: '2306695', steamdeck_rustdesk_password: 'test-pass', steamdeck_kdeconnect_device_id: 'ally-device-id' } }
       ],
       get_system_stats: { hostname: 'home-server', kernel: '6.18.38-Unraid', os_release: '6.18.38-Unraid', arch: 'x86_64', uptime: '2024-01-15T10:30:00Z', cpu_usage: 28.9, cpu_cores: 6, cpu_threads: 12, cpu_brand: 'Intel Core i7-8700K', cpu_speed: 3.7, memory_total_mb: 16384, memory_used_mb: 12123, memory_free_mb: 4261, memory_usage_pct: 74.0, memory_total_bytes: 17179869184, memory_used_bytes: 12713275392, swap_total: 0, swap_used: 0, timezone: 'America/Chicago', temp_avg: 45.0, temp_hottest: 'coretemp', temp_hottest_value: 52.0, sensors: [], array_state: 'STARTED', system_manufacturer: 'OEM', system_model: 'Server' },
       get_docker_containers: [
@@ -34,8 +34,8 @@ export async function mockAllTauriCommands(page: Page) {
       get_nextcloud_info: { installed: true, maintenance: false, version: '34.0.3.2', edition: 'Community' },
       get_nextcloud_status: { installed: true, maintenance: false, version: '34.0.3.2', edition: 'Community' },
       get_nextcloud_storage: { num_users: 3, num_files: 60509, num_storages: 4, num_storages_local: 1, num_storages_home: 3, num_storages_other: 0 },
-      get_nextcloud_users: [{ id: 'slayerbrk', displayname: 'slayerbrk', enabled: true }, { id: 'admin', displayname: 'Admin', enabled: true }],
-      get_nextcloud_activity: { activities: [{ app: 'files', subject: 'You created "test.txt"', timestamp: 1724000000, type: 'file', user: 'slayerbrk' }] },
+      get_nextcloud_users: [{ id: '<user>', displayname: '<user>', enabled: true }, { id: 'admin', displayname: 'Admin', enabled: true }],
+      get_nextcloud_activity: { activities: [{ app: 'files', subject: 'You created "test.txt"', timestamp: 1724000000, type: 'file', user: '<user>' }] },
       get_lidarr_status: { version: '3.1.0.4875', instanceName: 'Lidarr' },
       get_homeassistant_states: [{ entity_id: 'light.living_room', state: 'on', attributes: { friendly_name: 'Living Room Light' } }, { entity_id: 'switch.kitchen', state: 'off', attributes: { friendly_name: 'Kitchen Switch' } }],
       get_myspeed_summary: { stats: { total_tests: 935, avg_download: 201.2, avg_upload: 95.8, avg_ping: 12.3 }, tests: [{ id: 1, download: 215.3, upload: 98.2, ping: 11.5, testServer: 'Chicago, IL', testDate: '2024-08-25T12:00:00Z' }] },

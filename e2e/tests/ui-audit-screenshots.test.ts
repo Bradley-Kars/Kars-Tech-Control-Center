@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { mockAllTauriCommands } from '../utils/mock-backend';
 
 const BASE = 'http://localhost:5173';
-const SHOTS = '/home/slayerbrk/Work/mc-ui-audit-screenshots';
+const SHOTS = '<cwd>/Work/mc-ui-audit-screenshots';
 
 test.describe('Master Control UI Audit Screenshots', () => {
   test.beforeEach(async ({ page }) => {

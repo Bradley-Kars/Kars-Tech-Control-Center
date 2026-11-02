@@ -78,7 +78,7 @@ describe('NextcloudPage', () => {
     const usersBtn = screen.getByRole('button', { name: 'users' });
     fireEvent.click(usersBtn);
     await waitFor(() => {
-      expect(screen.getByText('slayerbrk')).toBeInTheDocument();
+      expect(screen.getByText('<user>')).toBeInTheDocument();
     });
   });
 

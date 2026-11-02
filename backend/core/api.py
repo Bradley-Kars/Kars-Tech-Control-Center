@@ -527,7 +527,7 @@ class KTSAPI:
                 "name": "Kars Tech Solutions",
                 "address": "501 Maple ST, Brainerd MN 56401",
                 "phone": "+1 (218) 656-0574",
-                "email": "Bradley.Kars@KarsTechSolutions.com"
+                "email": _company_email()
             },
             "client": {
                 "name": ticket.client_name or "Unknown",
@@ -616,7 +616,7 @@ class KTSAPI:
                 "name": "Kars Tech Solutions",
                 "address": "501 Maple ST, Brainerd MN 56401",
                 "phone": "+1 (218) 656-0574",
-                "email": "Bradley.Kars@KarsTechSolutions.com"
+                "email": _company_email()
             },
             "client": {
                 "name": ticket.client_name,
@@ -800,6 +800,29 @@ def get_ticket(ticket_id: str) -> Optional[Ticket]:
 
 def update_ticket(ticket_id: str, changes: Dict[str, Any], actor: EventActor, reason: Optional[str] = None) -> Ticket:
     return get_api().update_ticket(ticket_id, changes, actor, reason)
+
+
+def _company_email() -> str:
+    """Company contact email for invoices/receipts.
+
+    Reads from KTS_COMPANY_EMAIL env var, then from backend/config/local.yaml
+    (gitignored local override), then falls back to a placeholder. Production
+    behaviour is preserved by setting the env var or local config.
+    """
+    import os
+    env_email = os.environ.get("KTS_COMPANY_EMAIL")
+    if env_email:
+        return env_email
+    local_cfg = Path(__file__).resolve().parent.parent / "config" / "local.yaml"
+    if local_cfg.exists():
+        try:
+            import yaml  # type: ignore
+            data = yaml.safe_load(local_cfg.read_text()) or {}
+            if isinstance(data, dict) and data.get("contact_email"):
+                return str(data["contact_email"])
+        except Exception:
+            pass
+    return "owner@example.com"
 
 
 def generate_invoice(ticket_id: str, actor: EventActor) -> Dict[str, Any]:

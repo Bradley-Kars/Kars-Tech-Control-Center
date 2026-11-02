@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [
-    "@devcxl/opencode-cabbage"
+    "@devcxl/opencode-cabbage@1.3.0"
   ]
 }

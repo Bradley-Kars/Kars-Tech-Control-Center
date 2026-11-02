@@ -79,10 +79,10 @@ const STATIC_COMMANDS: Cmd[] = [
   // Navigation
   { id: 'nav-dashboard', label: 'Go to Dashboard', description: 'Fleet overview', category: 'Navigation', icon: Layout, shortcut: '⌘1', action: () => '/dashboard' },
   { id: 'nav-local', label: 'This Machine', description: 'Local Omarchy host', category: 'Navigation', icon: Laptop, shortcut: '⌘2', action: () => '/device/local' },
-  { id: 'nav-unraid', label: 'Unraid Server', description: 'home-server.tailf6d3b4.ts.net', category: 'Navigation', icon: Server, shortcut: '⌘3', action: () => '/device/unraid' },
-  { id: 'nav-phone', label: 'Galaxy S24 Ultra', description: 'bradleys-s24-ultra.tailf6d3b4.ts.net', category: 'Navigation', icon: Smartphone, shortcut: '⌘4', action: () => '/device/phone' },
-  { id: 'nav-ally', label: 'ROG Ally', description: 'lgbtally.tailf6d3b4.ts.net', category: 'Navigation', icon: Gamepad2, shortcut: '⌘5', action: () => '/device/ally' },
-  { id: 'nav-laptop', label: 'Senpai Laptop', description: 'senpais-laptop.tailf6d3b4.ts.net', category: 'Navigation', icon: Laptop, shortcut: '⌘6', action: () => '/device/laptop' },
+  { id: 'nav-unraid', label: 'Unraid Server', description: '<device>.<tailnet>.ts.net', category: 'Navigation', icon: Server, shortcut: '⌘3', action: () => '/device/unraid' },
+  { id: 'nav-phone', label: 'Galaxy S24 Ultra', description: '<device>.<tailnet>.ts.net', category: 'Navigation', icon: Smartphone, shortcut: '⌘4', action: () => '/device/phone' },
+  { id: 'nav-ally', label: 'ROG Ally', description: '<device>.<tailnet>.ts.net', category: 'Navigation', icon: Gamepad2, shortcut: '⌘5', action: () => '/device/ally' },
+  { id: 'nav-laptop', label: 'Senpai Laptop', description: '<device>.<tailnet>.ts.net', category: 'Navigation', icon: Laptop, shortcut: '⌘6', action: () => '/device/laptop' },
 
   // Services
   { id: 'svc-docker', label: 'Docker', description: 'Container management', category: 'Services', icon: Layout, shortcut: '⌘D', action: () => '/service/docker' },

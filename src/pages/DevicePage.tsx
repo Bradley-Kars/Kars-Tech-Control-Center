@@ -26,10 +26,10 @@ type DeviceId = 'local' | 'unraid' | 'phone' | 'ally' | 'laptop';
 
 const DEVICE_META: Record<DeviceId, { label: string; deviceType: 'desktop' | 'unraid' | 'phone' | 'handheld' | 'laptop'; hostname: string; blurb: string }> = {
   local: { label: 'This Machine', deviceType: 'desktop', hostname: 'localhost', blurb: 'Omarchy workstation running KTS Master Control' },
-  unraid: { label: 'Unraid Server', deviceType: 'unraid', hostname: 'home-server.tailf6d3b4.ts.net', blurb: 'Primary home server — storage, containers, media stack' },
-  phone: { label: 'Galaxy S24 Ultra', deviceType: 'phone', hostname: 'bradleys-s24-ultra', blurb: 'Daily driver — telemetry, KDE Connect, SMS' },
-  ally: { label: 'ROG Ally', deviceType: 'handheld', hostname: 'lgbtally', blurb: 'Bazzite handheld — Sunshine host, gaming' },
-  laptop: { label: 'Senpai Laptop', deviceType: 'laptop', hostname: 'senpais-laptop', blurb: 'Bazzite NVIDIA laptop over Tailscale' },
+  unraid: { label: 'Unraid Server', deviceType: 'unraid', hostname: '<device>.<tailnet>.ts.net', blurb: 'Primary home server — storage, containers, media stack' },
+  phone: { label: 'Galaxy S24 Ultra', deviceType: 'phone', hostname: '<device>-ultra', blurb: 'Daily driver — telemetry, KDE Connect, SMS' },
+  ally: { label: 'ROG Ally', deviceType: 'handheld', hostname: '<device>', blurb: 'Bazzite handheld — Sunshine host, gaming' },
+  laptop: { label: 'Senpai Laptop', deviceType: 'laptop', hostname: '<device>', blurb: 'Bazzite NVIDIA laptop over Tailscale' },
 };
 
 function isDeviceId(v: string | undefined): v is DeviceId {
@@ -603,7 +603,7 @@ function LaptopDevice() {
           <dl className="divide-y divide-[var(--kts-border-default)]" style={{ fontSize: 'var(--kts-font-size-sm)' }}>
             {[
               ['Hostname', server?.hostname ?? DEVICE_META.laptop.hostname],
-              ['Address', 'senpais-laptop.tailf6d3b4.ts.net'],
+              ['Address', '<device>.<tailnet>.ts.net'],
               ['Transport', mcEnrolled ? 'MeshCentral → SSH fallback' : 'Tailscale SSH'],
               ['OS', 'Bazzite (Fedora ostree, NVIDIA)'],
             ].map(([k, v]) => (
