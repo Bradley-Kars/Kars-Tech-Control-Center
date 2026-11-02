@@ -60,7 +60,6 @@ export const SERVICE_LABELS: Readonly<Record<string, string>> = {
   homeassistant: 'Home Assistant',
   nextcloud: 'Nextcloud',
   adguard: 'AdGuard',
-  myspeed: 'MySpeed',
 };
 
 /**

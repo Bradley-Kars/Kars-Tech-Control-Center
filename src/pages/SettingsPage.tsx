@@ -21,7 +21,7 @@ import {
 const SHORTCUTS: Array<{ keys: string; description: string }> = [
   { keys: '⌘K / Ctrl+K', description: 'Open command palette' },
   { keys: '⌘1 / Ctrl+1', description: 'Dashboard' },
-  { keys: '⌘2…⌘6 / Ctrl+2…6', description: 'Devices (local → laptop)' },
+  { keys: '⌘2…6 / Ctrl+2…6', description: 'Devices (local → laptop)' },
   { keys: '⌘D / Ctrl+D', description: 'Docker' },
   { keys: '⌘S / Ctrl+S', description: 'Storage' },
   { keys: '⌘Y / Ctrl+Y', description: 'System' },
@@ -90,7 +90,7 @@ function MeshCentralSection() {
           </Badge>
           <a
             href="/meshcentral"
-            className="text-[var(--kts-brand-primary)] hover:underline font-medium"
+            className="text-[var(--kts-brand-primary)] hover:underline font-medium whitespace-nowrap"
             style={{ fontSize: 'var(--kts-font-size-sm)' }}
           >
             Open MeshCentral console <ChevronRight width="14" height="14" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '4px' }} />

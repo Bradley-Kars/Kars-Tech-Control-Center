@@ -148,7 +148,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           </svg>
         )}
         {!loading && leftIcon && <span style={{ width: s.iconSize, height: s.iconSize, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{leftIcon}</span>}
-        <span>{children}</span>
+        <span style={{ display: 'flex', alignItems: 'center' }}>{children}</span>
         {!loading && rightIcon && <span style={{ width: s.iconSize, height: s.iconSize, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{rightIcon}</span>}
       </button>
     );

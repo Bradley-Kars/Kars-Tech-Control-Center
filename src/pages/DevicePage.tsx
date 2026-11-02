@@ -98,7 +98,7 @@ function DeviceHeader({
     <div className="flex flex-wrap items-center gap-4">
       <DeviceAvatar type={meta.deviceType} name={meta.label} size="lg" />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap min-w-0">
           <h1 className="font-[var(--kts-font-heading)] font-bold truncate" style={{ fontSize: 'var(--kts-font-size-3xl)', letterSpacing: '-0.02em' }}>
             {meta.label}
           </h1>
