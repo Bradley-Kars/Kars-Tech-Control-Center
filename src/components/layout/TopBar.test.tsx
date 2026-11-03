@@ -110,4 +110,14 @@ describe('TopBar', () => {
     // The app title lives in the Sidebar header only; TopBar must not repeat it.
     expect(screen.queryByText('KTS Master Control')).not.toBeInTheDocument();
   });
+
+  it('uses an icon-button search on mobile instead of the fixed-width desktop search that overflows at 320px (SEARCH-001)', () => {
+    const { container } = renderTopBar();
+    // Mobile: search is an icon button, not a fixed-width field
+    expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument();
+    // Desktop fixed-width search slot is hidden at mobile widths so it cannot overflow the viewport edge
+    const desktopSearch = container.querySelector('[class*="w-[480px]"]');
+    expect(desktopSearch).not.toBeNull();
+    expect(desktopSearch).toHaveClass('hidden');
+  });
 });

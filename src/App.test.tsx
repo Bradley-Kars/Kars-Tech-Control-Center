@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SIDEBAR_ITEMS, NAV_ITEMS } from './config/nav';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import App from './App';
 
 // Mock localStorage
@@ -53,5 +53,54 @@ describe('Routing', () => {
     // Allow async navigation to complete
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(screen.getByRole('heading', { name: 'Ticketing' })).toBeInTheDocument();
+  });
+});
+
+describe('Mobile drawer overlay (D-2 / SIDEBAR-001)', () => {
+  beforeEach(() => {
+    // Force a mobile viewport so the sidebar renders as the full-width
+    // overlay drawer instead of the desktop rail.
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn().mockImplementation(() => ({
+        matches: true,
+        media: '(max-width: 860px)',
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+  });
+
+  it('renders the sidebar as a closed full-width drawer on mobile', () => {
+    const { container } = render(<App />);
+    const sidebar = container.querySelector('aside');
+    expect(sidebar).not.toBeNull();
+    expect(sidebar).toHaveClass('w-full');
+    expect(sidebar).toHaveClass('-translate-x-full');
+    expect(sidebar).not.toHaveClass('translate-x-0');
+    // No backdrop overlay while the drawer is closed.
+    expect(container.querySelector('div.fixed.inset-0[aria-hidden="true"]')).toBeNull();
+  });
+
+  it('opens the drawer overlay when the menu button is clicked', () => {
+    const { container } = render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation menu' }));
+    const sidebar = container.querySelector('aside');
+    expect(sidebar).toHaveClass('translate-x-0');
+    expect(sidebar).not.toHaveClass('-translate-x-full');
+    // Backdrop overlay is present while the drawer is open.
+    expect(container.querySelector('div.fixed.inset-0[aria-hidden="true"]')).not.toBeNull();
+  });
+
+  it('closes the drawer on Escape', () => {
+    const { container } = render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation menu' }));
+    expect(container.querySelector('aside')).toHaveClass('translate-x-0');
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(container.querySelector('aside')).toHaveClass('-translate-x-full');
+    expect(container.querySelector('div.fixed.inset-0[aria-hidden="true"]')).toBeNull();
   });
 });
