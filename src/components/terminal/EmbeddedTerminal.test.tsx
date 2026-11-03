@@ -107,6 +107,12 @@ describe('EmbeddedTerminal websocket (T4)', () => {
     expect(created[0]!.url).toBe(`${originWs()}/ws/pty/ssh/server-1?token=`);
   });
 
+  it('opens the websocket for a named profile (e.g. opencode) on the same origin', () => {
+    render(<EmbeddedTerminal profile="opencode" />);
+    expect(created.length).toBe(1);
+    expect(created[0]!.url).toBe(`${originWs()}/ws/pty/opencode?token=`);
+  });
+
   it('includes the configured auth token in the websocket URL', () => {
     setAuthToken('tok-123');
     render(<EmbeddedTerminal serverId="server-1" />);

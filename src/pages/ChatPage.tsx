@@ -1,4 +1,4 @@
-import { ChatPanel } from '../components/opencode/ChatPanel';
+import { EmbeddedTerminal } from '../components/terminal/EmbeddedTerminal';
 
 export function ChatPage() {
   return (
@@ -10,7 +10,7 @@ export function ChatPage() {
         height: 'calc(100vh - 140px)',
       }}
     >
-      <ChatPanel />
+      <EmbeddedTerminal profile="opencode" />
     </div>
   );
 }

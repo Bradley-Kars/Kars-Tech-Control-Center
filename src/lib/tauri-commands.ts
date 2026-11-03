@@ -5,7 +5,6 @@ import type {
   EnrollmentInfo, SyncResult,
   ShellResult, MeshSystemStats,
   Alert, AlertFilter, AlertSeverity, MetricPoint, MetricSeries,
-  OpencodeStatus, ChatMessage,
 } from './types';
 
 export type { Alert, AlertFilter, AlertSeverity, MetricPoint, MetricSeries };
@@ -573,40 +572,4 @@ export async function pollMeshcentralStatusChanges(): Promise<PromAlertCreated[]
 /** Combined poller for all alert sources (Prometheus + MeshCentral). */
 export async function pollAllAlertSources(prometheusBaseUrl: string): Promise<PromAlertCreated[]> {
   return invoke('poll_all_alert_sources', { prometheusBaseUrl });
-}
-
-/* ------------------------------------------------------------------ */
-/* OpenCode chat (sidecar opencode serve)                              */
-/* ------------------------------------------------------------------ */
-
-export async function opencodeStart(): Promise<OpencodeStatus> {
-  return invoke('opencode_start');
-}
-
-export async function opencodeStop(): Promise<OpencodeStatus> {
-  return invoke('opencode_stop');
-}
-
-export async function opencodeStatus(): Promise<OpencodeStatus> {
-  return invoke('opencode_status');
-}
-
-export async function opencodeNewSession(title?: string): Promise<string> {
-  return invoke('opencode_new_session', { title });
-}
-
-export async function opencodeSendMessage(
-  sessionId: string,
-  message: string,
-  agent?: string,
-): Promise<ChatMessage[]> {
-  return invoke('opencode_send_message', { sessionId, message, agent });
-}
-
-export async function opencodeGetHistory(sessionId: string): Promise<ChatMessage[]> {
-  return invoke('opencode_get_history', { sessionId });
-}
-
-export async function opencodeAbort(sessionId: string): Promise<boolean> {
-  return invoke('opencode_abort', { sessionId });
 }

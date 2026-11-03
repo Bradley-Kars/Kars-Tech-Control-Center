@@ -5,8 +5,10 @@ import '@xterm/xterm/css/xterm.css';
 import { getAuthToken } from '../../lib/fleet-api';
 
 interface EmbeddedTerminalProps {
-  /** ServerConfig id from the backend (not the local DeviceId union). */
-  serverId: string;
+  /** Named PTY profile (e.g. "opencode"). Mutually exclusive with serverId. */
+  profile?: string;
+  /** ServerConfig id from the backend (not the local DeviceId union). Connects to the "ssh:<serverId>" profile. */
+  serverId?: string;
   /** Visible height of the terminal viewport (px). */
   height?: number;
 }
@@ -14,12 +16,18 @@ interface EmbeddedTerminalProps {
 const BACKOFF_BASE_MS = 1_000;
 const BACKOFF_MAX_MS = 30_000;
 
+/** Path component of the websocket URL for the /ws/pty/{profile} endpoint (Phase 3). */
+function ptyPath(profile?: string, serverId?: string): string {
+  if (profile) return `/ws/pty/${encodeURIComponent(profile)}`;
+  return `/ws/pty/ssh/${encodeURIComponent(serverId ?? '')}`;
+}
+
 /** Same-origin websocket URL for the /ws/pty/{profile} endpoint (Phase 3). */
-function terminalUrl(serverId: string): string {
+function terminalUrl(path: string): string {
   const base = (import.meta.env.VITE_API_BASE ?? window.location.origin)
     .replace(/\/$/, '')
     .replace(/^http/, 'ws');
-  return `${base}/ws/pty/ssh/${encodeURIComponent(serverId)}?token=${encodeURIComponent(getAuthToken())}`;
+  return `${base}${path}?token=${encodeURIComponent(getAuthToken())}`;
 }
 
 /**
@@ -33,7 +41,7 @@ function terminalUrl(serverId: string): string {
  * unmount. MeshCentral's web terminal stays the primary path — this is the
  * sanctioned direct-SSH fallback over the web backend.
  */
-export function EmbeddedTerminal({ serverId, height = 460 }: EmbeddedTerminalProps) {
+export function EmbeddedTerminal({ profile, serverId, height = 460 }: EmbeddedTerminalProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -90,7 +98,7 @@ export function EmbeddedTerminal({ serverId, height = 460 }: EmbeddedTerminalPro
 
     const connect = () => {
       if (disposedRef.current) return;
-      const ws = new WebSocket(terminalUrl(serverId));
+      const ws = new WebSocket(terminalUrl(ptyPath(profile, serverId)));
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -189,7 +197,7 @@ export function EmbeddedTerminal({ serverId, height = 460 }: EmbeddedTerminalPro
       termRef.current = null;
       wsRef.current = null;
     };
-  }, [serverId, scheduleReconnect]);
+  }, [profile, serverId, scheduleReconnect]);
 
   return (
     <div

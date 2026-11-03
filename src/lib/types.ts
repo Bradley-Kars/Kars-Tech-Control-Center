@@ -916,15 +916,3 @@ export interface AdGuardStatus {
   config_hash: string;
   protection_enabled: boolean;
 }
-
-// --- OpenCode chat (sidecar) -------------------------------------------------
-export interface OpencodeStatus {
-  running: boolean;
-  port: number | null;
-  pid: number | null;
-}
-
-export interface ChatMessage {
-  role: string; // "user" | "assistant" | "tool" | "system"
-  text: string;
-}
