@@ -103,4 +103,11 @@ describe('TopBar', () => {
     renderTopBar();
     expect(screen.getByRole('button', { name: 'Actions' })).toBeInTheDocument();
   });
+
+  it('shows the route-specific title, not a duplicate "KTS Master Control" app title (TITLE-001)', () => {
+    renderTopBar({ location: { pathname: '/settings' } });
+    expect(screen.getByText('Settings')).toBeInTheDocument();
+    // The app title lives in the Sidebar header only; TopBar must not repeat it.
+    expect(screen.queryByText('KTS Master Control')).not.toBeInTheDocument();
+  });
 });

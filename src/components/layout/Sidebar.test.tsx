@@ -69,4 +69,15 @@ describe('Sidebar', () => {
     expect(screen.queryByText('Ticketing')).not.toBeInTheDocument();
     expect(screen.queryByText('Settings')).not.toBeInTheDocument();
   });
+
+  it('renders the KTS logo image in the expanded sidebar header (LOGO-001 / LOGO-002)', () => {
+    renderSidebar();
+    expect(screen.getByAltText('KTS Master Control logo')).toBeInTheDocument();
+  });
+
+  it('keeps the KTS logo mark visible in the collapsed rail instead of only a chevron (LOGO-002)', () => {
+    renderSidebar({ collapsed: true });
+    expect(screen.getByAltText('KTS Master Control logo')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument();
+  });
 });
