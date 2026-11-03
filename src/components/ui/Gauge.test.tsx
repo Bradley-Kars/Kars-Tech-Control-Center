@@ -34,6 +34,13 @@ describe('Gauge', () => {
     expect(px).toBeGreaterThanOrEqual(8);
   });
 
+  it('clamps font at 10px minimum even for long text on a tiny gauge (GAUGE-001)', () => {
+    render(<Gauge value={100} size="xs" />);
+    const span = screen.getByText('100%');
+    const px = parseFloat(span.style.fontSize);
+    expect(px).toBe(10);
+  });
+
   it('shows pulsing placeholder while loading', () => {
     render(<Gauge value={42} loading />);
     expect(screen.getByText('··')).toBeInTheDocument();
