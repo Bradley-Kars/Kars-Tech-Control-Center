@@ -279,3 +279,31 @@ set changes.
 | `opencode_get_history` | src-tauri/src/commands/opencode_chat.rs:266 | src/components/opencode/ChatPanel.test.tsx, src/components/opencode/ChatPanel.tsx, src/pages/ChatPage.test.tsx | n/a — Hermes sidecar wrapper (no /api/fleet route) | not ported |
 | `opencode_abort` | src-tauri/src/commands/opencode_chat.rs:294 | src/components/opencode/ChatPanel.test.tsx, src/components/opencode/ChatPanel.tsx, src/pages/ChatPage.test.tsx | n/a — Hermes sidecar wrapper (no /api/fleet route) | not ported |
 
+## Ticketing
+
+Ticketing is a **bridge API** (port 8799, loopback only, `X-API-Token` auth) — not a Tauri invoke command — so it is **not part of the 172-command inventory**. Rows below document parity between `src-tauri/src/services/ticketing.rs` (read-only reference), the FastAPI backend in `backend/core/bridge.py`, `src/lib/api.ts`, and the UI in `src/components/ticketing/`. All commands are ported; no gap remains.
+
+| Command | Rust handler | UI files | Target route | Status |
+|---|---|---|---|---|
+| `fetch_overview` | src-tauri/src/services/ticketing.rs:133 | src/components/ticketing/TicketingPage.tsx | GET /api/tickets | ported |
+| `create_ticket` | src-tauri/src/services/ticketing.rs:225 | src/components/ticketing/TicketingPage.tsx | POST /api/tickets | ported |
+| `add_worklog` | src-tauri/src/services/ticketing.rs:286 | src/components/ticketing/TicketingPage.tsx | POST /api/tickets/{id}/worklog | ported |
+| `change_status` | src-tauri/src/services/ticketing.rs:343 | src/components/ticketing/TicketingPage.tsx | POST /api/tickets/{id}/status | ported |
+| `compute_overview` | src-tauri/src/services/ticketing.rs:408 | — | n/a (pure card math) | ported |
+| `invoice_for_ticket` | src-tauri/src/services/ticketing.rs:432 | — | n/a (invoice lookup) | ported |
+| `load_fixture` | src-tauri/src/services/ticketing.rs:113 | — | n/a (mock fallback, MC-1) | ported |
+
+TS `src/lib/api.ts` functions mirroring the bridge API:
+
+| TS function | Backend route | Used by |
+|---|---|---|
+| `listTickets` | GET /api/tickets | TicketingPage |
+| `createTicket` | POST /api/tickets | TicketingPage |
+| `addWorklog` | POST /api/tickets/{id}/worklog | TicketingPage |
+| `changeTicketStatus` | POST /api/tickets/{id}/status | TicketingPage |
+| `updateTicket` | PATCH /api/tickets/{id} | TicketingPage |
+| `getTicket` | GET /api/tickets/{id} | api.ts export |
+| `ticketRequestError` | n/a (error-message helper) | api.ts |
+
+Parity confirmation: `TicketingPage.tsx` imports `listTickets`, `createTicket`, `addWorklog`, `changeTicketStatus`, `updateTicket` from `../../lib/api` and has no `@tauri-apps` imports. The backend routes are identity-enforced by `create_app()` middleware (401 without token, scope=write for POST/PATCH), return redacted 502s, and are covered by `backend/tests/` (service, route, and fleet-api fetch tests).
+
