@@ -1,4 +1,4 @@
-import { invoke as rawInvoke, Channel, isTauri as isTauriCheck } from '@tauri-apps/api/core';
+import { invoke as rawInvoke, isTauri as isTauriCheck } from '@tauri-apps/api/core';
 import type {
   RestServiceHealth, PlexIdentity, PlexLibrary,
   MeshDevice, DeviceStatus, BatchCommand, BatchResult,
@@ -573,40 +573,6 @@ export async function pollMeshcentralStatusChanges(): Promise<PromAlertCreated[]
 /** Combined poller for all alert sources (Prometheus + MeshCentral). */
 export async function pollAllAlertSources(prometheusBaseUrl: string): Promise<PromAlertCreated[]> {
   return invoke('poll_all_alert_sources', { prometheusBaseUrl });
-}
-
-/* ------------------------------------------------------------------ */
-/* Embedded terminal (SSH PTY streamed over an IPC Channel)            */
-/* ------------------------------------------------------------------ */
-
-export interface TerminalChunk {
-  session_id: string;
-  data: number[];
-  closed: boolean;
-  exit_status: number | null;
-}
-
-export async function terminalOpen(
-  serverId: string,
-  cols: number,
-  rows: number,
-  onChunk: (chunk: TerminalChunk) => void,
-): Promise<string> {
-  const ch = new Channel<TerminalChunk>();
-  ch.onmessage = (m) => onChunk(m);
-  return invoke<string>('terminal_open', { serverId, cols, rows, onChunk: ch });
-}
-
-export async function terminalWrite(sessionId: string, data: string): Promise<void> {
-  return invoke('terminal_write', { sessionId, data });
-}
-
-export async function terminalResize(sessionId: string, cols: number, rows: number): Promise<void> {
-  return invoke('terminal_resize', { sessionId, cols, rows });
-}
-
-export async function terminalClose(sessionId: string): Promise<void> {
-  return invoke('terminal_close', { sessionId });
 }
 
 /* ------------------------------------------------------------------ */
