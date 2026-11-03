@@ -37,6 +37,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .auth import TokenTable, HEADER, default_token_table
 from . import paths
+from fleet.router import router as fleet_router
 from .safe_io import safe_read
 from .services.ticket_service import VersionMismatch
 
@@ -1447,6 +1448,12 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
             return JSONResponse({"detail": str(e)}, status_code=403)
         except Exception as e:
             return JSONResponse({"detail": str(e)}, status_code=502)
+
+    # --- Fleet server registry (F4) ---
+    # GET/POST/DELETE /api/fleet/servers and DELETE /api/fleet/servers/{id}.
+    # Auth + scope enforcement come from the require_token middleware above;
+    # responses are redacted by fleet.config.redact_server.
+    app.include_router(fleet_router, prefix="/api/fleet")
 
     # TrustedHostMiddleware runs outermost (added last), so a forged Host
     # header is rejected with 400 before authentication runs (W5.3).
