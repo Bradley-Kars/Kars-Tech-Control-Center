@@ -3,3 +3,16 @@
 # Environment variable KTS_COMPANY_EMAIL takes precedence over this file.
 
 contact_email: "owner@example.com"
+
+# Terminal PTY profiles served over /ws/pty/{profile} (Phase 3).
+# Unknown profile names are rejected by the backend.
+terminal_profiles:
+  # Default profile — runs the opencode TUI on the backend host.
+  # cwd can be overridden with the KTS_TERM_OPencode_CWD env var.
+  opencode:
+    argv: ["opencode"]
+    cwd: null
+  # Hermes TUI on the backend host. Admin-only once logins exist.
+  hermes:
+    argv: ["hermes"]
+    cwd: null

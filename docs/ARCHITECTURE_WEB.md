@@ -54,3 +54,33 @@ This repo contains no real hostnames, emails, or tokens. Where a doc or example 
 ## Opencode / Hermes terminals
 
 Opencode and Hermes in the app are visual wrappers (xterm in the browser) around the TUI running on the machine that hosts the web server — no custom chat UI, no `opencode serve` sidecar, no opencode SDK calls.
+
+### Terminal profiles (`/ws/pty/{profile}`)
+
+The backend exposes real PTY sessions over the websocket endpoint
+`/ws/pty/{profile}` (see `backend/fleet/terminal.py`). The profile name is
+resolved server-side; the client never supplies the command to run. Every
+connection requires a valid API token and passes through `require_admin`
+(T2) — unauthenticated or non-admin identities are refused before the PTY is
+ever started.
+
+| Profile | Purpose | Connects to |
+|---|---|---|
+| `opencode` | Default profile. Runs the `opencode` TUI on the backend host. | `/ws/pty/opencode` |
+| `hermes` | Runs the `hermes` TUI on the backend host (admin-only section once logins exist). | `/ws/pty/hermes` |
+| `ssh:<server_id>` | Direct SSH PTY to a registered fleet server (one profile per `servers.json` entry). | `/ws/pty/ssh/<server_id>` |
+
+Profile configuration lives in `backend/config/local.yaml.example` (copy to
+`local.yaml`, mode 0600). The `opencode` profile's cwd is overridden by the
+`KTS_TERM_OPencode_CWD` environment variable. Unknown profile names are
+rejected with a websocket close.
+
+Message protocol (JSON text frames):
+
+- client → server: `{"type":"input","data":"..."}` or
+  `{"type":"resize","cols":N,"rows":M}`
+- server → client: `{"type":"output","data":"..."}`,
+  `{"type":"exit","code":N}`, `{"type":"error","message":"..."}`
+
+Idle timeout is 300 seconds; on disconnect the child process and file
+descriptors are cleaned up.
