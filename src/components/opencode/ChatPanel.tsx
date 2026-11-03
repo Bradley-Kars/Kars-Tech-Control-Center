@@ -149,6 +149,17 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
               {starting ? 'Starting…' : 'Connect'}
             </Button>
           )}
+          {starting && (
+            <span
+              data-testid="chat-start-spinner"
+              aria-label="Starting"
+              aria-hidden="true"
+              className="animate-pulse"
+              style={{ color: 'var(--kts-text-secondary)', fontSize: 12, lineHeight: 1 }}
+            >
+              ●
+            </span>
+          )}
         </div>
       </div>
 
