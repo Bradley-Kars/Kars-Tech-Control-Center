@@ -42,6 +42,12 @@ import type {
   AlertSeverity,
   MetricPoint,
   MetricSeries,
+  PhoneDeviceInfo,
+  PhoneBattery,
+  PhoneStorage,
+  PhoneMemory,
+  KdeConnectBattery,
+  KdeConnectConnectivity,
 } from './types';
 import {
   setAuthToken,
@@ -115,6 +121,13 @@ import {
   metricQuery,
   metricQueryMulti,
   metricCollectAll,
+  getPhoneDeviceInfo,
+  getPhoneBattery,
+  getPhoneStorage,
+  getPhoneMemory,
+  getKdeConnectBattery,
+  getKdeConnectConnectivity,
+  getKdeConnectListDevices,
 } from './fleet-api';
 
 const fetchMock = vi.fn();
@@ -148,6 +161,7 @@ const EMPTY_SERVICES: TestConnectionResult['services'] = {
   myspeed: false,
   adguard: false,
   phone: false,
+  kdeconnect: false,
   plex: false,
   scrutiny: false,
   uptimekuma: false,
@@ -2263,5 +2277,301 @@ describe('metricCollectAll', () => {
     expect(String(input)).toBe('/api/fleet/metrics/collect_all');
     expect(init?.method).toBe('POST');
     expect(JSON.parse(String(init?.body))).toEqual({});
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phone / KDE Connect (P14) — host-local, feature-flagged
+// ---------------------------------------------------------------------------
+
+describe('getPhoneDeviceInfo', () => {
+  const info: PhoneDeviceInfo = {
+    model: 'Galaxy S24 Ultra',
+    android_version: '14',
+    api_level: '34',
+    serial: 'RF8A700000',
+    oneui_version: '6.1',
+    manufacturer: 'Samsung',
+    brand: 'samsung',
+    build_fingerprint: 'samsung/beowulf/...',
+  };
+
+  it('GETs /api/fleet/phone/device_info?server_id=X and returns device info', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(info));
+    const result = await getPhoneDeviceInfo('s1');
+    expect(result).toEqual(info);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/phone/device_info?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(info));
+    await getPhoneDeviceInfo('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(getPhoneDeviceInfo('s1')).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'not found' }, 404));
+    let err: { status: number; detail: string } | null = null;
+    await getPhoneDeviceInfo('s1').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(404);
+    expect(err!.detail).toBe('not found');
+  });
+});
+
+describe('getPhoneBattery', () => {
+  const battery: PhoneBattery = {
+    level: 85,
+    status: '2',
+    health: '1',
+    temperature: 28.5,
+    voltage: 4320,
+    technology: 'Li-ion',
+    charging: true,
+    plugged: 'AC',
+    current_ua: -500,
+  };
+
+  it('GETs /api/fleet/phone/battery?server_id=X and returns battery', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(battery));
+    const result = await getPhoneBattery('s1');
+    expect(result).toEqual(battery);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/phone/battery?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(battery));
+    await getPhoneBattery('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(getPhoneBattery('s1')).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'not found' }, 404));
+    let err: { status: number; detail: string } | null = null;
+    await getPhoneBattery('s1').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(404);
+    expect(err!.detail).toBe('not found');
+  });
+});
+
+describe('getPhoneStorage', () => {
+  const storage: PhoneStorage = {
+    total_gb: 50,
+    free_gb: 30,
+    used_gb: 20,
+    used_pct: 40,
+  };
+
+  it('GETs /api/fleet/phone/storage?server_id=X and returns storage', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(storage));
+    const result = await getPhoneStorage('s1');
+    expect(result).toEqual(storage);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/phone/storage?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(storage));
+    await getPhoneStorage('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(getPhoneStorage('s1')).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'not found' }, 404));
+    let err: { status: number; detail: string } | null = null;
+    await getPhoneStorage('s1').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(404);
+    expect(err!.detail).toBe('not found');
+  });
+});
+
+describe('getPhoneMemory', () => {
+  const memory: PhoneMemory = {
+    total_mb: 12056,
+    available_mb: 6629,
+    free_mb: 120,
+    cached_mb: 976,
+    buffers_mb: 195,
+    used_pct: 55,
+  };
+
+  it('GETs /api/fleet/phone/memory?server_id=X and returns memory', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(memory));
+    const result = await getPhoneMemory('s1');
+    expect(result).toEqual(memory);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/phone/memory?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(memory));
+    await getPhoneMemory('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(getPhoneMemory('s1')).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'not found' }, 404));
+    let err: { status: number; detail: string } | null = null;
+    await getPhoneMemory('s1').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(404);
+    expect(err!.detail).toBe('not found');
+  });
+});
+
+describe('getKdeConnectBattery', () => {
+  const battery: KdeConnectBattery = {
+    charge: 85,
+    is_charging: true,
+    has_battery: true,
+    icon_name: 'battery-full',
+  };
+
+  it('GETs /api/fleet/kdeconnect/battery?server_id=X and returns battery', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(battery));
+    const result = await getKdeConnectBattery('s1');
+    expect(result).toEqual(battery);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/kdeconnect/battery?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(battery));
+    await getKdeConnectBattery('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(getKdeConnectBattery('s1')).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'not found' }, 404));
+    let err: { status: number; detail: string } | null = null;
+    await getKdeConnectBattery('s1').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(404);
+    expect(err!.detail).toBe('not found');
+  });
+});
+
+describe('getKdeConnectConnectivity', () => {
+  const connectivity: KdeConnectConnectivity = {
+    cellular_network_strength: 4,
+    cellular_network_type: 'LTE',
+    icon_name: 'network-cellular',
+  };
+
+  it('GETs /api/fleet/kdeconnect/connectivity?server_id=X and returns connectivity', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(connectivity));
+    const result = await getKdeConnectConnectivity('s1');
+    expect(result).toEqual(connectivity);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/kdeconnect/connectivity?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(connectivity));
+    await getKdeConnectConnectivity('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(getKdeConnectConnectivity('s1')).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'not found' }, 404));
+    let err: { status: number; detail: string } | null = null;
+    await getKdeConnectConnectivity('s1').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(404);
+    expect(err!.detail).toBe('not found');
+  });
+});
+
+describe('getKdeConnectListDevices', () => {
+  const devices: string[] = ['phone-abc', 'tablet-def'];
+
+  it('GETs /api/fleet/kdeconnect/list_devices?server_id=X and returns device ids', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(devices));
+    const result = await getKdeConnectListDevices('s1');
+    expect(result).toEqual(devices);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/kdeconnect/list_devices?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(devices));
+    await getKdeConnectListDevices('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(getKdeConnectListDevices('s1')).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'not found' }, 404));
+    let err: { status: number; detail: string } | null = null;
+    await getKdeConnectListDevices('s1').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(404);
+    expect(err!.detail).toBe('not found');
   });
 });

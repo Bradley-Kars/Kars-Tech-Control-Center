@@ -582,6 +582,65 @@ export interface MySpeedSummary {
   recent_tests: MySpeedTest[];
 }
 
+// ---------------------------------------------------------------------------
+// Phone / KDE Connect (ported from src-tauri/src/services/phone.rs and
+// src-tauri/src/services/kdeconnect.rs in P14). Host-local, feature-flagged:
+// they work only when the backend host has adb / kdeconnect available.
+// ---------------------------------------------------------------------------
+
+export interface PhoneDeviceInfo {
+  model: string;
+  android_version: string;
+  api_level: string;
+  serial: string;
+  oneui_version?: string;
+  manufacturer: string;
+  brand: string;
+  build_fingerprint: string;
+}
+
+export interface PhoneBattery {
+  level: number;
+  status: string;
+  health: string;
+  temperature: number;
+  voltage: number;
+  technology: string;
+  charging: boolean;
+  plugged: string;
+  current_ua?: number;
+  cycle_count?: number;
+}
+
+export interface PhoneStorage {
+  total_gb: number;
+  free_gb: number;
+  used_gb: number;
+  used_pct: number;
+}
+
+export interface PhoneMemory {
+  total_mb: number;
+  available_mb: number;
+  free_mb: number;
+  cached_mb: number;
+  buffers_mb: number;
+  used_pct: number;
+}
+
+export interface KdeConnectBattery {
+  charge: number;
+  is_charging: boolean;
+  has_battery: boolean;
+  icon_name: string;
+}
+
+export interface KdeConnectConnectivity {
+  cellular_network_strength: number;
+  cellular_network_type: string;
+  icon_name: string;
+}
+
 export interface ServiceTestResults {
   graphql: boolean;
   nextcloud: boolean;
@@ -597,6 +656,7 @@ export interface ServiceTestResults {
   your_spotify: boolean;
   dozzle: boolean;
   phone: boolean;
+  kdeconnect: boolean;
 }
 
 export interface TestConnectionResult {

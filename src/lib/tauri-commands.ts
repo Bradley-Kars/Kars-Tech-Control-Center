@@ -66,6 +66,13 @@ export {
   getMySpeedSummary,
   getMySpeedTests,
   getMySpeedServers,
+  getPhoneDeviceInfo,
+  getPhoneBattery,
+  getPhoneStorage,
+  getPhoneMemory,
+  getKdeConnectBattery,
+  getKdeConnectConnectivity,
+  getKdeConnectListDevices,
   meshcentralShellExec,
   meshcentralListDir,
   meshcentralGetProcesses,
@@ -143,24 +150,10 @@ export async function getArrayInfo(serverId: string): Promise<any> {
 // AdGuard Home — ported to fleet-api.ts (re-exported above)
 
 // Phone
-export async function getPhoneDeviceInfo(serverId: string): Promise<any> {
-  return invoke('get_phone_device_info', { serverId });
-}
-
-export async function getPhoneBattery(serverId: string): Promise<any> {
-  return invoke('get_phone_battery', { serverId });
-}
+// Phone device_info/battery/storage/memory ported to fleet-api.ts (re-exported above).
 
 export async function getPhoneThermal(serverId: string): Promise<any> {
   return invoke('get_phone_thermal', { serverId });
-}
-
-export async function getPhoneStorage(serverId: string): Promise<any> {
-  return invoke('get_phone_storage', { serverId });
-}
-
-export async function getPhoneMemory(serverId: string): Promise<any> {
-  return invoke('get_phone_memory', { serverId });
 }
 
 export async function getPhoneCpu(serverId: string): Promise<any> {
@@ -243,11 +236,7 @@ export async function launchRustdesk(serverId: string): Promise<void> {
   return invoke('launch_rustdesk', { serverId });
 }
 
-// KDE Connect
-export async function getKdeConnectBattery(serverId: string): Promise<any> {
-  return invoke('get_kdeconnect_battery', { serverId });
-}
-
+// KDE Connect — battery/connectivity/list_devices ported to fleet-api.ts (re-exported above).
 export async function getKdeConnectNotifications(serverId: string): Promise<any> {
   return invoke('get_kdeconnect_notifications', { serverId });
 }
@@ -284,10 +273,7 @@ export async function kdeConnectMprisSetVolume(serverId: string, volume: number)
   return invoke('kdeconnect_mpris_set_volume', { serverId, volume });
 }
 
-export async function getKdeConnectConnectivity(serverId: string): Promise<any> {
-  return invoke('get_kdeconnect_connectivity', { serverId });
-}
-
+// getKdeConnectConnectivity ported to fleet-api.ts (re-exported above).
 export async function getKdeConnectTelephony(serverId: string): Promise<any> {
   return invoke('get_kdeconnect_telephony', { serverId });
 }
@@ -352,10 +338,7 @@ export async function phoneGetCallLog(serverId: string): Promise<any> {
   return invoke('phone_get_call_log', { serverId });
 }
 
-export async function kdeConnectListDevices(serverId: string): Promise<any> {
-  return invoke('kdeconnect_list_devices', { serverId });
-}
-
+// kdeConnectListDevices ported to fleet-api.ts (re-exported above).
 // Steam Deck / Linux Handheld
 export async function steamdeckGetSystemStats(serverId: string): Promise<any> {
   return invoke('steamdeck_get_system_stats', { serverId });

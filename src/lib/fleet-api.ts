@@ -74,6 +74,12 @@ import type {
   AlertSeverity,
   MetricPoint,
   MetricSeries,
+  PhoneDeviceInfo,
+  PhoneBattery,
+  PhoneStorage,
+  PhoneMemory,
+  KdeConnectBattery,
+  KdeConnectConnectivity,
 } from './types';
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/+$/, '');
@@ -758,6 +764,88 @@ export async function getMySpeedServers(
 ): Promise<MySpeedServer[]> {
   return request<MySpeedServer[]>(
     `/fleet/myspeed/servers?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Phone / KDE Connect (ported from tauri-commands.ts)
+// Host-local, feature-flagged: the backend runs adb/gdbus on its own machine.
+// ---------------------------------------------------------------------------
+
+/** GET /api/fleet/phone/device_info?server_id=X — phone device info. */
+export async function getPhoneDeviceInfo(
+  serverId: string,
+  token?: string,
+): Promise<PhoneDeviceInfo> {
+  return request<PhoneDeviceInfo>(
+    `/fleet/phone/device_info?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/phone/battery?server_id=X — phone battery state. */
+export async function getPhoneBattery(
+  serverId: string,
+  token?: string,
+): Promise<PhoneBattery> {
+  return request<PhoneBattery>(
+    `/fleet/phone/battery?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/phone/storage?server_id=X — phone storage. */
+export async function getPhoneStorage(
+  serverId: string,
+  token?: string,
+): Promise<PhoneStorage> {
+  return request<PhoneStorage>(
+    `/fleet/phone/storage?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/phone/memory?server_id=X — phone memory. */
+export async function getPhoneMemory(
+  serverId: string,
+  token?: string,
+): Promise<PhoneMemory> {
+  return request<PhoneMemory>(
+    `/fleet/phone/memory?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/kdeconnect/battery?server_id=X — KDE Connect battery. */
+export async function getKdeConnectBattery(
+  serverId: string,
+  token?: string,
+): Promise<KdeConnectBattery> {
+  return request<KdeConnectBattery>(
+    `/fleet/kdeconnect/battery?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/kdeconnect/connectivity?server_id=X — connectivity report. */
+export async function getKdeConnectConnectivity(
+  serverId: string,
+  token?: string,
+): Promise<KdeConnectConnectivity> {
+  return request<KdeConnectConnectivity>(
+    `/fleet/kdeconnect/connectivity?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/kdeconnect/list_devices?server_id=X — paired device list. */
+export async function getKdeConnectListDevices(
+  serverId: string,
+  token?: string,
+): Promise<string[]> {
+  return request<string[]>(
+    `/fleet/kdeconnect/list_devices?server_id=${encodeURIComponent(serverId)}`,
     { token },
   );
 }

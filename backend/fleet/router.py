@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import httpx
 from typing import Any
+from dataclasses import asdict
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -118,6 +119,26 @@ from .alerts_service import (  # noqa: E402 - P13
     AlertsMetricsStore,
     MetricPoint,
     MetricSeries,
+)
+from .phone_service import (  # noqa: E402 - P14
+    PhoneError,
+    PhoneUnavailableError,
+    PhoneClient,
+    RealPhoneClient,
+    FixturePhoneClient,
+    PhoneDeviceInfo,
+    PhoneBattery,
+    PhoneStorage,
+    PhoneMemory,
+)
+from .kdeconnect_service import (  # noqa: E402 - P14
+    KdeConnectError,
+    KdeConnectUnavailableError,
+    KdeConnectClient,
+    RealKdeConnectClient,
+    FixtureKdeConnectClient,
+    KdeConnectBattery,
+    KdeConnectConnectivity,
 )
 
 router = APIRouter()
@@ -302,6 +323,24 @@ def _probe_error(exc: Exception, server: ServerConfig) -> JSONResponse:
     """Turn an SSH probe failure into a redacted 502 response."""
     message = redact_error(f"probe failed: {exc}", _secrets(server))
     return JSONResponse({"detail": message}, status_code=502)
+
+
+def _phone_client(server: ServerConfig) -> RealPhoneClient:
+    """Build a RealPhoneClient from a server's service_keys."""
+    keys = server.service_keys
+    serial = keys.phone_adb_serial if keys else None
+    if not serial or not serial.strip():
+        raise ValueError("phone_adb_serial not configured")
+    return RealPhoneClient(serial=serial)
+
+
+def _kdeconnect_client(server: ServerConfig) -> RealKdeConnectClient:
+    """Build a RealKdeConnectClient from a server's service_keys."""
+    keys = server.service_keys
+    device_id = keys.kdeconnect_device_id if keys else None
+    if not device_id or not device_id.strip():
+        raise ValueError("kdeconnect_device_id not configured")
+    return RealKdeConnectClient(device_id=device_id)
 
 
 # --- /proc parsing ----------------------------------------------------------
@@ -2614,3 +2653,188 @@ def metrics_collect_all(request: Request, body: dict) -> Any:
         )
     store = _alerts_store()
     return {"recorded": store.collect_all()}
+
+
+# ---------------------------------------------------------------------------
+# P14: phone (ADB) and KDE Connect — host-local, feature-flagged.
+# These run adb/gdbus directly on the backend host (no SSH). When the
+# binary is missing the route reports a clean 503 instead of crashing.
+# ---------------------------------------------------------------------------
+
+
+def _phone_unavailable(exc: Exception, server: ServerConfig) -> JSONResponse:
+    message = redact_error(f"phone unavailable: {exc}", _secrets(server))
+    return JSONResponse({"detail": message}, status_code=503)
+
+
+@router.get("/phone/device_info")
+async def phone_device_info(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/phone/device_info?server_id=X — phone device info.
+
+    Mirrors the Tauri ``get_phone_device_info`` command. Host-local over ADB.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _phone_client(server)
+        return asdict(await client.get_device_info())
+    except ValueError as exc:
+        return JSONResponse({"detail": redact_error(str(exc), _secrets(server))}, status_code=422)
+    except PhoneUnavailableError as exc:
+        return _phone_unavailable(exc, server)
+    except PhoneError as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/phone/battery")
+async def phone_battery(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/phone/battery?server_id=X — phone battery state.
+
+    Mirrors the Tauri ``get_phone_battery`` command. Host-local over ADB.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _phone_client(server)
+        return asdict(await client.get_battery())
+    except ValueError as exc:
+        return JSONResponse({"detail": redact_error(str(exc), _secrets(server))}, status_code=422)
+    except PhoneUnavailableError as exc:
+        return _phone_unavailable(exc, server)
+    except PhoneError as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/phone/storage")
+async def phone_storage(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/phone/storage?server_id=X — phone storage.
+
+    Mirrors the Tauri ``get_phone_storage`` command. Host-local over ADB.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _phone_client(server)
+        return asdict(await client.get_storage())
+    except ValueError as exc:
+        return JSONResponse({"detail": redact_error(str(exc), _secrets(server))}, status_code=422)
+    except PhoneUnavailableError as exc:
+        return _phone_unavailable(exc, server)
+    except PhoneError as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/phone/memory")
+async def phone_memory(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/phone/memory?server_id=X — phone memory.
+
+    Mirrors the Tauri ``get_phone_memory`` command. Host-local over ADB.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _phone_client(server)
+        return asdict(await client.get_memory())
+    except ValueError as exc:
+        return JSONResponse({"detail": redact_error(str(exc), _secrets(server))}, status_code=422)
+    except PhoneUnavailableError as exc:
+        return _phone_unavailable(exc, server)
+    except PhoneError as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+def _kdeconnect_unavailable(exc: Exception, server: ServerConfig) -> JSONResponse:
+    message = redact_error(f"kdeconnect unavailable: {exc}", _secrets(server))
+    return JSONResponse({"detail": message}, status_code=503)
+
+
+@router.get("/kdeconnect/battery")
+async def kdeconnect_battery(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/kdeconnect/battery?server_id=X — KDE Connect battery.
+
+    Mirrors the Tauri ``get_kdeconnect_battery`` command. Host-local over gdbus.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _kdeconnect_client(server)
+        return asdict(await client.get_battery())
+    except ValueError as exc:
+        return JSONResponse({"detail": redact_error(str(exc), _secrets(server))}, status_code=422)
+    except KdeConnectUnavailableError as exc:
+        return _kdeconnect_unavailable(exc, server)
+    except KdeConnectError as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/kdeconnect/connectivity")
+async def kdeconnect_connectivity(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/kdeconnect/connectivity?server_id=X — connectivity report.
+
+    Mirrors the Tauri ``get_kdeconnect_connectivity`` command. Host-local over gdbus.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _kdeconnect_client(server)
+        return asdict(await client.get_connectivity())
+    except ValueError as exc:
+        return JSONResponse({"detail": redact_error(str(exc), _secrets(server))}, status_code=422)
+    except KdeConnectUnavailableError as exc:
+        return _kdeconnect_unavailable(exc, server)
+    except KdeConnectError as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/kdeconnect/list_devices")
+async def kdeconnect_list_devices(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/kdeconnect/list_devices?server_id=X — paired device list.
+
+    Mirrors the Tauri ``kdeconnect_list_devices`` command. Host-local over gdbus.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _kdeconnect_client(server)
+        return await client.list_devices()
+    except ValueError as exc:
+        return JSONResponse({"detail": redact_error(str(exc), _secrets(server))}, status_code=422)
+    except KdeConnectUnavailableError as exc:
+        return _kdeconnect_unavailable(exc, server)
+    except KdeConnectError as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)

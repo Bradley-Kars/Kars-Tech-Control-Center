@@ -31,6 +31,7 @@ it('tests the connection over the fleet API and reports success', async () => {
       myspeed: false,
       adguard: false,
       phone: false,
+      kdeconnect: false,
       plex: false,
       scrutiny: false,
       uptimekuma: false,

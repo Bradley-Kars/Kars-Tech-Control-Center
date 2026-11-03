@@ -113,11 +113,11 @@ set changes.
 
 | Command | Rust handler | UI files | Target route | Status |
 |---|---|---|---|---|
-| `get_phone_device_info` | src-tauri/src/commands/mod.rs:1589 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx, src/components/phone/PhonePage.tsx | /api/fleet/phone/get_phone_device_info (host-local, feature-flagged) | not ported |
-| `get_phone_battery` | src-tauri/src/commands/mod.rs:1599 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx, src/components/phone/PhonePage.tsx | /api/fleet/phone/get_phone_battery (host-local, feature-flagged) | not ported |
+| `get_phone_device_info` | src-tauri/src/commands/mod.rs:1589 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx, src/components/phone/PhonePage.tsx | /api/fleet/phone/get_phone_device_info (host-local, feature-flagged) | ported |
+| `get_phone_battery` | src-tauri/src/commands/mod.rs:1599 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx, src/components/phone/PhonePage.tsx | /api/fleet/phone/get_phone_battery (host-local, feature-flagged) | ported |
 | `get_phone_thermal` | src-tauri/src/commands/mod.rs:1609 | src/components/phone/PhonePage.tsx | /api/fleet/phone/get_phone_thermal (host-local, feature-flagged) | not ported |
-| `get_phone_storage` | src-tauri/src/commands/mod.rs:1619 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx, src/components/phone/PhonePage.tsx | /api/fleet/phone/get_phone_storage (host-local, feature-flagged) | not ported |
-| `get_phone_memory` | src-tauri/src/commands/mod.rs:1629 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx, src/components/phone/PhonePage.tsx | /api/fleet/phone/get_phone_memory (host-local, feature-flagged) | not ported |
+| `get_phone_storage` | src-tauri/src/commands/mod.rs:1619 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx, src/components/phone/PhonePage.tsx | /api/fleet/phone/get_phone_storage (host-local, feature-flagged) | ported |
+| `get_phone_memory` | src-tauri/src/commands/mod.rs:1629 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx, src/components/phone/PhonePage.tsx | /api/fleet/phone/get_phone_memory (host-local, feature-flagged) | ported |
 | `get_phone_cpu` | src-tauri/src/commands/mod.rs:1639 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx | /api/fleet/phone/get_phone_cpu (host-local, feature-flagged) | not ported |
 | `get_phone_screen` | src-tauri/src/commands/mod.rs:1646 | src/components/phone/PhonePage.tsx | /api/fleet/phone/get_phone_screen (host-local, feature-flagged) | not ported |
 | `get_phone_network` | src-tauri/src/commands/mod.rs:1656 | src/components/phone/PhonePage.tsx | /api/fleet/phone/get_phone_network (host-local, feature-flagged) | not ported |
@@ -145,7 +145,7 @@ set changes.
 
 | Command | Rust handler | UI files | Target route | Status |
 |---|---|---|---|---|
-| `get_kdeconnect_battery` | src-tauri/src/commands/mod.rs:1890 | — | /api/fleet/kdeconnect/get_kdeconnect_battery (host-local, feature-flagged) | not ported |
+| `get_kdeconnect_battery` | src-tauri/src/commands/mod.rs:1890 | — | /api/fleet/kdeconnect/get_kdeconnect_battery (host-local, feature-flagged) | ported |
 | `get_kdeconnect_notifications` | src-tauri/src/commands/mod.rs:1900 | — | /api/fleet/kdeconnect/get_kdeconnect_notifications (host-local, feature-flagged) | not ported |
 | `get_kdeconnect_notification` | src-tauri/src/commands/mod.rs:1913 | — | /api/fleet/kdeconnect/get_kdeconnect_notification (host-local, feature-flagged) | not ported |
 | `get_kdeconnect_mpris` | src-tauri/src/commands/mod.rs:1927 | — | /api/fleet/kdeconnect/get_kdeconnect_mpris (host-local, feature-flagged) | not ported |
@@ -155,7 +155,7 @@ set changes.
 | `kdeconnect_mpris_next` | src-tauri/src/commands/mod.rs:1967 | — | /api/fleet/kdeconnect/kdeconnect_mpris_next (host-local, feature-flagged) | not ported |
 | `kdeconnect_mpris_previous` | src-tauri/src/commands/mod.rs:1977 | — | /api/fleet/kdeconnect/kdeconnect_mpris_previous (host-local, feature-flagged) | not ported |
 | `kdeconnect_mpris_set_volume` | src-tauri/src/commands/mod.rs:1987 | — | /api/fleet/kdeconnect/kdeconnect_mpris_set_volume (host-local, feature-flagged) | not ported |
-| `get_kdeconnect_connectivity` | src-tauri/src/commands/mod.rs:2001 | — | /api/fleet/kdeconnect/get_kdeconnect_connectivity (host-local, feature-flagged) | not ported |
+| `get_kdeconnect_connectivity` | src-tauri/src/commands/mod.rs:2001 | — | /api/fleet/kdeconnect/get_kdeconnect_connectivity (host-local, feature-flagged) | ported |
 | `get_kdeconnect_telephony` | src-tauri/src/commands/mod.rs:2011 | — | /api/fleet/kdeconnect/get_kdeconnect_telephony (host-local, feature-flagged) | not ported |
 | `kdeconnect_ring_device` | src-tauri/src/commands/mod.rs:2021 | — | /api/fleet/kdeconnect/kdeconnect_ring_device (host-local, feature-flagged) | not ported |
 | `kdeconnect_send_ping` | src-tauri/src/commands/mod.rs:2031 | — | /api/fleet/kdeconnect/kdeconnect_send_ping (host-local, feature-flagged) | not ported |
@@ -170,7 +170,7 @@ set changes.
 | `kdeconnect_get_conversations` | src-tauri/src/commands/mod.rs:2141 | — | /api/fleet/kdeconnect/kdeconnect_get_conversations (host-local, feature-flagged) | not ported |
 | `kdeconnect_reply_conversation` | src-tauri/src/commands/mod.rs:2154 | — | /api/fleet/kdeconnect/kdeconnect_reply_conversation (host-local, feature-flagged) | not ported |
 | `kdeconnect_request_conversation` | src-tauri/src/commands/mod.rs:2169 | — | /api/fleet/kdeconnect/kdeconnect_request_conversation (host-local, feature-flagged) | not ported |
-| `kdeconnect_list_devices` | src-tauri/src/commands/mod.rs:2203 | — | /api/fleet/kdeconnect/kdeconnect_list_devices (host-local, feature-flagged) | not ported |
+| `kdeconnect_list_devices` | src-tauri/src/commands/mod.rs:2203 | — | /api/fleet/kdeconnect/kdeconnect_list_devices (host-local, feature-flagged) | ported |
 
 ## Steam Deck / handheld (host-local)
 
