@@ -214,9 +214,16 @@ export function ToastManager({ toasts, onClose, position = 'top-right', maxToast
 // Toast Hook for easy usage
 export function useToast() {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  // useId() must run during render; addToast is called from event handlers
+  // (and async callbacks), where hooks are not allowed — the previous code
+  // crash-rendered with "Invalid hook call" every time a toast was added
+  // outside render (e.g. MeshCentral load/sync/enroll failures).
+  const idBase = useId();
+  const counter = useRef(0);
 
   const addToast = (toast: Omit<ToastProps, 'id' | 'onClose'>) => {
-    const id = useId();
+    counter.current += 1;
+    const id = `${idBase}-${counter.current}`;
     const newToast: ToastItem = { ...toast, id, key: id, onClose: removeToast };
     setToasts((prev) => [...prev, newToast]);
     return id;

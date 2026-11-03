@@ -109,9 +109,11 @@ export function MeshCentralPage() {
         title: 'Enrollment Info Failed',
         message: e instanceof Error ? e.message : 'Unknown error',
       });
-    } finally {
       setEnrolling(null);
     }
+    // On success `enrolling` is kept until the modal closes (its onClose clears
+    // both enrollmentInfo and enrolling), so the modal title shows the target
+    // device type instead of "Enroll null Device".
   };
 
   const handleCopyInstallCommand = (cmd: string) => {
