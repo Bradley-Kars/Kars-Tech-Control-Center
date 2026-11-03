@@ -33,6 +33,9 @@ import type {
   SmartInfo,
   TestConnectionResult,
   ContainerInfo,
+  RestServiceHealth,
+  PlexIdentity,
+  PlexLibrary,
 } from './types';
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/+$/, '');
@@ -260,4 +263,42 @@ export async function dockerLogs(
     body: { server_id: serverId, container, lines },
     token,
   });
+}
+
+// ---------------------------------------------------------------------------
+// REST health (ported from tauri-commands.ts)
+// ---------------------------------------------------------------------------
+
+/** GET /api/fleet/rest/health?service=X&server_id=X — probe a REST service. */
+export async function probeRestService(
+  service: string,
+  serverId: string,
+  token?: string,
+): Promise<RestServiceHealth> {
+  return request<RestServiceHealth>(
+    `/fleet/rest/health?service=${encodeURIComponent(service)}&server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/rest/plex/identity?server_id=X — Plex server identity. */
+export async function getPlexIdentity(
+  serverId: string,
+  token?: string,
+): Promise<PlexIdentity | null> {
+  return request<PlexIdentity | null>(
+    `/fleet/rest/plex/identity?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/rest/plex/libraries?server_id=X — Plex library sections. */
+export async function getPlexLibraries(
+  serverId: string,
+  token?: string,
+): Promise<PlexLibrary[]> {
+  return request<PlexLibrary[]>(
+    `/fleet/rest/plex/libraries?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
 }

@@ -30,6 +30,16 @@ from .emhttp import EmhttpError, RealEmhttpClient
 from .parsers.nvidia import parse_nvidia_smi
 from .parsers.smart import parse_smartctl
 from .transport import SshCommandError, SshHelper, TransportError
+from .rest_service import (
+    PlexIdentity,
+    PlexLibrary,
+    RestService,
+    RestServiceClient,
+    ServiceConfig,
+    plex_identity,
+    plex_libraries,
+    probe,
+)
 
 router = APIRouter()
 
@@ -661,4 +671,100 @@ async def unraid_get_disks(request: Request, server_id: str) -> Any:
         client = _emhttp_client(server)
         return await client.get_disks()
     except (EmhttpError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+
+
+# ---------------------------------------------------------------------------
+# P5: Plex + generic REST health (HTTP probes)
+# ---------------------------------------------------------------------------
+
+def _rest_client(server: ServerConfig) -> RestServiceClient:
+    """Build a RestServiceClient from a server's service_keys."""
+    config = ServiceConfig.from_keys(RestService.Plex, server.service_keys)
+    return RestServiceClient(config)
+
+
+@router.get("/rest/health")
+async def rest_health(request: Request, service: str, server_id: str) -> Any:
+    """GET /api/fleet/rest/health?service=X&server_id=X — probe a REST service.
+
+    Mirrors the Tauri REST health probe: resolves the service from the
+    server's service_keys, probes its health path, and reports reachable
+    true/false with a detail string. Never raises: unreachable services
+    report reachable=False with the failure detail.
+    """
+    rest_service = RestService.parse(service)
+    if rest_service is None:
+        return JSONResponse(
+            {"detail": f"unknown service {service!r}"}, status_code=422
+        )
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        health = await probe(rest_service, server.service_keys)
+        return {
+            "service": health.service,
+            "label": health.label,
+            "url": health.url,
+            "reachable": health.reachable,
+            "detail": health.detail,
+        }
+    except Exception as exc:  # pragma: no cover - probe never raises
+        return _probe_error(exc, server)
+
+
+@router.get("/rest/plex/identity")
+async def rest_plex_identity(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/rest/plex/identity?server_id=X — Plex server identity.
+
+    Mirrors the Tauri plex_identity command: GET /identity on the Plex
+    server and parse the MediaContainer envelope.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _rest_client(server)
+        identity = await plex_identity(client)
+        return {
+            "machine_identifier": identity.machine_identifier,
+            "version": identity.version,
+            "claimed": identity.claimed,
+        }
+    except (ValueError, RuntimeError) as exc:
+        return _probe_error(exc, server)
+
+
+@router.get("/rest/plex/libraries")
+async def rest_plex_libraries(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/rest/plex/libraries?server_id=X — Plex library sections.
+
+    Mirrors the Tauri plex_libraries command: GET /library/sections on the
+    Plex server and parse the MediaContainer.Directory array.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _rest_client(server)
+        libraries = await plex_libraries(client)
+        return [
+            {
+                "key": lib.key,
+                "title": lib.title,
+                "library_type": lib.library_type,
+                "uuid": lib.uuid,
+                "scanning": lib.scanning,
+                "updated_at": lib.updated_at,
+            }
+            for lib in libraries
+        ]
+    except (ValueError, RuntimeError) as exc:
         return _probe_error(exc, server)

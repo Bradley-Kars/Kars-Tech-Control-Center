@@ -6,6 +6,9 @@ import type {
   SmartInfo,
   TestConnectionResult,
   ContainerInfo,
+  RestServiceHealth,
+  PlexIdentity,
+  PlexLibrary,
 } from './types';
 import {
   setAuthToken,
@@ -24,6 +27,9 @@ import {
   dockerStop,
   dockerRestart,
   dockerLogs,
+  probeRestService,
+  getPlexIdentity,
+  getPlexLibraries,
 } from './fleet-api';
 
 const fetchMock = vi.fn();
@@ -460,6 +466,131 @@ describe('dockerLogs', () => {
     setAuthToken('fleet-secret');
     fetchMock.mockResolvedValue(jsonResponse('logs'));
     await dockerLogs('s1', 'nextcloud').catch(() => {});
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('probeRestService', () => {
+  const health: RestServiceHealth = {
+    service: 'plex',
+    label: 'Plex',
+    url: 'http://<device>.<tailnet>.ts.net:32400',
+    reachable: true,
+    detail: 'OK',
+  };
+
+  it('GETs /api/fleet/rest/health?service=X&server_id=X and returns the health', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(health));
+    const result = await probeRestService('plex', 's1');
+    expect(result).toEqual(health);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/rest/health?service=plex&server_id=s1'
+    );
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('GET');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(health));
+    await probeRestService('plex', 's1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(probeRestService('plex', 's1')).rejects.toMatchObject({
+      status: 0,
+    });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ detail: 'unknown service' }, 422),
+    );
+    let err: { status: number; detail: string } | null = null;
+    await probeRestService('plex', 's1').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(422);
+    expect(err!.detail).toBe('unknown service');
+  });
+});
+
+describe('getPlexIdentity', () => {
+  const identity: PlexIdentity = {
+    machine_identifier: 'plex-test-001',
+    version: '1.43.4.10903-e5521bd8c',
+    claimed: true,
+  };
+
+  it('GETs /api/fleet/rest/plex/identity?server_id=X and returns the identity', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(identity));
+    const result = await getPlexIdentity('s1');
+    expect(result).toEqual(identity);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/rest/plex/identity?server_id=s1'
+    );
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('GET');
+  });
+
+  it('resolves null when the server returns null', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(null));
+    const result = await getPlexIdentity('s1');
+    expect(result).toBeNull();
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(identity));
+    await getPlexIdentity('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getPlexLibraries', () => {
+  const libraries: PlexLibrary[] = [
+    {
+      key: '1',
+      title: 'Movies',
+      library_type: 'movie',
+      uuid: 'u1',
+      scanning: false,
+      updated_at: 1_700_000_000,
+    },
+    {
+      key: '2',
+      title: 'TV Shows',
+      library_type: 'show',
+      uuid: 'u2',
+      scanning: true,
+      updated_at: 1_700_000_001,
+    },
+  ];
+
+  it('GETs /api/fleet/rest/plex/libraries?server_id=X and returns the libraries', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(libraries));
+    const result = await getPlexLibraries('s1');
+    expect(result).toEqual(libraries);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/rest/plex/libraries?server_id=s1'
+    );
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('GET');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(libraries));
+    await getPlexLibraries('s1');
     const [, init] = fetchMock.mock.calls[0];
     expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
   });

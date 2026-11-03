@@ -197,9 +197,9 @@ set changes.
 
 | Command | Rust handler | UI files | Target route | Status |
 |---|---|---|---|---|
-| `get_rest_service_health` | src-tauri/src/commands/mod.rs:2571 | — | /api/fleet/rest/health | not ported |
-| `get_plex_identity` | src-tauri/src/commands/mod.rs:2596 | — | /api/fleet/plex/identity | not ported |
-| `get_plex_libraries` | src-tauri/src/commands/mod.rs:2614 | — | /api/fleet/plex/libraries | not ported |
+| `get_rest_service_health` | src-tauri/src/commands/mod.rs:2571 | — | /api/fleet/rest/health | ported |
+| `get_plex_identity` | src-tauri/src/commands/mod.rs:2596 | — | /api/fleet/rest/plex/identity | ported |
+| `get_plex_libraries` | src-tauri/src/commands/mod.rs:2614 | — | /api/fleet/rest/plex/libraries | ported |
 
 ## MeshCentral
 
