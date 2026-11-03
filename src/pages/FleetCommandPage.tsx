@@ -54,7 +54,7 @@ const DEVICE_ICON: Record<string, string> = {
 };
 
 export function FleetCommandPage() {
-  const { servers } = useServers();
+  const { servers, loading, error } = useServers();
   const [targets, setTargets] = useState<string[]>([]);
   const [command, setCommand] = useState('uptime');
   const [running, setRunning] = useState(false);
@@ -63,10 +63,69 @@ export function FleetCommandPage() {
   const [runSeq, setRunSeq] = useState(1);
 
   // Phone has no shell transport (ADB-only) — excluded from batch shell.
+  // Computed before the loading/error branches so this Hook runs unconditionally.
   const shellServers = useMemo(
     () => servers.filter((s) => s.device_type !== 'phone'),
     [servers],
   );
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1
+              className="font-[var(--kts-font-heading)] font-bold text-[var(--kts-text-primary)]"
+              style={{ fontSize: 'var(--kts-font-size-3xl)', letterSpacing: '-0.02em' }}
+            >
+              Fleet Command
+            </h1>
+            <p className="text-[var(--kts-text-secondary)] text-[var(--kts-font-size-sm)] mt-1">
+              Run one command across every device in parallel — MeshCentral transport, per-device results.
+            </p>
+          </div>
+          <Badge variant="brand" size="sm">MC-first transport</Badge>
+        </div>
+        <p className="text-[var(--kts-text-tertiary)]">Loading devices…</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1
+              className="font-[var(--kts-font-heading)] font-bold text-[var(--kts-text-primary)]"
+              style={{ fontSize: 'var(--kts-font-size-3xl)', letterSpacing: '-0.02em' }}
+            >
+              Fleet Command
+            </h1>
+            <p className="text-[var(--kts-text-secondary)] text-[var(--kts-font-size-sm)] mt-1">
+              Run one command across every device in parallel — MeshCentral transport, per-device results.
+            </p>
+          </div>
+          <Badge variant="brand" size="sm">MC-first transport</Badge>
+        </div>
+        <div
+          style={{
+            border: `1px solid var(--kts-border-default)`,
+            borderRadius: 'var(--kts-radius-sm)',
+            background: 'var(--kts-bg-tertiary)',
+            padding: '0.75rem',
+          }}
+        >
+          <p style={{ color: 'var(--kts-status-error)', margin: 0 }}>
+            Failed to load devices
+          </p>
+          <p style={{ color: 'var(--kts-text-tertiary)', fontSize: 'var(--kts-font-size-xs)', marginTop: '0.25rem' }}>
+            {error}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const toggleTarget = (id: string) =>
     setTargets((t) => (t.includes(id) ? t.filter((x) => x !== id) : [...t, id]));
