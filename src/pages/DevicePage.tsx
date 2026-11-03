@@ -94,6 +94,7 @@ function DeviceHeader({
   const meta = DEVICE_META[deviceId];
   const badgeState = status === 'online' ? 'running' : status === 'offline' ? 'stopped' : status === 'warning' ? 'warning' : 'unknown';
   const badgeLabel = status === 'online' ? 'Online' : status === 'offline' ? 'Offline' : status === 'warning' ? 'Warning' : 'Unknown';
+  const isOffline = status === 'offline';
   return (
     <div className="flex flex-wrap items-center gap-4">
       <DeviceAvatar type={meta.deviceType} name={meta.label} size="lg" />
@@ -102,7 +103,14 @@ function DeviceHeader({
           <h1 className="font-[var(--kts-font-heading)] font-bold truncate" style={{ fontSize: 'var(--kts-font-size-3xl)', letterSpacing: '-0.02em' }}>
             {meta.label}
           </h1>
-          <StatusBadge state={badgeState} label={badgeLabel} pulsing={status !== 'online'} />
+          <StatusBadge
+            state={badgeState}
+            label={badgeLabel}
+            size="base"
+            showDot
+            pulsing={status === 'offline' || status === 'online'}
+            variant={isOffline ? 'danger' : undefined}
+          />
         </div>
         <p className="text-[var(--kts-text-secondary)] mt-0.5" style={{ fontSize: 'var(--kts-font-size-sm)' }}>
           {meta.blurb}
@@ -149,7 +157,7 @@ function LocalDevice() {
       <DeviceHeader deviceId="local" status={loading ? 'unknown' : system ? 'online' : 'offline'} onRefresh={refresh} />
 
       {/* Vitals */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="device-vitals">
         <Card padded>
           <Gauge size="base" value={cpu} variant={offline ? 'default' : cpu > 80 ? 'danger' : cpu > 50 ? 'warning' : 'success'} label="CPU" showValue loading={loading} />
         </Card>
@@ -159,13 +167,17 @@ function LocalDevice() {
         <Card padded>
           <Gauge size="base" value={gpuUtil ?? 0} variant={offline || gpuUtil == null ? 'default' : 'info'} label="GPU" showValue={gpuUtil != null} loading={loading} />
           {gpuUtil == null && (
-            <p className="text-center text-[var(--kts-text-tertiary)]" style={{ fontSize: 'var(--kts-font-size-xs)' }}>No dGPU</p>
+            <p className="text-center text-[var(--kts-text-tertiary)]" style={{ fontSize: 'var(--kts-font-size-xs)' }}>
+              {offline ? 'Offline — no GPU data' : 'No dGPU'}
+            </p>
           )}
         </Card>
         <Card padded>
           <Gauge size="base" value={cpuTemp != null ? Math.min(100, cpuTemp) : 0} variant={offline || cpuTemp == null ? 'default' : cpuTemp > 80 ? 'danger' : cpuTemp > 65 ? 'warning' : 'success'} label="Temp" showValue={cpuTemp != null} loading={loading} valueFormatter={cpuTemp != null ? () => `${Math.round(cpuTemp)}°C` : undefined} />
           {cpuTemp == null && (
-            <p className="text-center text-[var(--kts-text-tertiary)]" style={{ fontSize: 'var(--kts-font-size-xs)' }}>No sensor</p>
+            <p className="text-center text-[var(--kts-text-tertiary)]" style={{ fontSize: 'var(--kts-font-size-xs)' }}>
+              {offline ? 'Offline — no sensor data' : 'No sensor'}
+            </p>
           )}
         </Card>
       </div>
@@ -176,26 +188,33 @@ function LocalDevice() {
           <CardSection title="System" subtitle="This machine">
               <dl className="divide-y divide-[var(--kts-border-default)]" style={{ fontSize: 'var(--kts-font-size-sm)' }}>
                 {[
-                  ['Hostname', system?.hostname ?? '—', system ? undefined : 'offline'],
-                  ['Kernel', system?.kernel ?? '—', system ? undefined : 'offline'],
-                  ['Uptime', system?.uptime ?? '—', system ? undefined : 'offline'],
-                  ['CPU', system?.cpu_brand ?? '—', system ? undefined : 'offline'],
-                  ['Cores', system?.cpu_cores != null ? String(system.cpu_cores) : '—', system ? undefined : 'offline'],
-                  ['Memory', system?.memory_total_mb != null ? `${Math.round(system.memory_used_mb ?? 0)} / ${Math.round(system.memory_total_mb)} MB` : '—', system ? undefined : 'offline'],
-                ].map(([k, v, reason]) => (
-                  <div key={k} className="flex items-center justify-between py-2.5 gap-4">
-                    <dt className="text-[var(--kts-text-secondary)]">{k}</dt>
-                    <dd className="font-[var(--kts-font-mono)] text-[var(--kts-text-primary)] truncate text-right">{v}</dd>
-                    {reason && (
-                      <Tooltip content={reason === 'offline' ? 'Device offline — no data available' : 'No data available'} position="top">
-                        <span className="text-[var(--kts-text-tertiary)]" style={{ fontSize: 'var(--kts-font-size-xs)' }}>
-                          {v}
-                        </span>
-                      </Tooltip>
-                    )}
-                  </div>
-                ))}
+                  ['Hostname', system?.hostname ?? null],
+                  ['Kernel', system?.kernel ?? null],
+                  ['Uptime', system?.uptime ?? null],
+                  ['CPU', system?.cpu_brand ?? null],
+                  ['Cores', system?.cpu_cores != null ? String(system.cpu_cores) : null],
+                  ['Memory', system?.memory_total_mb != null ? `${Math.round(system.memory_used_mb ?? 0)} / ${Math.round(system.memory_total_mb)} MB` : null],
+                ].map(([k, v]) => {
+                  const unavailable = offline || v == null;
+                  const value = v == null ? (offline ? 'Offline — no data' : '—') : v;
+                  return (
+                    <div key={k} className="flex items-center justify-between py-2.5 gap-4">
+                      <dt className="text-[var(--kts-text-secondary)]">{k}</dt>
+                      <dd
+                        className={`font-[var(--kts-font-mono)] truncate text-right ${unavailable ? 'text-[var(--kts-text-tertiary)]' : 'text-[var(--kts-text-primary)]'}`}
+                        data-testid={`system-row-${k.toLowerCase()}-value`}
+                      >
+                        {value}
+                      </dd>
+                    </div>
+                  );
+                })}
               </dl>
+              {offline && (
+                <p className="mt-3 text-[var(--kts-text-tertiary)]" style={{ fontSize: 'var(--kts-font-size-xs)' }}>
+                  System details unavailable while the device is offline.
+                </p>
+              )}
           </CardSection>
         </Card>
 
@@ -222,7 +241,9 @@ function LocalDevice() {
                 {thermal.gpu_temp_c != null ? ` · GPU ${Math.round(thermal.gpu_temp_c)}°C` : ''}
               </p>
             ) : (
-              <p className="text-[var(--kts-text-tertiary)]" style={{ fontSize: 'var(--kts-font-size-sm)' }}>No sensor data available.</p>
+              <p className="text-[var(--kts-text-tertiary)]" style={{ fontSize: 'var(--kts-font-size-sm)' }}>
+                No sensor data available — {offline ? 'device is offline' : 'no sensors detected'}.
+              </p>
             )}
           </CardSection>
         </Card>
@@ -401,7 +422,7 @@ function UnraidDevice() {
       ) : (
         <>
           {/* Vitals */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card padded>
               <Gauge size="base" value={cpu} variant={offline ? 'default' : cpu > 80 ? 'danger' : cpu > 50 ? 'warning' : 'success'} label="CPU" showValue loading={loading} />
             </Card>
@@ -624,7 +645,7 @@ function LaptopDevice() {
       </Card>
 
       {mcEnrolled ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card padded>
             <Gauge size="base" value={mcStats?.cpu_usage ?? 0} variant={!mcStats ? 'default' : mcStats.cpu_usage > 80 ? 'danger' : mcStats.cpu_usage > 50 ? 'warning' : 'success'} label="CPU" showValue loading={!mcStats} />
           </Card>

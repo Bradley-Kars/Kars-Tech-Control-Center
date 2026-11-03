@@ -97,6 +97,7 @@ export interface StatusBadgeProps extends HTMLAttributes<HTMLSpanElement> {
   showDot?: boolean;
   pulsing?: boolean;
   label?: string;
+  variant?: BadgeVariant;
 }
 
 const stateMap: Record<StatusBadgeState, { variant: BadgeVariant; defaultLabel: string }> = {
@@ -109,15 +110,16 @@ const stateMap: Record<StatusBadgeState, { variant: BadgeVariant; defaultLabel: 
 };
 
 export const StatusBadge = forwardRef<HTMLSpanElement, StatusBadgeProps>(
-  ({ state, size = 'sm', showDot = true, pulsing = false, label, className = '', ...props }, ref) => {
-    const { variant, defaultLabel } = stateMap[state];
+  ({ state, size = 'sm', showDot = true, pulsing = false, label, variant, className = '', ...props }, ref) => {
+    const { variant: stateVariant, defaultLabel } = stateMap[state];
     const displayLabel = label ?? defaultLabel;
-    const shouldPulse = pulsing && state === 'running';
+    const badgeVariant = variant ?? stateVariant;
+    const shouldPulse = pulsing && state !== 'unknown';
 
     return (
       <Badge
         ref={ref}
-        variant={variant}
+        variant={badgeVariant}
         size={size}
         dot={showDot}
         pulsing={shouldPulse}
