@@ -552,10 +552,10 @@ export function TicketingPage() {
                     </div>
                   </div>
                   <div className="flex gap-2 mt-4">
-                    <Button variant="primary" onClick={handleCreateTicket} disabled={!createTitle.trim()}>
+                    <Button variant="primary" type="submit" disabled={!createTitle.trim()}>
                       Create
                     </Button>
-                    <Button variant="outline" onClick={() => setCreating(false)}>
+                    <Button variant="outline" type="button" onClick={() => setCreating(false)}>
                       Cancel
                     </Button>
                   </div>

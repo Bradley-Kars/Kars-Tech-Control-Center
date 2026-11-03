@@ -93,6 +93,35 @@ describe('TicketingPage (with mocked bridge API)', () => {
     expect(listTickets).toHaveBeenCalled();
   });
 
+  it('quick-add Create button is type="submit" so Enter submits the form', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Email deliverability remediation')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /New Ticket/i }));
+    expect(screen.getByRole('button', { name: /Create/i })).toHaveAttribute('type', 'submit');
+  });
+
+  it('quick-add submits on Enter and calls createTicket', async () => {
+    const { container } = render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Email deliverability remediation')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /New Ticket/i }));
+    const titleInput = screen.getByPlaceholderText('Ticket title');
+    fireEvent.input(titleInput, { target: { value: 'Enter-submitted ticket' } });
+
+    // Submitting the form (as Enter does in a real browser) creates the ticket
+    const form = container.querySelector('form');
+    expect(form).not.toBeNull();
+    fireEvent.submit(form as HTMLFormElement);
+
+    await waitFor(() => expect(createTicket).toHaveBeenCalled());
+    expect(createTicket).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Enter-submitted ticket' }),
+    );
+    // Refetch happened after create
+    expect(listTickets).toHaveBeenCalled();
+  });
+
   it('add worklog for a selected ticket', async () => {
     render(<TicketingPage />);
     await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
