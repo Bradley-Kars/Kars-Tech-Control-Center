@@ -16,7 +16,8 @@ const sizeStyles = {
 export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
   ({ label, description, indeterminate = false, size = 'base', className = '', style, disabled, checked, onChange, id, ...props }, ref) => {
     const s = sizeStyles[size];
-    const inputId = id ?? useId();
+    const generatedId = useId();
+    const inputId = id ?? generatedId;
 
     return (
       <label
@@ -159,7 +160,8 @@ const radioSizeStyles = {
 export const Radio = forwardRef<HTMLInputElement, RadioProps>(
   ({ label, description, size = 'base', className = '', style, disabled, checked, onChange, id, ...props }, ref) => {
     const s = radioSizeStyles[size];
-    const inputId = id ?? useId();
+    const generatedId = useId();
+    const inputId = id ?? generatedId;
 
     return (
       <label
@@ -294,7 +296,8 @@ const switchSizeStyles = {
 export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
   ({ label, description, size = 'base', className = '', style, disabled, checked, onChange, id, ...props }, ref) => {
     const s = switchSizeStyles[size];
-    const inputId = id ?? useId();
+    const generatedId = useId();
+    const inputId = id ?? generatedId;
 
     return (
       <label

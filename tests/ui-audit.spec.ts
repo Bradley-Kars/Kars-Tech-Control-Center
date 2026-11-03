@@ -222,3 +222,4 @@ test.describe('UI Audit Screenshots', () => {
     await page.waitForTimeout(500);
     await page.screenshot({ path: '<cwd>/Work/mc-ui-audit-screenshots/18-mobile-sidebar-open.png', fullPage: true });
   });
+});

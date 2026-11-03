@@ -22,7 +22,8 @@ const sizeStyles: Record<InputSize, { padding: string; fontSize: string; iconSiz
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, hint, error, size = 'base', leftIcon, rightIcon, fullWidth = true, className = '', style, id, ...props }, ref) => {
     const s = sizeStyles[size];
-    const inputId = id ?? useId();
+    const generatedId = useId();
+    const inputId = id ?? generatedId;
     const hintId = hint ? `${inputId}-hint` : undefined;
     const errorId = error ? `${inputId}-error` : undefined;
 
@@ -129,7 +130,8 @@ export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElemen
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ label, hint, error, size = 'base', fullWidth = true, minRows = 3, className = '', style, id, ...props }, ref) => {
     const s = sizeStyles[size];
-    const textareaId = id ?? useId();
+    const generatedId = useId();
+    const textareaId = id ?? generatedId;
     const hintId = hint ? `${textareaId}-hint` : undefined;
     const errorId = error ? `${textareaId}-error` : undefined;
 
@@ -217,7 +219,8 @@ export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({ label, hint, error, size = 'base', fullWidth = true, options, placeholder, className = '', style, id, ...props }, ref) => {
     const s = sizeStyles[size];
-    const selectId = id ?? useId();
+    const generatedId = useId();
+    const selectId = id ?? generatedId;
     const hintId = hint ? `${selectId}-hint` : undefined;
     const errorId = error ? `${selectId}-error` : undefined;
 
