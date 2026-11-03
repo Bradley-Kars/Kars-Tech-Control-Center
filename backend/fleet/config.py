@@ -95,6 +95,10 @@ class ServiceKeys(BaseModel):
     shoko_pass: str | None = None
     homeassistant_url: str | None = None
     matter_hub_url: str | None = None
+    meshcentral_url: str | None = None
+    meshcentral_admin_user: str | None = None
+    meshcentral_admin_pass: str | None = None
+    meshcentral_group_id: str | None = None
     nextcloud_url: str | None = None
     ombi_url: str | None = None
     mosquitto_host: str | None = None
@@ -247,6 +251,7 @@ SECRET_TOP_LEVEL = frozenset({"password", "api_key"})
 # Service key field names redacted from server dicts.
 SECRET_SERVICE_KEYS = frozenset({
     "nextcloud_pass", "homeassistant_token", "adguard_pass", "adguard_user",
+    "meshcentral_admin_pass", "meshcentral_admin_user",
     "myspeed_db_path", "plex_token", "uptimekuma_slug", "invoiceninja_token",
     "aurral_pass", "your_spotify_api_key", "phone_rustdesk_password",
     "steamdeck_rustdesk_password", "radarr_api_key", "sonarr_api_key",

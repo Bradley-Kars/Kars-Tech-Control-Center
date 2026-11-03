@@ -301,7 +301,7 @@ function UnraidDevice() {
   const openMCTerminal = async () => {
     if (!server) return;
     try {
-      const url = await meshcentralGetTerminalUrl(server.id);
+      const url = await meshcentralGetTerminalUrl(server.id, server.meshcentral_device_id!);
       window.open(url, '_blank', 'width=1200,height=800');
     } catch (e) {
       addToast({ type: 'error', title: 'Terminal failed', message: e instanceof Error ? e.message : 'Unknown error' });
@@ -311,7 +311,7 @@ function UnraidDevice() {
   const openMCFiles = async () => {
     if (!server) return;
     try {
-      const url = await meshcentralGetFileManagerUrl(server.id);
+      const url = await meshcentralGetFileManagerUrl(server.id, server.meshcentral_device_id!);
       window.open(url, '_blank', 'width=1200,height=800');
     } catch (e) {
       addToast({ type: 'error', title: 'File manager failed', message: e instanceof Error ? e.message : 'Unknown error' });

@@ -204,6 +204,12 @@ export interface ServiceKeys {
   lan_ip?: string;
   tailscale_ip?: string;
 
+  // MeshCentral (P11) — credentials for the meshctrl-over-SSH transport
+  meshcentral_url?: string;
+  meshcentral_admin_user?: string;
+  meshcentral_admin_pass?: string;
+  meshcentral_group_id?: string;
+
   // Arr stack + download client
   lidarr_url?: string;
   radarr_url?: string;

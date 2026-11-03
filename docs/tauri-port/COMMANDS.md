@@ -205,14 +205,14 @@ set changes.
 
 | Command | Rust handler | UI files | Target route | Status |
 |---|---|---|---|---|
-| `meshcentral_list_devices` | src-tauri/src/commands/mod.rs:2683 | src/pages/MeshCentralPage.test.tsx, src/pages/MeshCentralPage.tsx | /api/fleet/meshcentral/list_devices | not ported |
-| `meshcentral_get_device_status` | src-tauri/src/commands/mod.rs:2690 | — | /api/fleet/meshcentral/get_device_status | not ported |
-| `meshcentral_execute_batch` | src-tauri/src/commands/mod.rs:2699 | src/pages/MeshCentralPage.test.tsx, src/pages/MeshCentralPage.tsx | /api/fleet/meshcentral/execute_batch | not ported |
-| `meshcentral_get_terminal_url` | src-tauri/src/commands/mod.rs:2711 | src/pages/DevicePage.test.tsx, src/pages/DevicePage.tsx, src/pages/MeshCentralPage.test.tsx, src/pages/MeshCentralPage.tsx | /api/fleet/meshcentral/get_terminal_url | not ported |
-| `meshcentral_get_file_manager_url` | src-tauri/src/commands/mod.rs:2720 | src/pages/DevicePage.test.tsx, src/pages/DevicePage.tsx, src/pages/MeshCentralPage.test.tsx, src/pages/MeshCentralPage.tsx | /api/fleet/meshcentral/get_file_manager_url | not ported |
-| `meshcentral_get_enrollment_info` | src-tauri/src/commands/mod.rs:2729 | src/pages/MeshCentralPage.test.tsx, src/pages/MeshCentralPage.tsx | /api/fleet/meshcentral/get_enrollment_info | not ported |
-| `meshcentral_sync_fleet` | src-tauri/src/commands/mod.rs:2738 | src/pages/MeshCentralPage.test.tsx, src/pages/MeshCentralPage.tsx, src/pages/SettingsPage.test.tsx, src/pages/SettingsPage.tsx | /api/fleet/meshcentral/sync_fleet | not ported |
-| `meshcentral_get_fleet_stats` | src-tauri/src/commands/mod.rs:2766 | src/App.test.tsx, src/hooks/index.ts, src/lib/tauri-commands.test.ts, src/pages/SettingsPage.test.tsx, src/pages/SettingsPage.tsx | /api/fleet/meshcentral/get_fleet_stats | not ported |
+| `meshcentral_list_devices` | src-tauri/src/commands/mod.rs:2683 | src/pages/MeshCentralPage.test.tsx, src/pages/MeshCentralPage.tsx | /api/fleet/meshcentral/list_devices | ported |
+| `meshcentral_get_device_status` | src-tauri/src/commands/mod.rs:2690 | — | /api/fleet/meshcentral/get_device_status | ported |
+| `meshcentral_execute_batch` | src-tauri/src/commands/mod.rs:2699 | src/pages/MeshCentralPage.test.tsx, src/pages/MeshCentralPage.tsx | /api/fleet/meshcentral/execute_batch | ported |
+| `meshcentral_get_terminal_url` | src-tauri/src/commands/mod.rs:2711 | src/pages/DevicePage.test.tsx, src/pages/DevicePage.tsx, src/pages/MeshCentralPage.test.tsx, src/pages/MeshCentralPage.tsx | /api/fleet/meshcentral/get_terminal_url | ported |
+| `meshcentral_get_file_manager_url` | src-tauri/src/commands/mod.rs:2720 | src/pages/DevicePage.test.tsx, src/pages/DevicePage.tsx, src/pages/MeshCentralPage.test.tsx, src/pages/MeshCentralPage.tsx | /api/fleet/meshcentral/get_file_manager_url | ported |
+| `meshcentral_get_enrollment_info` | src-tauri/src/commands/mod.rs:2729 | src/pages/MeshCentralPage.test.tsx, src/pages/MeshCentralPage.tsx | /api/fleet/meshcentral/get_enrollment_info | ported |
+| `meshcentral_sync_fleet` | src-tauri/src/commands/mod.rs:2738 | src/pages/MeshCentralPage.test.tsx, src/pages/MeshCentralPage.tsx, src/pages/SettingsPage.test.tsx, src/pages/SettingsPage.tsx | /api/fleet/meshcentral/sync_fleet | ported |
+| `meshcentral_get_fleet_stats` | src-tauri/src/commands/mod.rs:2766 | src/App.test.tsx, src/hooks/index.ts, src/lib/tauri-commands.test.ts, src/pages/SettingsPage.test.tsx, src/pages/SettingsPage.tsx | /api/fleet/meshcentral/get_fleet_stats | ported |
 | `meshcentral_shell_exec` | src-tauri/src/commands/mod.rs:2815 | — | /api/fleet/meshcentral/shell_exec | not ported |
 | `meshcentral_shell_batch` | src-tauri/src/commands/mod.rs:2828 | — | /api/fleet/meshcentral/shell_batch | not ported |
 | `meshcentral_shell_fleet` | src-tauri/src/commands/mod.rs:2842 | src/pages/CompliancePage.test.tsx, src/pages/CompliancePage.tsx, src/pages/DashboardPage.test.tsx, src/pages/DashboardPage.tsx, src/pages/FleetCommandPage.test.tsx, src/pages/FleetCommandPage.tsx, src/pages/ServicePage.test.tsx | /api/fleet/meshcentral/shell_fleet | not ported |

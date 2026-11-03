@@ -60,6 +60,12 @@ import type {
   MySpeedTest,
   MySpeedServer,
   MySpeedSummary,
+  MeshDevice,
+  DeviceStatus,
+  BatchCommand,
+  BatchResult,
+  EnrollmentInfo,
+  SyncResult,
 } from './types';
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/+$/, '');
@@ -744,6 +750,108 @@ export async function getMySpeedServers(
 ): Promise<MySpeedServer[]> {
   return request<MySpeedServer[]>(
     `/fleet/myspeed/servers?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// MeshCentral (ported from tauri-commands.ts)
+// ---------------------------------------------------------------------------
+
+/** GET /api/fleet/meshcentral/list_devices?server_id=X — list MeshCentral devices. */
+export async function meshcentralListDevices(
+  serverId: string,
+  token?: string,
+): Promise<MeshDevice[]> {
+  return request<MeshDevice[]>(
+    `/fleet/meshcentral/list_devices?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/meshcentral/get_device_status?server_id=X&device_id=X — device status. */
+export async function meshcentralGetDeviceStatus(
+  serverId: string,
+  deviceId: string,
+  token?: string,
+): Promise<DeviceStatus> {
+  return request<DeviceStatus>(
+    `/fleet/meshcentral/get_device_status?server_id=${encodeURIComponent(serverId)}&device_id=${encodeURIComponent(deviceId)}`,
+    { token },
+  );
+}
+
+/** POST /api/fleet/meshcentral/execute_batch — run commands on devices. */
+export async function meshcentralExecuteBatch(
+  serverId: string,
+  deviceIds: string[],
+  commands: BatchCommand[],
+  token?: string,
+): Promise<BatchResult[]> {
+  return request<BatchResult[]>(
+    '/fleet/meshcentral/execute_batch',
+    {
+      method: 'POST',
+      body: { server_id: serverId, device_ids: deviceIds, commands },
+      token,
+    },
+  );
+}
+
+/** GET /api/fleet/meshcentral/get_terminal_url?server_id=X&device_id=X — web terminal URL. */
+export async function meshcentralGetTerminalUrl(
+  serverId: string,
+  deviceId: string,
+  token?: string,
+): Promise<string> {
+  return request<string>(
+    `/fleet/meshcentral/get_terminal_url?server_id=${encodeURIComponent(serverId)}&device_id=${encodeURIComponent(deviceId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/meshcentral/get_file_manager_url?server_id=X&device_id=X — file manager URL. */
+export async function meshcentralGetFileManagerUrl(
+  serverId: string,
+  deviceId: string,
+  token?: string,
+): Promise<string> {
+  return request<string>(
+    `/fleet/meshcentral/get_file_manager_url?server_id=${encodeURIComponent(serverId)}&device_id=${encodeURIComponent(deviceId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/meshcentral/get_enrollment_info?server_id=X&device_type=X — enrollment info. */
+export async function meshcentralGetEnrollmentInfo(
+  serverId: string,
+  deviceType: string,
+  token?: string,
+): Promise<EnrollmentInfo> {
+  return request<EnrollmentInfo>(
+    `/fleet/meshcentral/get_enrollment_info?server_id=${encodeURIComponent(serverId)}&device_type=${encodeURIComponent(deviceType)}`,
+    { token },
+  );
+}
+
+/** POST /api/fleet/meshcentral/sync_fleet — sync MeshCentral inventory to servers.json. */
+export async function meshcentralSyncFleet(
+  serverId: string,
+  token?: string,
+): Promise<SyncResult> {
+  return request<SyncResult>(
+    '/fleet/meshcentral/sync_fleet',
+    { method: 'POST', body: { server_id: serverId }, token },
+  );
+}
+
+/** GET /api/fleet/meshcentral/get_fleet_stats?server_id=X — MeshCentral fleet stats. */
+export async function meshcentralGetFleetStats(
+  serverId: string,
+  token?: string,
+): Promise<Record<string, any>> {
+  return request<Record<string, any>>(
+    `/fleet/meshcentral/get_fleet_stats?server_id=${encodeURIComponent(serverId)}`,
     { token },
   );
 }

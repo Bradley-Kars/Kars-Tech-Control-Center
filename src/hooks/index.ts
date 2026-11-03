@@ -108,7 +108,12 @@ export function useFleetStats(servers: ServerConfig[], interval = 10000) {
     // First, try MeshCentral fleet stats for all enrolled devices
     let mcStats: Record<string, any> = {};
     try {
-      mcStats = await meshcentralGetFleetStats();
+      const mcServer = servers.find(
+        s => s.meshcentral_device_id || s.service_keys?.meshcentral_url
+      );
+      if (mcServer) {
+        mcStats = await meshcentralGetFleetStats(mcServer.id);
+      }
     } catch {
       // MeshCentral unavailable, continue with fallback
     }

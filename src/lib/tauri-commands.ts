@@ -68,6 +68,8 @@ export {
   getMySpeedServers,
 } from './fleet-api';
 
+import * as fleetApi from './fleet-api';
+
 export async function dockerRemove(serverId: string, container: string): Promise<string> {
   return invoke('docker_remove', { serverId, container });
 }
@@ -394,37 +396,60 @@ export async function getPlexLibraries(serverId: string): Promise<PlexLibrary[]>
   return invoke('get_plex_libraries', { serverId });
 }
 
-// MeshCentral commands (2026-10-07)
-export async function meshcentralListDevices(): Promise<MeshDevice[]> {
-  return invoke('meshcentral_list_devices');
+// MeshCentral commands (2026-10-07) — ported to fleet-api (P11).
+// Wrappers add serverId as the first arg; callers pass the selected server's id.
+export async function meshcentralListDevices(
+  serverId: string,
+): Promise<MeshDevice[]> {
+  return fleetApi.meshcentralListDevices(serverId);
 }
 
-export async function meshcentralGetDeviceStatus(deviceId: string): Promise<DeviceStatus> {
-  return invoke('meshcentral_get_device_status', { deviceId });
+export async function meshcentralGetDeviceStatus(
+  serverId: string,
+  deviceId: string,
+): Promise<DeviceStatus> {
+  return fleetApi.meshcentralGetDeviceStatus(serverId, deviceId);
 }
 
-export async function meshcentralExecuteBatch(deviceIds: string[], commands: BatchCommand[]): Promise<BatchResult[]> {
-  return invoke('meshcentral_execute_batch', { deviceIds, commands });
+export async function meshcentralExecuteBatch(
+  serverId: string,
+  deviceIds: string[],
+  commands: BatchCommand[],
+): Promise<BatchResult[]> {
+  return fleetApi.meshcentralExecuteBatch(serverId, deviceIds, commands);
 }
 
-export async function meshcentralGetTerminalUrl(deviceId: string): Promise<string> {
-  return invoke('meshcentral_get_terminal_url', { deviceId });
+export async function meshcentralGetTerminalUrl(
+  serverId: string,
+  deviceId: string,
+): Promise<string> {
+  return fleetApi.meshcentralGetTerminalUrl(serverId, deviceId);
 }
 
-export async function meshcentralGetFileManagerUrl(deviceId: string): Promise<string> {
-  return invoke('meshcentral_get_file_manager_url', { deviceId });
+export async function meshcentralGetFileManagerUrl(
+  serverId: string,
+  deviceId: string,
+): Promise<string> {
+  return fleetApi.meshcentralGetFileManagerUrl(serverId, deviceId);
 }
 
-export async function meshcentralGetEnrollmentInfo(deviceType: string): Promise<EnrollmentInfo> {
-  return invoke('meshcentral_get_enrollment_info', { deviceType });
+export async function meshcentralGetEnrollmentInfo(
+  serverId: string,
+  deviceType: string,
+): Promise<EnrollmentInfo> {
+  return fleetApi.meshcentralGetEnrollmentInfo(serverId, deviceType);
 }
 
-export async function meshcentralSyncFleet(): Promise<SyncResult> {
-  return invoke('meshcentral_sync_fleet');
+export async function meshcentralSyncFleet(
+  serverId: string,
+): Promise<SyncResult> {
+  return fleetApi.meshcentralSyncFleet(serverId);
 }
 
-export async function meshcentralGetFleetStats(): Promise<Record<string, any>> {
-  return invoke('meshcentral_get_fleet_stats');
+export async function meshcentralGetFleetStats(
+  serverId: string,
+): Promise<Record<string, any>> {
+  return fleetApi.meshcentralGetFleetStats(serverId);
 }
 
 // MeshCentral Transport Commands (2026-10-08) — PRIMARY transport

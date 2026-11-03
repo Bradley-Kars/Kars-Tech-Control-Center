@@ -96,6 +96,14 @@ from .myspeed_service import (
     MySpeedTest,
     RealMySpeedClient,
 )
+from .meshcentral_service import (  # noqa: E402 - P11
+    MeshCentralClient,
+    MeshCentralConfig,
+    MeshCentralError,
+    RealMeshCentralClient,
+    BatchCommand,
+    BatchResult,
+)
 
 router = APIRouter()
 
@@ -1831,6 +1839,286 @@ async def myspeed_servers(request: Request, server_id: str) -> Any:
         client = _myspeed_client(server)
         return await client.get_servers()
     except (ValueError, MySpeedError, SshCommandError, TransportError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+# ---------------------------------------------------------------------------
+# P11: MeshCentral — device list, device status, execute batch, terminal /
+# file-manager URLs, enrollment info, sync to servers.json, fleet stats over
+# SSH meshctrl to the Unraid host
+# ---------------------------------------------------------------------------
+
+
+def _meshcentral_client(server: ServerConfig) -> RealMeshCentralClient:
+    """Build a RealMeshCentralClient from a server's service_keys."""
+    keys = server.service_keys
+    server_url = keys.meshcentral_url if keys else None
+    admin_user = keys.meshcentral_admin_user if keys else None
+    admin_pass = keys.meshcentral_admin_pass if keys else None
+    group_id = keys.meshcentral_group_id if keys else None
+    if not server_url or not server_url.strip():
+        raise ValueError("meshcentral_url not configured")
+    config = MeshCentralConfig(
+        server_url=server_url,
+        admin_user=admin_user or "",
+        admin_pass=admin_pass or "",
+        group_id=group_id or "",
+    )
+    return RealMeshCentralClient(config=config, ssh=SshHelper.from_config(server))
+
+
+def _meshcentral_batch_payload(body: Any) -> tuple[str, list[str], list[dict]] | JSONResponse:
+    """Validate an execute_batch body: {server_id, device_ids, commands}."""
+    if not isinstance(body, dict) or not body:
+        return JSONResponse(
+            {"detail": "body must be a non-empty object"}, status_code=422
+        )
+    server_id = body.get("server_id")
+    device_ids = body.get("device_ids")
+    commands = body.get("commands")
+    if not isinstance(server_id, str) or not server_id.strip():
+        return JSONResponse(
+            {"detail": "field 'server_id' is required"}, status_code=422
+        )
+    if not isinstance(device_ids, list) or not all(isinstance(d, str) for d in device_ids):
+        return JSONResponse(
+            {"detail": "field 'device_ids' must be a list of strings"}, status_code=422
+        )
+    if not isinstance(commands, list) or not all(
+        isinstance(c, dict) and "command" in c and isinstance(c["command"], str)
+        for c in commands
+    ):
+        return JSONResponse(
+            {"detail": "field 'commands' must be a list of {command: str} objects"},
+            status_code=422,
+        )
+    return server_id, device_ids, commands
+
+
+@router.get("/meshcentral/list_devices")
+async def meshcentral_list_devices(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/meshcentral/list_devices?server_id=X — list MeshCentral devices.
+
+    Mirrors the Tauri ``meshcentral_list_devices`` command over SSH meshctrl.
+    A failed probe returns a redacted 502.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _meshcentral_client(server)
+        devices = await client.list_devices()
+        return [
+            {
+                "id": d.id,
+                "name": d.name,
+                "group": d.group,
+                "conn": d.conn,
+                "pwr": d.pwr,
+                "platform": d.platform,
+                "ip": d.ip,
+                "last_connect": d.last_connect,
+            }
+            for d in devices
+        ]
+    except (ValueError, MeshCentralError, SshCommandError, TransportError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/meshcentral/get_device_status")
+async def meshcentral_get_device_status(
+    request: Request, server_id: str, device_id: str
+) -> Any:
+    """GET /api/fleet/meshcentral/get_device_status?server_id=X&device_id=X.
+
+    Mirrors the Tauri ``meshcentral_get_device_status`` command.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _meshcentral_client(server)
+        return await client.get_device_status(device_id)
+    except (ValueError, MeshCentralError, SshCommandError, TransportError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.post("/meshcentral/execute_batch")
+async def meshcentral_execute_batch(request: Request, body: dict) -> Any:
+    """POST /api/fleet/meshcentral/execute_batch — run commands on devices.
+
+    Body: {server_id, device_ids: [str], commands: [{command: str, args?: [str]}]}.
+    Requires scope=write (enforced by the create_app middleware).
+    Mirrors the Tauri ``meshcentral_execute_batch`` command.
+    """
+    validated = _meshcentral_batch_payload(body)
+    if isinstance(validated, JSONResponse):
+        return validated
+    server_id, device_ids, commands = validated
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _meshcentral_client(server)
+        batch_cmds = [BatchCommand(command=c["command"], args=c.get("args")) for c in commands]
+        results = await client.execute_batch(device_ids, batch_cmds)
+        return [
+            {
+                "device_id": r.device_id,
+                "success": r.success,
+                "output": r.output,
+                "error": r.error,
+            }
+            for r in results
+        ]
+    except (ValueError, MeshCentralError, SshCommandError, TransportError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/meshcentral/get_terminal_url")
+async def meshcentral_get_terminal_url(
+    request: Request, server_id: str, device_id: str
+) -> Any:
+    """GET /api/fleet/meshcentral/get_terminal_url?server_id=X&device_id=X.
+
+    Mirrors the Tauri ``meshcentral_get_terminal_url`` command. No network —
+    builds the MeshCentral web terminal URL from the configured server_url.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _meshcentral_client(server)
+        return JSONResponse(client.get_terminal_url(device_id))
+    except (ValueError, MeshCentralError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/meshcentral/get_file_manager_url")
+async def meshcentral_get_file_manager_url(
+    request: Request, server_id: str, device_id: str
+) -> Any:
+    """GET /api/fleet/meshcentral/get_file_manager_url?server_id=X&device_id=X.
+
+    Mirrors the Tauri ``meshcentral_get_file_manager_url`` command. No network —
+    builds the MeshCentral file manager URL from the configured server_url.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _meshcentral_client(server)
+        return JSONResponse(client.get_file_manager_url(device_id))
+    except (ValueError, MeshCentralError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/meshcentral/get_enrollment_info")
+async def meshcentral_get_enrollment_info(
+    request: Request, server_id: str, device_type: str
+) -> Any:
+    """GET /api/fleet/meshcentral/get_enrollment_info?server_id=X&device_type=X.
+
+    Mirrors the Tauri ``meshcentral_get_enrollment_info`` command. No network —
+    generates agent install commands from the configured server_url and group_id.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _meshcentral_client(server)
+        info = client.get_enrollment_info(device_type)
+        return {
+            "agent_url": info.agent_url,
+            "settings_url": info.settings_url,
+            "group_id": info.group_id,
+            "install_command_linux": info.install_command_linux,
+            "install_command_windows": info.install_command_windows,
+        }
+    except (ValueError, MeshCentralError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.post("/meshcentral/sync_fleet")
+async def meshcentral_sync_fleet(request: Request, body: dict) -> Any:
+    """POST /api/fleet/meshcentral/sync_fleet — sync MeshCentral inventory to servers.json.
+
+    Body: {server_id}. Requires scope=write (enforced by the create_app
+    middleware). Mirrors the Tauri ``meshcentral_sync_fleet`` command.
+    """
+    if not isinstance(body, dict) or not body:
+        return JSONResponse(
+            {"detail": "body must be a non-empty object"}, status_code=422
+        )
+    server_id = body.get("server_id")
+    if not isinstance(server_id, str) or not server_id.strip():
+        return JSONResponse(
+            {"detail": "field 'server_id' is required"}, status_code=422
+        )
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _meshcentral_client(server)
+        servers = load_servers()
+        result = await client.sync_to_servers_json(servers)
+        save_servers(servers)
+        return {
+            "devices_found": result.devices_found,
+            "devices_matched": result.devices_matched,
+            "devices_new": result.devices_new,
+            "devices_updated": result.devices_updated,
+            "errors": result.errors,
+        }
+    except (ValueError, MeshCentralError, SshCommandError, TransportError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/meshcentral/get_fleet_stats")
+async def meshcentral_get_fleet_stats(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/meshcentral/get_fleet_stats?server_id=X — MeshCentral fleet stats.
+
+    Mirrors the Tauri ``meshcentral_get_fleet_stats`` command.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _meshcentral_client(server)
+        return await client.get_fleet_stats()
+    except (ValueError, MeshCentralError, SshCommandError, TransportError) as exc:
         return _probe_error(exc, server)
     except Exception as exc:  # pragma: no cover — secrets must never leak
         return _probe_error(exc, server)

@@ -133,7 +133,7 @@ describe('MeshCentralPage (MESH-001, MESH-002, MESH-003)', () => {
     await waitFor(() => expect(screen.getByText('unraid-main')).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: /^Linux \(Bazzite\/Fedora\)$/i }));
 
-    await waitFor(() => expect(mockGetEnrollmentInfo).toHaveBeenCalledWith('linux'));
+    await waitFor(() => expect(mockGetEnrollmentInfo).toHaveBeenCalledWith('', 'linux'));
     await waitFor(() => expect(screen.getByText('Enroll linux Device')).toBeInTheDocument());
     expect(screen.getByText(enrollmentInfo.install_command_linux)).toBeInTheDocument();
     expect(screen.getByText(enrollmentInfo.install_command_windows)).toBeInTheDocument();
@@ -170,7 +170,7 @@ describe('MeshCentralPage (MESH-001, MESH-002, MESH-003)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /execute on/i }));
     await waitFor(() =>
-      expect(mockExecuteBatch).toHaveBeenCalledWith(['mc-1', 'mc-2'], [{ command: 'uptime', args: [] }]),
+      expect(mockExecuteBatch).toHaveBeenCalledWith('', ['mc-1', 'mc-2'], [{ command: 'uptime', args: [] }]),
     );
 
     await waitFor(() => expect(screen.getByText('OK')).toBeInTheDocument());

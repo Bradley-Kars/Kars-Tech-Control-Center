@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { meshcentralListDevices, meshcentralGetEnrollmentInfo, meshcentralSyncFleet, meshcentralExecuteBatch, meshcentralGetTerminalUrl, meshcentralGetFileManagerUrl } from '../lib/tauri-commands';
+import { useServers } from '../hooks';
 import { Card, CardSection } from '../components/ui/Card';
 import { Button, IconButton } from '../components/ui/Button';
 import { Badge, StatusBadge } from '../components/ui/Badge';
@@ -49,6 +50,7 @@ interface BatchResult {
 
 export function MeshCentralPage() {
   const { toasts, removeToast, addToast } = useToast();
+  const { servers } = useServers();
   const [devices, setDevices] = useState<MeshDevice[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -61,10 +63,18 @@ export function MeshCentralPage() {
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
 
+  // Resolve the MeshCentral server: the first server with meshcentral configured.
+  const mcServer = useMemo(() => {
+    return servers.find(
+      s => s.meshcentral_device_id || s.service_keys?.meshcentral_url
+    );
+  }, [servers]);
+  const serverId = mcServer?.id ?? '';
+
   const loadDevices = async () => {
     setLoading(true);
     try {
-      const data = await meshcentralListDevices();
+      const data = await meshcentralListDevices(serverId);
       setDevices(data);
     } catch (e) {
       addToast({
@@ -80,7 +90,7 @@ export function MeshCentralPage() {
   const handleSync = async () => {
     setSyncing(true);
     try {
-      const result = await meshcentralSyncFleet();
+      const result = await meshcentralSyncFleet(serverId);
       setSyncResult(result);
       addToast({
         type: result.errors.length > 0 ? 'warning' : 'success',
@@ -101,7 +111,7 @@ export function MeshCentralPage() {
   const handleEnroll = async (deviceType: string) => {
     setEnrolling(deviceType);
     try {
-      const info = await meshcentralGetEnrollmentInfo(deviceType);
+      const info = await meshcentralGetEnrollmentInfo(serverId, deviceType);
       setEnrollmentInfo(info);
     } catch (e) {
       addToast({
@@ -127,7 +137,7 @@ export function MeshCentralPage() {
 
   const handleOpenTerminal = async (deviceId: string) => {
     try {
-      const url = await meshcentralGetTerminalUrl(deviceId);
+      const url = await meshcentralGetTerminalUrl(serverId, deviceId);
       window.open(url, '_blank', 'width=1200,height=800');
     } catch (e) {
       addToast({
@@ -140,7 +150,7 @@ export function MeshCentralPage() {
 
   const handleOpenFileManager = async (deviceId: string) => {
     try {
-      const url = await meshcentralGetFileManagerUrl(deviceId);
+      const url = await meshcentralGetFileManagerUrl(serverId, deviceId);
       window.open(url, '_blank', 'width=1200,height=800');
     } catch (e) {
       addToast({
@@ -160,7 +170,7 @@ export function MeshCentralPage() {
     setBatchRunning(true);
     try {
       const validCommands = batchCommands.filter(c => c.command.trim());
-      const results = await meshcentralExecuteBatch(selectedDevices, validCommands);
+      const results = await meshcentralExecuteBatch(serverId, selectedDevices, validCommands);
       setBatchResults(results);
       addToast({
         type: 'success',

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { PageHeader } from '../components/layout/PageHeader';
 import { RadioGroup } from '../components/ui/Checkbox';
@@ -6,7 +6,7 @@ import { Switch } from '../components/ui/Checkbox';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card, CardSection } from '../components/ui/Card';
-import { useMediaQuery } from '../hooks';
+import { useMediaQuery, useServers } from '../hooks';
 import { meshcentralSyncFleet, meshcentralGetFleetStats } from '../lib/tauri-commands';
 import type { SyncResult } from '../lib/types';
 import {
@@ -41,21 +41,29 @@ const SECTIONS: Array<{ id: SectionId; label: string; icon: React.ElementType }>
 
 /** MeshCentral transport status: agent uptime summary + fleet sync. */
 function MeshCentralSection() {
+  const { servers } = useServers();
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [fleet, setFleet] = useState<Record<string, unknown> | null>(null);
 
+  const mcServer = useMemo(() => {
+    return servers.find(
+      s => s.meshcentral_device_id || s.service_keys?.meshcentral_url
+    );
+  }, [servers]);
+  const serverId = mcServer?.id ?? '';
+
   useEffect(() => {
     let alive = true;
     const load = () => {
-      meshcentralGetFleetStats()
+      meshcentralGetFleetStats(serverId)
         .then((f) => { if (alive) setFleet(f); })
         .catch(() => { if (alive) setFleet(null); });
     };
     load();
     const t = setInterval(load, 30000);
     return () => { alive = false; clearInterval(t); };
-  }, []);
+  }, [serverId]);
 
   const entries = fleet ? Object.values(fleet) : [];
   const connected = fleet ? entries.filter((s) => (s as { connected?: boolean })?.connected).length : null;
@@ -64,9 +72,9 @@ function MeshCentralSection() {
   const handleSync = async () => {
     setSyncing(true);
     try {
-      const result = await meshcentralSyncFleet();
+      const result = await meshcentralSyncFleet(serverId);
       setSyncResult(result);
-      const fresh = await meshcentralGetFleetStats().catch(() => null);
+      const fresh = await meshcentralGetFleetStats(serverId).catch(() => null);
       if (fresh) setFleet(fresh);
     } catch (e) {
       setSyncResult({

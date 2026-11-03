@@ -30,6 +30,11 @@ import type {
   LidarrWantedMissing,
   LidarrQueue,
   LidarrDiskSpace,
+  MeshDevice,
+  DeviceStatus,
+  BatchResult,
+  EnrollmentInfo,
+  SyncResult,
 } from './types';
 import {
   setAuthToken,
@@ -81,6 +86,14 @@ import {
   getLidarrDiskspace,
   lidarrRefreshArtist,
   lidarrSearchMissing,
+  meshcentralListDevices,
+  meshcentralGetDeviceStatus,
+  meshcentralExecuteBatch,
+  meshcentralGetTerminalUrl,
+  meshcentralGetFileManagerUrl,
+  meshcentralGetEnrollmentInfo,
+  meshcentralSyncFleet,
+  meshcentralGetFleetStats,
 } from './fleet-api';
 
 const fetchMock = vi.fn();
@@ -1496,5 +1509,355 @@ describe('lidarrSearchMissing', () => {
     await lidarrSearchMissing('s1', 1);
     const [, init] = fetchMock.mock.calls[0];
     expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('meshcentralListDevices', () => {
+  const devices: MeshDevice[] = [
+    { id: 'QZUw1234', name: 'HTPC', group: 'Home', conn: 1, pwr: 1, platform: 'linux', ip: '100.87.0.10' },
+    { id: 'ABCD5678', name: 'Laptop', group: 'Home', conn: 0, pwr: 0, platform: 'windows', ip: '100.87.0.20' },
+  ];
+
+  it('GETs /api/fleet/meshcentral/list_devices?server_id=X and returns devices', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(devices));
+    const result = await meshcentralListDevices('s1');
+    expect(result).toEqual(devices);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/meshcentral/list_devices?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(devices));
+    await meshcentralListDevices('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(meshcentralListDevices('s1')).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'not found' }, 404));
+    let err: { status: number; detail: string } | null = null;
+    await meshcentralListDevices('s1').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(404);
+    expect(err!.detail).toBe('not found');
+  });
+});
+
+describe('meshcentralGetDeviceStatus', () => {
+  const status: DeviceStatus = {
+    connected: true,
+    cpu_usage: 12.5,
+    memory_usage_pct: 44.0,
+    uptime: '5 days',
+    source: 'meshcentral',
+  };
+
+  it('GETs /api/fleet/meshcentral/get_device_status?server_id=X&device_id=X and returns status', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(status));
+    const result = await meshcentralGetDeviceStatus('s1', 'QZUw1234');
+    expect(result).toEqual(status);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/meshcentral/get_device_status?server_id=s1&device_id=QZUw1234',
+    );
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(status));
+    await meshcentralGetDeviceStatus('s1', 'QZUw1234');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(
+      meshcentralGetDeviceStatus('s1', 'QZUw1234'),
+    ).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'not found' }, 404));
+    let err: { status: number; detail: string } | null = null;
+    await meshcentralGetDeviceStatus('s1', 'QZUw1234').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(404);
+    expect(err!.detail).toBe('not found');
+  });
+});
+
+describe('meshcentralExecuteBatch', () => {
+  const results: BatchResult[] = [
+    { device_id: 'QZUw1234', success: true, output: 'uptime: 5 days' },
+    { device_id: 'ABCD5678', success: false, output: '', error: 'offline' },
+  ];
+
+  it('POSTs /api/fleet/meshcentral/execute_batch with {server_id, device_ids, commands} and returns results', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(results));
+    const result = await meshcentralExecuteBatch(
+      's1',
+      ['QZUw1234', 'ABCD5678'],
+      [{ command: 'uptime' }, { command: 'whoami', args: ['--version'] }],
+    );
+    expect(result).toEqual(results);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/meshcentral/execute_batch');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('POST');
+    expect(init?.body).toContain('"server_id":"s1"');
+    expect(init?.body).toContain('"device_ids":["QZUw1234","ABCD5678"]');
+    expect(init?.body).toContain('"command":"uptime"');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(results));
+    await meshcentralExecuteBatch('s1', ['QZUw1234'], [{ command: 'uptime' }]);
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(
+      meshcentralExecuteBatch('s1', ['QZUw1234'], [{ command: 'uptime' }]),
+    ).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'bad request' }, 422));
+    let err: { status: number; detail: string } | null = null;
+    await meshcentralExecuteBatch('s1', ['QZUw1234'], [{ command: 'uptime' }]).catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(422);
+    expect(err!.detail).toBe('bad request');
+  });
+});
+
+describe('meshcentralGetTerminalUrl', () => {
+  it('GETs /api/fleet/meshcentral/get_terminal_url?server_id=X&device_id=X and returns the URL string', async () => {
+    const url = 'http://<device>.<tailnet>.ts.net:8444/terminal?device=QZUw1234';
+    fetchMock.mockResolvedValue(jsonResponse(url));
+    const result = await meshcentralGetTerminalUrl('s1', 'QZUw1234');
+    expect(result).toBe(url);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/meshcentral/get_terminal_url?server_id=s1&device_id=QZUw1234',
+    );
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(
+      jsonResponse('http://<device>.<tailnet>.ts.net:8444/terminal?device=QZUw1234'),
+    );
+    await meshcentralGetTerminalUrl('s1', 'QZUw1234');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(
+      meshcentralGetTerminalUrl('s1', 'QZUw1234'),
+    ).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'not found' }, 404));
+    let err: { status: number; detail: string } | null = null;
+    await meshcentralGetTerminalUrl('s1', 'QZUw1234').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(404);
+    expect(err!.detail).toBe('not found');
+  });
+});
+
+describe('meshcentralGetFileManagerUrl', () => {
+  it('GETs /api/fleet/meshcentral/get_file_manager_url?server_id=X&device_id=X and returns the URL string', async () => {
+    const url = 'http://<device>.<tailnet>.ts.net:8444/filemanager?device=QZUw1234';
+    fetchMock.mockResolvedValue(jsonResponse(url));
+    const result = await meshcentralGetFileManagerUrl('s1', 'QZUw1234');
+    expect(result).toBe(url);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/meshcentral/get_file_manager_url?server_id=s1&device_id=QZUw1234',
+    );
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(
+      jsonResponse('http://<device>.<tailnet>.ts.net:8444/filemanager?device=QZUw1234'),
+    );
+    await meshcentralGetFileManagerUrl('s1', 'QZUw1234');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(
+      meshcentralGetFileManagerUrl('s1', 'QZUw1234'),
+    ).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'not found' }, 404));
+    let err: { status: number; detail: string } | null = null;
+    await meshcentralGetFileManagerUrl('s1', 'QZUw1234').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(404);
+    expect(err!.detail).toBe('not found');
+  });
+});
+
+describe('meshcentralGetEnrollmentInfo', () => {
+  const info: EnrollmentInfo = {
+    agent_url: 'http://<device>.<tailnet>.ts.net:8444/meshagents?id=6&meshid=group123',
+    settings_url: 'http://<device>.<tailnet>.ts.net:8444/meshsettings?id=group123',
+    group_id: 'group123',
+    install_command_linux: 'curl -k ...',
+    install_command_windows: "$u = '...'",
+  };
+
+  it('GETs /api/fleet/meshcentral/get_enrollment_info?server_id=X&device_type=X and returns enrollment info', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(info));
+    const result = await meshcentralGetEnrollmentInfo('s1', 'linux');
+    expect(result).toEqual(info);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/meshcentral/get_enrollment_info?server_id=s1&device_type=linux',
+    );
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(info));
+    await meshcentralGetEnrollmentInfo('s1', 'linux');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(
+      meshcentralGetEnrollmentInfo('s1', 'linux'),
+    ).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'not found' }, 404));
+    let err: { status: number; detail: string } | null = null;
+    await meshcentralGetEnrollmentInfo('s1', 'linux').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(404);
+    expect(err!.detail).toBe('not found');
+  });
+});
+
+describe('meshcentralSyncFleet', () => {
+  const result: SyncResult = {
+    devices_found: 2,
+    devices_matched: 1,
+    devices_new: 1,
+    devices_updated: 1,
+    errors: [],
+  };
+
+  it('POSTs /api/fleet/meshcentral/sync_fleet with {server_id} and returns sync result', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(result));
+    const r = await meshcentralSyncFleet('s1');
+    expect(r).toEqual(result);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/meshcentral/sync_fleet');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('POST');
+    expect(init?.body).toContain('"server_id":"s1"');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(result));
+    await meshcentralSyncFleet('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(meshcentralSyncFleet('s1')).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'not found' }, 404));
+    let err: { status: number; detail: string } | null = null;
+    await meshcentralSyncFleet('s1').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(404);
+    expect(err!.detail).toBe('not found');
+  });
+});
+
+describe('meshcentralGetFleetStats', () => {
+  const stats = {
+    devices_found: 2,
+    online: 1,
+    offline: 1,
+    connected: 0,
+    source: 'meshcentral',
+  };
+
+  it('GETs /api/fleet/meshcentral/get_fleet_stats?server_id=X and returns stats', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(stats));
+    const result = await meshcentralGetFleetStats('s1');
+    expect(result).toEqual(stats);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/meshcentral/get_fleet_stats?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(stats));
+    await meshcentralGetFleetStats('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(meshcentralGetFleetStats('s1')).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'not found' }, 404));
+    let err: { status: number; detail: string } | null = null;
+    await meshcentralGetFleetStats('s1').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(404);
+    expect(err!.detail).toBe('not found');
   });
 });
