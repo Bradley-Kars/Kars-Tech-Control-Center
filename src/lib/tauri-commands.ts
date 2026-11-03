@@ -33,6 +33,11 @@ export {
   dockerStop,
   dockerRestart,
   dockerLogs,
+  getNextcloudInfo,
+  getNextcloudStatus,
+  getNextcloudStorage,
+  getNextcloudUsers,
+  getNextcloudActivity,
 } from './fleet-api';
 
 export async function dockerRemove(serverId: string, container: string): Promise<string> {
@@ -85,27 +90,6 @@ export async function shutdownServer(serverId: string): Promise<string> {
 
 export async function getArrayInfo(serverId: string): Promise<any> {
   return invoke('get_array_info', { serverId });
-}
-
-// Nextcloud
-export async function getNextcloudInfo(serverId: string): Promise<any> {
-  return invoke('get_nextcloud_info', { serverId });
-}
-
-export async function getNextcloudStatus(serverId: string): Promise<any> {
-  return invoke('get_nextcloud_status', { serverId });
-}
-
-export async function getNextcloudStorage(serverId: string): Promise<any> {
-  return invoke('get_nextcloud_storage', { serverId });
-}
-
-export async function getNextcloudUsers(serverId: string): Promise<any> {
-  return invoke('get_nextcloud_users', { serverId });
-}
-
-export async function getNextcloudActivity(serverId: string, limit?: number): Promise<any> {
-  return invoke('get_nextcloud_activity', { serverId, limit });
 }
 
 // Lidarr

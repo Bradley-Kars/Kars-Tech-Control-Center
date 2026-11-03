@@ -36,6 +36,11 @@ import type {
   RestServiceHealth,
   PlexIdentity,
   PlexLibrary,
+  NextcloudInfo,
+  NextcloudSystemStatus,
+  NextcloudStorage,
+  NextcloudUser,
+  NextcloudActivity,
 } from './types';
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/+$/, '');
@@ -301,4 +306,64 @@ export async function getPlexLibraries(
     `/fleet/rest/plex/libraries?server_id=${encodeURIComponent(serverId)}`,
     { token },
   );
+}
+
+// ---------------------------------------------------------------------------
+// Nextcloud (ported from tauri-commands.ts)
+// ---------------------------------------------------------------------------
+
+/** GET /api/fleet/nextcloud/info?server_id=X — Nextcloud server info. */
+export async function getNextcloudInfo(
+  serverId: string,
+  token?: string,
+): Promise<NextcloudInfo> {
+  return request<NextcloudInfo>(
+    `/fleet/nextcloud/info?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/nextcloud/status?server_id=X — Nextcloud system status. */
+export async function getNextcloudStatus(
+  serverId: string,
+  token?: string,
+): Promise<NextcloudSystemStatus> {
+  return request<NextcloudSystemStatus>(
+    `/fleet/nextcloud/status?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/nextcloud/storage?server_id=X — Nextcloud storage stats. */
+export async function getNextcloudStorage(
+  serverId: string,
+  token?: string,
+): Promise<NextcloudStorage> {
+  return request<NextcloudStorage>(
+    `/fleet/nextcloud/storage?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/nextcloud/users?server_id=X — Nextcloud users. */
+export async function getNextcloudUsers(
+  serverId: string,
+  token?: string,
+): Promise<NextcloudUser[]> {
+  return request<NextcloudUser[]>(
+    `/fleet/nextcloud/users?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/nextcloud/activity?server_id=X&limit=X — Nextcloud activity. */
+export async function getNextcloudActivity(
+  serverId: string,
+  limit?: number,
+  token?: string,
+): Promise<NextcloudActivity> {
+  const url = `/fleet/nextcloud/activity?server_id=${encodeURIComponent(
+    serverId,
+  )}${limit !== undefined ? `&limit=${encodeURIComponent(String(limit))}` : ""}`;
+  return request<NextcloudActivity>(url, { token });
 }

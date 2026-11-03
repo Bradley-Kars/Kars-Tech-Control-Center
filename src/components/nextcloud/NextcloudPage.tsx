@@ -12,10 +12,10 @@ interface NextcloudSystemStatus {
   installed: boolean;
   maintenance: boolean;
   needs_db_upgrade: boolean;
-  version: string;
-  versionstring: string;
-  edition: string;
-  productname: string;
+  version: string | null;
+  versionstring: string | null;
+  edition: string | null;
+  productname: string | null;
   extended_support: boolean;
 }
 

@@ -502,6 +502,60 @@ export interface PlexLibrary {
   updated_at: number;
 }
 
+// --- Nextcloud (ported in P6) -----------------------------------------------
+// Mirrors the local interfaces in src/components/nextcloud/NextcloudPage.tsx
+// and the Rust structs in src-tauri/src/services/nextcloud.rs.
+export interface NextcloudInfo {
+  version: string;
+  versionstring: string;
+  edition: string;
+}
+
+export interface NextcloudSystemStatus {
+  installed: boolean;
+  maintenance: boolean;
+  needs_db_upgrade: boolean;
+  version: string | null;
+  versionstring: string | null;
+  edition: string | null;
+  productname: string | null;
+  extended_support: boolean;
+}
+
+export interface NextcloudStorage {
+  num_users: number;
+  num_files: number;
+  num_storages: number;
+  num_storages_local: number;
+  num_storages_home: number;
+  num_storages_other: number;
+}
+
+export interface NextcloudUser {
+  id: string;
+  display_name: string;
+  enabled: boolean;
+  quota?: { free: number; used: number; total: number; relative: number };
+  email?: string;
+  groups: string[];
+  backend: string;
+  subadmin?: string[];
+  last_login?: number;
+}
+
+export interface ActivityItem {
+  app: string;
+  user: string;
+  subject: string;
+  message: string;
+  datetime: string;
+  link?: string;
+}
+
+export interface NextcloudActivity {
+  activities: ActivityItem[];
+}
+
 // --- OpenCode chat (sidecar) -------------------------------------------------
 export interface OpencodeStatus {
   running: boolean;

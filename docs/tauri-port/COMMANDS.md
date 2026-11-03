@@ -55,11 +55,11 @@ set changes.
 
 | Command | Rust handler | UI files | Target route | Status |
 |---|---|---|---|---|
-| `get_nextcloud_info` | src-tauri/src/commands/mod.rs:1206 | src/components/nextcloud/NextcloudPage.test.tsx, src/components/nextcloud/NextcloudPage.tsx | /api/fleet/nextcloud/info | not ported |
-| `get_nextcloud_status` | src-tauri/src/commands/mod.rs:1216 | src/components/nextcloud/NextcloudPage.test.tsx, src/components/nextcloud/NextcloudPage.tsx | /api/fleet/nextcloud/status | not ported |
-| `get_nextcloud_storage` | src-tauri/src/commands/mod.rs:1229 | src/components/nextcloud/NextcloudPage.test.tsx, src/components/nextcloud/NextcloudPage.tsx | /api/fleet/nextcloud/storage | not ported |
-| `get_nextcloud_users` | src-tauri/src/commands/mod.rs:1242 | src/components/nextcloud/NextcloudPage.test.tsx, src/components/nextcloud/NextcloudPage.tsx | /api/fleet/nextcloud/users | not ported |
-| `get_nextcloud_activity` | src-tauri/src/commands/mod.rs:1252 | src/components/nextcloud/NextcloudPage.test.tsx, src/components/nextcloud/NextcloudPage.tsx | /api/fleet/nextcloud/activity | not ported |
+| `get_nextcloud_info` | src-tauri/src/commands/mod.rs:1206 | src/components/nextcloud/NextcloudPage.test.tsx, src/components/nextcloud/NextcloudPage.tsx | /api/fleet/nextcloud/info | ported |
+| `get_nextcloud_status` | src-tauri/src/commands/mod.rs:1216 | src/components/nextcloud/NextcloudPage.test.tsx, src/components/nextcloud/NextcloudPage.tsx | /api/fleet/nextcloud/status | ported |
+| `get_nextcloud_storage` | src-tauri/src/commands/mod.rs:1229 | src/components/nextcloud/NextcloudPage.test.tsx, src/components/nextcloud/NextcloudPage.tsx | /api/fleet/nextcloud/storage | ported |
+| `get_nextcloud_users` | src-tauri/src/commands/mod.rs:1242 | src/components/nextcloud/NextcloudPage.test.tsx, src/components/nextcloud/NextcloudPage.tsx | /api/fleet/nextcloud/users | ported |
+| `get_nextcloud_activity` | src-tauri/src/commands/mod.rs:1252 | src/components/nextcloud/NextcloudPage.test.tsx, src/components/nextcloud/NextcloudPage.tsx | /api/fleet/nextcloud/activity | ported |
 
 ## Lidarr
 

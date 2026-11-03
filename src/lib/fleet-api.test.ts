@@ -9,6 +9,11 @@ import type {
   RestServiceHealth,
   PlexIdentity,
   PlexLibrary,
+  NextcloudInfo,
+  NextcloudSystemStatus,
+  NextcloudStorage,
+  NextcloudUser,
+  NextcloudActivity,
 } from './types';
 import {
   setAuthToken,
@@ -30,6 +35,11 @@ import {
   probeRestService,
   getPlexIdentity,
   getPlexLibraries,
+  getNextcloudInfo,
+  getNextcloudStatus,
+  getNextcloudStorage,
+  getNextcloudUsers,
+  getNextcloudActivity,
 } from './fleet-api';
 
 const fetchMock = vi.fn();
@@ -591,6 +601,165 @@ describe('getPlexLibraries', () => {
     setAuthToken('fleet-secret');
     fetchMock.mockResolvedValue(jsonResponse(libraries));
     await getPlexLibraries('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getNextcloudInfo', () => {
+  const info: NextcloudInfo = {
+    version: '34.0.3',
+    versionstring: '34.0.3',
+    edition: 'Community',
+  };
+
+  it('GETs /api/fleet/nextcloud/info?server_id=X and returns the info', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(info));
+    const result = await getNextcloudInfo('s1');
+    expect(result).toEqual(info);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/nextcloud/info?server_id=s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('GET');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(info));
+    await getNextcloudInfo('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(getNextcloudInfo('s1')).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'not found' }, 404));
+    let err: { status: number; detail: string } | null = null;
+    await getNextcloudInfo('s1').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(404);
+    expect(err!.detail).toBe('not found');
+  });
+});
+
+describe('getNextcloudStatus', () => {
+  const status: NextcloudSystemStatus = {
+    installed: true,
+    maintenance: false,
+    needs_db_upgrade: false,
+    version: '34.0.3',
+    versionstring: '34.0.3',
+    edition: 'Community',
+    productname: 'Nextcloud',
+    extended_support: false,
+  };
+
+  it('GETs /api/fleet/nextcloud/status?server_id=X and returns the status', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(status));
+    const result = await getNextcloudStatus('s1');
+    expect(result).toEqual(status);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/nextcloud/status?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(status));
+    await getNextcloudStatus('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getNextcloudStorage', () => {
+  const storage: NextcloudStorage = {
+    num_users: 3,
+    num_files: 60509,
+    num_storages: 5,
+    num_storages_local: 2,
+    num_storages_home: 2,
+    num_storages_other: 1,
+  };
+
+  it('GETs /api/fleet/nextcloud/storage?server_id=X and returns the storage', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(storage));
+    const result = await getNextcloudStorage('s1');
+    expect(result).toEqual(storage);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/nextcloud/storage?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(storage));
+    await getNextcloudStorage('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getNextcloudUsers', () => {
+  const users: NextcloudUser[] = [
+    {
+      id: 'alice',
+      display_name: 'Alice',
+      enabled: true,
+      quota: { free: 100, used: 10, total: 100, relative: 10 },
+      email: 'alice@example.com',
+      groups: ['admin'],
+      backend: 'internal',
+      subadmin: [],
+      last_login: 1_700_000_000,
+    },
+  ];
+
+  it('GETs /api/fleet/nextcloud/users?server_id=X and returns the users', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(users));
+    const result = await getNextcloudUsers('s1');
+    expect(result).toEqual(users);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/nextcloud/users?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(users));
+    await getNextcloudUsers('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getNextcloudActivity', () => {
+  const activity: NextcloudActivity = { activities: [] };
+
+  it('GETs /api/fleet/nextcloud/activity?server_id=X&limit=X and returns the activity', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(activity));
+    const result = await getNextcloudActivity('s1', 20);
+    expect(result).toEqual(activity);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/nextcloud/activity?server_id=s1&limit=20'
+    );
+  });
+
+  it('omits limit when not provided', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(activity));
+    await getNextcloudActivity('s1');
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/nextcloud/activity?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(activity));
+    await getNextcloudActivity('s1', 20);
     const [, init] = fetchMock.mock.calls[0];
     expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
   });

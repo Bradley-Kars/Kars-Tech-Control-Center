@@ -30,6 +30,16 @@ from .emhttp import EmhttpError, RealEmhttpClient
 from .parsers.nvidia import parse_nvidia_smi
 from .parsers.smart import parse_smartctl
 from .transport import SshCommandError, SshHelper, TransportError
+from .nextcloud_service import (
+    NextcloudActivity,
+    NextcloudClient,
+    NextcloudError,
+    NextcloudInfo,
+    NextcloudStorage,
+    NextcloudSystemStatus,
+    NextcloudUser,
+    RealNextcloudClient,
+)
 from .rest_service import (
     PlexIdentity,
     PlexLibrary,
@@ -767,4 +777,127 @@ async def rest_plex_libraries(request: Request, server_id: str) -> Any:
             for lib in libraries
         ]
     except (ValueError, RuntimeError) as exc:
+        return _probe_error(exc, server)
+
+
+# ---------------------------------------------------------------------------
+# P6: Nextcloud over OCS (basic auth + OCS-APIRequest header)
+# ---------------------------------------------------------------------------
+
+
+def _nextcloud_client(server: ServerConfig) -> RealNextcloudClient:
+    """Build a RealNextcloudClient from a server's service_keys."""
+    keys = server.service_keys
+    base_url = keys.nextcloud_url if keys else None
+    username = keys.nextcloud_user if keys else None
+    password = keys.nextcloud_pass if keys else None
+    if not base_url or not base_url.strip():
+        raise ValueError("nextcloud_url not configured")
+    return RealNextcloudClient(
+        base_url=base_url,
+        username=username or "",
+        password=password or "",
+    )
+
+
+@router.get("/nextcloud/info")
+async def nextcloud_info(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/nextcloud/info?server_id=X — Nextcloud server info.
+
+    Mirrors the Tauri ``get_nextcloud_info`` command over the OCS API.
+    A failed probe returns a redacted 502.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _nextcloud_client(server)
+        return await client.get_info()
+    except (ValueError, NextcloudError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/nextcloud/status")
+async def nextcloud_status(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/nextcloud/status?server_id=X — Nextcloud system status.
+
+    Mirrors the Tauri ``get_nextcloud_status`` command over the OCS API.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _nextcloud_client(server)
+        return await client.get_status()
+    except (ValueError, NextcloudError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/nextcloud/storage")
+async def nextcloud_storage(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/nextcloud/storage?server_id=X — Nextcloud storage stats.
+
+    Mirrors the Tauri ``get_nextcloud_storage`` command over the OCS API.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _nextcloud_client(server)
+        return await client.get_storage()
+    except (ValueError, NextcloudError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/nextcloud/users")
+async def nextcloud_users(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/nextcloud/users?server_id=X — Nextcloud users.
+
+    Mirrors the Tauri ``get_nextcloud_users`` command over the OCS API.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _nextcloud_client(server)
+        return await client.get_users()
+    except (ValueError, NextcloudError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/nextcloud/activity")
+async def nextcloud_activity(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/nextcloud/activity?server_id=X&limit=X — Nextcloud activity.
+
+    Mirrors the Tauri ``get_nextcloud_activity`` command over the OCS API.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    limit = request.query_params.get("limit")
+    limit_int = int(limit) if limit else None
+    try:
+        client = _nextcloud_client(server)
+        return await client.get_activity(limit_int)
+    except (ValueError, NextcloudError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
         return _probe_error(exc, server)
