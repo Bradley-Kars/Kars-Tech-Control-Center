@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ServerConfig } from '../../lib/types';
 import { getProcesses, getSyslog, getUserScripts, getPlugins, runUserScript } from '../../lib/tauri-commands';
+import { Skeleton } from '../ui/Skeleton';
 
 interface Props { server: ServerConfig; }
 
@@ -14,6 +15,7 @@ export function SystemPage({ server }: Props) {
   const [plugins, setPlugins] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [scriptOutput, setScriptOutput] = useState('');
+  const [loading, setLoading] = useState(true);
 
   const runScript = async (name: string) => {
     try {
@@ -28,8 +30,9 @@ export function SystemPage({ server }: Props) {
   };
 
   const load = useCallback(async (t: SysTab) => {
+    setError('');
+    setLoading(true);
     try {
-      setError('');
       if (t === 'processes') setProcesses(await getProcesses(server.id));
       else if (t === 'syslog') setSyslog(await getSyslog(server.id, 100));
       else if (t === 'scripts') setScripts(await getUserScripts(server.id));
@@ -39,6 +42,8 @@ export function SystemPage({ server }: Props) {
       }
     } catch (e: any) {
       setError(e.toString());
+    } finally {
+      setLoading(false);
     }
   }, [server.id]);
 
@@ -75,26 +80,46 @@ export function SystemPage({ server }: Props) {
 
       {tab === 'processes' && (
         <div className="card p-4 overflow-x-auto max-h-[calc(100vh-280px)] overflow-auto">
-          <pre className="font-mono text-xs text-muted whitespace-pre">{processes || 'Loading...'}</pre>
+          {loading ? (
+            <div data-testid="system-processes-loading">
+              <Skeleton variant="text" lines={6} className="font-mono text-xs" />
+            </div>
+          ) : (
+            <pre className="font-mono text-xs text-muted whitespace-pre">{processes}</pre>
+          )}
         </div>
       )}
 
       {tab === 'syslog' && (
         <div className="card p-4 max-h-[calc(100vh-280px)] overflow-auto">
-          <pre className="font-mono text-xs text-muted whitespace-pre-wrap">{syslog || 'Loading...'}</pre>
+          {loading ? (
+            <div data-testid="system-syslog-loading">
+              <Skeleton variant="text" lines={6} className="font-mono text-xs" />
+            </div>
+          ) : (
+            <pre className="font-mono text-xs text-muted whitespace-pre-wrap">{syslog}</pre>
+          )}
         </div>
       )}
 
       {tab === 'scripts' && (
         <div className="space-y-2">
-          {(scripts || '').split('\n').filter(Boolean).map(s => (
-            <div key={s} className="card px-4 py-3 flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-teal" />
-              <span className="text-sm font-mono flex-1">{s}</span>
-              <button onClick={() => runScript(s)} className="btn btn-ghost btn-sm text-xs">Run</button>
+          {loading ? (
+            <div data-testid="system-scripts-loading">
+              <Skeleton variant="text" lines={4} className="font-mono text-xs" />
             </div>
-          ))}
-          {!scripts && <div className="card p-4 text-center text-sm text-muted">No scripts found</div>}
+          ) : (
+            <>
+              {(scripts || '').split('\n').filter(Boolean).map(s => (
+                <div key={s} className="card px-4 py-3 flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-teal" />
+                  <span className="text-sm font-mono flex-1">{s}</span>
+                  <button onClick={() => runScript(s)} className="btn btn-ghost btn-sm text-xs">Run</button>
+                </div>
+              ))}
+              {!scripts && <div className="card p-4 text-center text-sm text-muted">No scripts found</div>}
+            </>
+          )}
           {scriptOutput && (
             <div className="card p-4">
               <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-1">Last Run Output</div>
@@ -106,13 +131,21 @@ export function SystemPage({ server }: Props) {
 
       {tab === 'plugins' && (
         <div className="space-y-2">
-          {plugins.map((p: string, i: number) => (
-            <div key={i} className="card px-4 py-3 flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-amber" />
-              <span className="text-sm font-mono flex-1">{p}</span>
+          {loading ? (
+            <div data-testid="system-plugins-loading">
+              <Skeleton variant="text" lines={4} className="font-mono text-xs" />
             </div>
-          ))}
-          {plugins.length === 0 && <div className="card p-4 text-center text-sm text-muted">No plugins found</div>}
+          ) : (
+            <>
+              {plugins.map((p: string, i: number) => (
+                <div key={i} className="card px-4 py-3 flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-amber" />
+                  <span className="text-sm font-mono flex-1">{p}</span>
+                </div>
+              ))}
+              {plugins.length === 0 && <div className="card p-4 text-center text-sm text-muted">No plugins found</div>}
+            </>
+          )}
         </div>
       )}
     </div>
