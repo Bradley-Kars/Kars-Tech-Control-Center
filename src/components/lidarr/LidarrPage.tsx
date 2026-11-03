@@ -8,75 +8,17 @@ import {
   lidarrRefreshArtist,
   lidarrSearchMissing,
 } from '../../lib/tauri-commands';
-import type { ServerConfig } from '../../lib/types';
-
-interface LidarrSystemStatus {
-  version: string;
-  buildTime: string;
-  isDebug: boolean;
-  isProduction: boolean;
-  isAdmin: boolean;
-  startupPath: string;
-  appData: string;
-  osName: string;
-  osVersion: string;
-  isLinux: boolean;
-  isOsx: boolean;
-  isWindows: boolean;
-  branch: string;
-  authentication: string;
-  urlBase: string;
-  instanceName: string;
-}
-
-interface LidarrArtist {
-  id: number;
-  foreignArtistId: string;
-  artistName: string;
-  monitored: boolean;
-  metadataProfileId: number;
-  qualityProfileId: number;
-  rootFolderPath: string;
-  addOptions?: { searchForNewAlbum: boolean; searchForMissingAlbum: boolean; searchForCutoffUnmetAlbum: boolean };
-  tags: number[];
-}
-
-interface LidarrAlbum {
-  id: number;
-  foreignAlbumId: string;
-  artistId: number;
-  title: string;
-  albumType: string;
-  status: string;
-  monitored: boolean;
-  releaseDate: string;
-  genres: string[];
-  statistics?: {
-    trackCount: number;
-    trackFileCount: number;
-    sizeOnDisk: number;
-    percentOfTracks: number;
-  };
-}
-
-interface LidarrWantedMissing {
-  page: number;
-  pageSize: number;
-  sortKey: string;
-  sortDirection: string;
-  totalRecords: number;
-  records: Record<string, unknown>[];
-}
-
-interface LidarrDiskSpace {
-  path: string;
-  label?: string;
-  freeSpace: number;
-  totalSpace: number;
-}
+import type {
+  ServerConfig,
+  LidarrStatus,
+  LidarrArtist,
+  LidarrAlbum,
+  LidarrWantedMissing,
+  LidarrDiskSpace,
+} from '../../lib/types';
 
 export function LidarrPage({ server }: { server: ServerConfig }) {
-  const [status, setStatus] = useState<LidarrSystemStatus | null>(null);
+  const [status, setStatus] = useState<LidarrStatus | null>(null);
   const [artists, setArtists] = useState<LidarrArtist[]>([]);
   const [albums, setAlbums] = useState<LidarrAlbum[]>([]);
   const [wanted, setWanted] = useState<LidarrWantedMissing | null>(null);
@@ -182,8 +124,8 @@ export function LidarrPage({ server }: { server: ServerConfig }) {
           </div>
           <div className="card p-4">
             <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-1">Instance</div>
-            <div className="text-xl font-heading font-bold">{status.instanceName}</div>
-            <div className="text-xs text-muted">{status.osName} {status.osVersion}</div>
+            <div className="text-xl font-heading font-bold">{status.instance_name}</div>
+            <div className="text-xs text-muted">{status.os_name} {status.os_version}</div>
           </div>
           <div className="card p-4">
             <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-1">Artists</div>
@@ -213,16 +155,16 @@ export function LidarrPage({ server }: { server: ServerConfig }) {
             <tbody>
               {artists.map((artist) => (
                 <tr key={artist.id} className="border-b border-line/50 hover:bg-panel-2/50">
-                  <td className="p-4 font-mono">{artist.artistName}</td>
+                  <td className="p-4 font-mono">{artist.artist_name}</td>
                   <td className="p-4">
                     <span className={`px-2 py-1 text-xs font-mono rounded ${artist.monitored ? 'bg-green-500/20 text-green' : 'bg-muted/20 text-muted'}`}>
                       {artist.monitored ? 'Yes' : 'No'}
                     </span>
                   </td>
                   <td className="p-4 text-sm">
-                    {albums.filter(a => a.artistId === artist.id).length}
+                    {albums.filter(a => a.artist_id === artist.id).length}
                   </td>
-                  <td className="p-4 text-sm text-muted truncate max-w-xs">{artist.rootFolderPath}</td>
+                    <td className="p-4 text-sm text-muted truncate max-w-xs">{artist.root_folder_path}</td>
                   <td className="p-4">
                     <div className="flex gap-2">
                       <button
@@ -260,12 +202,12 @@ export function LidarrPage({ server }: { server: ServerConfig }) {
             </thead>
             <tbody>
               {albums.slice(0, 50).map((album) => {
-                const artist = artists.find(a => a.id === album.artistId);
-                const pct = album.statistics?.percentOfTracks || 0;
+                const artist = artists.find(a => a.id === album.artist_id);
+                const pct = album.statistics?.percent_of_tracks || 0;
                 return (
                   <tr key={album.id} className="border-b border-line/50 hover:bg-panel-2/50">
                     <td className="p-4 font-mono">{album.title}</td>
-                    <td className="p-4 text-sm">{artist?.artistName || 'Unknown'}</td>
+                    <td className="p-4 text-sm">                    {artist?.artist_name || 'Unknown'}</td>
                     <td className="p-4">
                       <span className={`px-2 py-1 text-xs font-mono rounded ${
                         album.status === 'released' ? 'bg-green-500/20 text-green' :
@@ -275,7 +217,7 @@ export function LidarrPage({ server }: { server: ServerConfig }) {
                         {album.status}
                       </span>
                     </td>
-                    <td className="p-4 text-sm text-muted">{album.releaseDate}</td>
+                    <td className="p-4 text-sm text-muted">{album.release_date}</td>
                     <td className="p-4">
                       <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
                         <div
@@ -296,7 +238,7 @@ export function LidarrPage({ server }: { server: ServerConfig }) {
       {activeTab === 'wanted' && wanted && (
         <div className="card overflow-hidden">
           <div className="p-4 border-b border-line">
-            <div className="text-sm font-mono text-muted">Showing {wanted.records.length} of {wanted.totalRecords} missing albums</div>
+            <div className="text-sm font-mono text-muted">Showing {wanted.records.length} of {wanted.total_records} missing albums</div>
           </div>
           <table className="w-full">
             <thead>
@@ -310,10 +252,10 @@ export function LidarrPage({ server }: { server: ServerConfig }) {
             <tbody>
               {wanted.records.map((record: Record<string, unknown>) => {
                 const title = (record.title as string) || '';
-                const releaseDate = (record.releaseDate as string) || '';
+                const releaseDate = (record.release_date as string) || '';
                 const monitored = record.monitored as boolean;
                 const artist = record.artist as Record<string, unknown> | undefined;
-                const artistName = (artist?.artistName as string) || 'Unknown';
+                const artistName = (artist?.artist_name as string) || 'Unknown';
                 return (
                   <tr key={record.id as number} className="border-b border-line/50 hover:bg-panel-2/50">
                     <td className="p-4 font-mono">{title}</td>
@@ -340,16 +282,16 @@ export function LidarrPage({ server }: { server: ServerConfig }) {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted">Free</span>
-                  <span className="font-mono text-green">{formatBytes(disk.freeSpace)}</span>
+                  <span className="font-mono text-green">{formatBytes(disk.free_space)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted">Total</span>
-                  <span className="font-mono">{formatBytes(disk.totalSpace)}</span>
+                  <span className="font-mono">{formatBytes(disk.total_space)}</span>
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden mt-2">
                   <div
                     className="h-full bg-teal transition-all"
-                    style={{ width: `${disk.totalSpace > 0 ? ((disk.totalSpace - disk.freeSpace) / disk.totalSpace) * 100 : 0}%` }}
+                    style={{ width: `${disk.total_space > 0 ? ((disk.total_space - disk.free_space) / disk.total_space) * 100 : 0}%` }}
                   />
                 </div>
               </div>

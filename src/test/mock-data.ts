@@ -246,48 +246,49 @@ export const mockNextcloudActivity = {
 };
 
 export const mockLidarrStatus = {
+  app_name: 'Lidarr',
+  instance_name: 'Lidarr',
   version: '3.1.0.4875',
-  buildTime: '2024-08-01T00:00:00Z',
-  isDebug: false,
-  isProduction: true,
-  isAdmin: true,
-  startupPath: '/opt/Lidarr',
-  appData: '/config',
-  osName: 'linux',
-  osVersion: '6.18.38-Unraid',
-  isLinux: true,
-  isOsx: false,
-  isWindows: false,
+  build_time: '2024-08-01T00:00:00Z',
+  is_debug: false,
+  is_production: true,
+  is_admin: true,
+  startup_path: '/opt/Lidarr',
+  app_data: '/config',
+  os_name: 'linux',
+  os_version: '6.18.38-Unraid',
+  is_linux: true,
+  is_osx: false,
+  is_windows: false,
   branch: 'develop',
   authentication: 'forms',
-  urlBase: '',
-  instanceName: 'Lidarr',
+  url_base: '',
 };
 
 export const mockLidarrArtists = [
-  { id: 1, foreignArtistId: '83d91898-7763-47f7-af02-ce65d12154c4', artistName: 'Pink Floyd', monitored: true, metadataProfileId: 1, qualityProfileId: 1, rootFolderPath: '/mnt/user/media/music', tags: [] },
-  { id: 2, foreignArtistId: '363d0f1c-c0e0-4a1f-b634-f7c68d23f2b2', artistName: 'Led Zeppelin', monitored: true, metadataProfileId: 1, qualityProfileId: 1, rootFolderPath: '/mnt/user/media/music', tags: [] },
-  { id: 3, foreignArtistId: 'b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d', artistName: 'The Beatles', monitored: true, metadataProfileId: 1, qualityProfileId: 1, rootFolderPath: '/mnt/user/media/music', tags: [] },
+  { id: 1, foreign_artist_id: '83d91898-7763-47f7-af02-ce65d12154c4', artist_name: 'Pink Floyd', monitored: true, metadata_profile_id: 1, quality_profile_id: 1, root_folder_path: '/mnt/user/media/music', add_options: null, tags: [] },
+  { id: 2, foreign_artist_id: '363d0f1c-c0e0-4a1f-b634-f7c68d23f2b2', artist_name: 'Led Zeppelin', monitored: true, metadata_profile_id: 1, quality_profile_id: 1, root_folder_path: '/mnt/user/media/music', add_options: null, tags: [] },
+  { id: 3, foreign_artist_id: 'b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d', artist_name: 'The Beatles', monitored: true, metadata_profile_id: 1, quality_profile_id: 1, root_folder_path: '/mnt/user/media/music', add_options: null, tags: [] },
 ];
 
 export const mockLidarrHealth = [];
 
 export const mockLidarrAlbums = [
-  { id: 1, foreignAlbumId: 'album-1', artistId: 1, title: 'The Dark Side of the Moon', albumType: 'album', status: 'released', monitored: true, releaseDate: '1973-03-01', genres: ['rock', 'progressive rock'], statistics: { trackCount: 10, trackFileCount: 10, sizeOnDisk: 536870912, percentOfTracks: 100 } },
-  { id: 2, foreignAlbumId: 'album-2', artistId: 2, title: 'Led Zeppelin IV', albumType: 'album', status: 'released', monitored: true, releaseDate: '1971-11-08', genres: ['rock', 'hard rock'], statistics: { trackCount: 8, trackFileCount: 8, sizeOnDisk: 429496729, percentOfTracks: 100 } },
-  { id: 3, foreignAlbumId: 'album-3', artistId: 3, title: 'Abbey Road', albumType: 'album', status: 'released', monitored: true, releaseDate: '1969-09-26', genres: ['rock', 'pop'], statistics: { trackCount: 17, trackFileCount: 17, sizeOnDisk: 644245094, percentOfTracks: 100 } },
-  { id: 4, foreignAlbumId: 'album-4', artistId: 1, title: 'Wish You Were Here', albumType: 'album', status: 'released', monitored: true, releaseDate: '1975-09-12', genres: ['rock'], statistics: { trackCount: 5, trackFileCount: 5, sizeOnDisk: 375809638, percentOfTracks: 100 } },
+  { id: 1, foreign_album_id: 'album-1', artist_id: 1, title: 'The Dark Side of the Moon', album_type: 'album', status: 'released', monitored: true, release_date: '1973-03-01', genres: ['rock', 'progressive rock'], statistics: { track_count: 10, track_file_count: 10, size_on_disk: 536870912, percent_of_tracks: 100 } },
+  { id: 2, foreign_album_id: 'album-2', artist_id: 2, title: 'Led Zeppelin IV', album_type: 'album', status: 'released', monitored: true, release_date: '1971-11-08', genres: ['rock', 'hard rock'], statistics: { track_count: 8, track_file_count: 8, size_on_disk: 429496729, percent_of_tracks: 100 } },
+  { id: 3, foreign_album_id: 'album-3', artist_id: 3, title: 'Abbey Road', album_type: 'album', status: 'released', monitored: true, release_date: '1969-09-26', genres: ['rock', 'pop'], statistics: { track_count: 17, track_file_count: 17, size_on_disk: 644245094, percent_of_tracks: 100 } },
+  { id: 4, foreign_album_id: 'album-4', artist_id: 1, title: 'Wish You Were Here', album_type: 'album', status: 'released', monitored: true, release_date: '1975-09-12', genres: ['rock'], statistics: { track_count: 5, track_file_count: 5, size_on_disk: 375809638, percent_of_tracks: 100 } },
 ];
 
 export const mockLidarrWanted = {
   page: 1,
-  pageSize: 20,
-  sortKey: 'releaseDate',
-  sortDirection: 'descending',
-  totalRecords: 2,
+  page_size: 20,
+  sort_key: 'release_date',
+  sort_direction: 'descending',
+  total_records: 2,
   records: [
-    { id: 1, artistId: 1, title: 'New Album 2026', monitored: true, releaseDate: '2026-09-01', artist: { artistName: 'Pink Floyd' } },
-    { id: 2, artistId: 2, title: 'Remastered Classics', monitored: true, releaseDate: '2026-08-15', artist: { artistName: 'Led Zeppelin' } },
+    { id: 1, artist_id: 1, title: 'New Album 2026', monitored: true, release_date: '2026-09-01', artist: { artist_name: 'Pink Floyd' } },
+    { id: 2, artist_id: 2, title: 'Remastered Classics', monitored: true, release_date: '2026-08-15', artist: { artist_name: 'Led Zeppelin' } },
   ],
 };
 
@@ -303,7 +304,7 @@ export const mockLidarrQueue = {
 };
 
 export const mockLidarrDiskspace = [
-  { path: '/mnt/user/media/music', freeSpace: 549755813888, totalSpace: 1099511627776 },
+  { path: '/mnt/user/media/music', label: 'media', free_space: 549755813888, total_space: 1099511627776 },
 ];
 
 export const mockHomeAssistantConfig = {

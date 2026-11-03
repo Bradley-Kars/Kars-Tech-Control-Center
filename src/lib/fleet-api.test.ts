@@ -23,6 +23,13 @@ import type {
   HomeAssistantArea,
   HomeAssistantDevice,
   HomeAssistantEntity,
+  LidarrStatus,
+  LidarrHealthIssue,
+  LidarrArtist,
+  LidarrAlbum,
+  LidarrWantedMissing,
+  LidarrQueue,
+  LidarrDiskSpace,
 } from './types';
 import {
   setAuthToken,
@@ -65,6 +72,15 @@ import {
   homeAssistantToggle,
   homeAssistantTurnOn,
   homeAssistantTurnOff,
+  getLidarrStatus,
+  getLidarrHealth,
+  getLidarrArtists,
+  getLidarrAlbums,
+  getLidarrWanted,
+  getLidarrQueue,
+  getLidarrDiskspace,
+  lidarrRefreshArtist,
+  lidarrSearchMissing,
 } from './fleet-api';
 
 const fetchMock = vi.fn();
@@ -1222,6 +1238,262 @@ describe('homeAssistantTurnOff', () => {
     setAuthToken('fleet-secret');
     fetchMock.mockResolvedValue(jsonResponse({}));
     await homeAssistantTurnOff('s1', 'light.kitchen');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getLidarrStatus', () => {
+  const status: LidarrStatus = {
+    app_name: 'Lidarr',
+    instance_name: 'Music',
+    version: '2.0.0.1234',
+    build_time: '2026-01-01T00:00:00Z',
+    is_debug: false,
+    is_production: true,
+    is_admin: true,
+    startup_path: '/config',
+    app_data: '/config',
+    os_name: 'Linux',
+    os_version: '6.8.0',
+    is_linux: true,
+    is_osx: false,
+    is_windows: false,
+    branch: 'master',
+    authentication: 'None',
+    url_base: '/lidarr',
+  };
+
+  it('GETs /api/fleet/lidarr/get_lidarr_status?server_id=X and returns status', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(status));
+    const result = await getLidarrStatus('s1');
+    expect(result).toEqual(status);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/lidarr/get_lidarr_status?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(status));
+    await getLidarrStatus('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getLidarrHealth', () => {
+  const health: LidarrHealthIssue[] = [
+    { source: 'DiskSpace', issue_type: 'Warning', message: 'Disk space low', wiki_url: null },
+  ];
+
+  it('GETs /api/fleet/lidarr/get_lidarr_health?server_id=X and returns health', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(health));
+    const result = await getLidarrHealth('s1');
+    expect(result).toEqual(health);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/lidarr/get_lidarr_health?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(health));
+    await getLidarrHealth('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getLidarrArtists', () => {
+  const artists: LidarrArtist[] = [
+    {
+      id: 1,
+      foreign_artist_id: 'foreign-1',
+      artist_name: 'The Beatles',
+      monitored: true,
+      metadata_profile_id: 1,
+      quality_profile_id: 2,
+      root_folder_path: '/music',
+      add_options: null,
+      tags: [],
+    },
+  ];
+
+  it('GETs /api/fleet/lidarr/get_lidarr_artists?server_id=X and returns artists', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(artists));
+    const result = await getLidarrArtists('s1');
+    expect(result).toEqual(artists);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/lidarr/get_lidarr_artists?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(artists));
+    await getLidarrArtists('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getLidarrAlbums', () => {
+  const albums: LidarrAlbum[] = [
+    {
+      id: 10,
+      foreign_album_id: 'foreign-album-1',
+      artist_id: 1,
+      title: 'Abbey Road',
+      album_type: 'Studio',
+      status: 'released',
+      monitored: true,
+      release_date: '1969-09-26',
+      genres: ['Rock'],
+      statistics: null,
+    },
+  ];
+
+  it('GETs /api/fleet/lidarr/get_lidarr_albums?server_id=X&artist_id=X&monitored=X and returns albums', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(albums));
+    const result = await getLidarrAlbums('s1', 1, true);
+    expect(result).toEqual(albums);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/lidarr/get_lidarr_albums?server_id=s1&artist_id=1&monitored=true',
+    );
+  });
+
+  it('omits optional query params when not provided', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(albums));
+    await getLidarrAlbums('s1');
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/lidarr/get_lidarr_albums?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(albums));
+    await getLidarrAlbums('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getLidarrWanted', () => {
+  const wanted: LidarrWantedMissing = {
+    page: 1,
+    page_size: 25,
+    sort_key: 'title',
+    sort_direction: 'asc',
+    total_records: 2,
+    records: [],
+  };
+
+  it('GETs /api/fleet/lidarr/get_lidarr_wanted?server_id=X&page=X&pageSize=X', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(wanted));
+    const result = await getLidarrWanted('s1', 1, 25);
+    expect(result).toEqual(wanted);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/lidarr/get_lidarr_wanted?server_id=s1&page=1&pageSize=25',
+    );
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(wanted));
+    await getLidarrWanted('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getLidarrQueue', () => {
+  const queue: LidarrQueue = {
+    page: 1,
+    page_size: 25,
+    sort_key: 'title',
+    sort_direction: 'asc',
+    total_records: 1,
+    records: [],
+  };
+
+  it('GETs /api/fleet/lidarr/get_lidarr_queue?server_id=X&page=X&pageSize=X', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(queue));
+    const result = await getLidarrQueue('s1', 1, 25);
+    expect(result).toEqual(queue);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/lidarr/get_lidarr_queue?server_id=s1&page=1&pageSize=25',
+    );
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(queue));
+    await getLidarrQueue('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getLidarrDiskspace', () => {
+  const diskspace: LidarrDiskSpace[] = [
+    { path: '/music', label: 'Music', free_space: 500, total_space: 1000 },
+  ];
+
+  it('GETs /api/fleet/lidarr/get_lidarr_diskspace?server_id=X and returns disk space', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(diskspace));
+    const result = await getLidarrDiskspace('s1');
+    expect(result).toEqual(diskspace);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/lidarr/get_lidarr_diskspace?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(diskspace));
+    await getLidarrDiskspace('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('lidarrRefreshArtist', () => {
+  it('POSTs /api/fleet/lidarr/lidarr_refresh_artist?server_id=X&artist_id=X and returns void', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({}));
+    await lidarrRefreshArtist('s1', 1);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/lidarr/lidarr_refresh_artist?server_id=s1&artist_id=1',
+    );
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('POST');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse({}));
+    await lidarrRefreshArtist('s1', 1);
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('lidarrSearchMissing', () => {
+  it('POSTs /api/fleet/lidarr/lidarr_search_missing?server_id=X&artist_id=X and returns void', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({}));
+    await lidarrSearchMissing('s1', 1);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/lidarr/lidarr_search_missing?server_id=s1&artist_id=1',
+    );
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('POST');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse({}));
+    await lidarrSearchMissing('s1', 1);
     const [, init] = fetchMock.mock.calls[0];
     expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
   });

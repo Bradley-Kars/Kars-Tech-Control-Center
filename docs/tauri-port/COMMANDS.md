@@ -65,15 +65,15 @@ set changes.
 
 | Command | Rust handler | UI files | Target route | Status |
 |---|---|---|---|---|
-| `get_lidarr_status` | src-tauri/src/commands/mod.rs:1266 | src/components/lidarr/LidarrPage.test.tsx, src/components/lidarr/LidarrPage.tsx | /api/fleet/lidarr/get_lidarr_status | not ported |
-| `get_lidarr_health` | src-tauri/src/commands/mod.rs:1279 | — | /api/fleet/lidarr/get_lidarr_health | not ported |
-| `get_lidarr_artists` | src-tauri/src/commands/mod.rs:1289 | src/components/lidarr/LidarrPage.test.tsx, src/components/lidarr/LidarrPage.tsx | /api/fleet/lidarr/get_lidarr_artists | not ported |
-| `get_lidarr_albums` | src-tauri/src/commands/mod.rs:1299 | src/components/lidarr/LidarrPage.test.tsx, src/components/lidarr/LidarrPage.tsx | /api/fleet/lidarr/get_lidarr_albums | not ported |
-| `get_lidarr_wanted` | src-tauri/src/commands/mod.rs:1312 | src/components/lidarr/LidarrPage.test.tsx, src/components/lidarr/LidarrPage.tsx | /api/fleet/lidarr/get_lidarr_wanted | not ported |
-| `get_lidarr_queue` | src-tauri/src/commands/mod.rs:1325 | — | /api/fleet/lidarr/get_lidarr_queue | not ported |
-| `get_lidarr_diskspace` | src-tauri/src/commands/mod.rs:1335 | src/components/lidarr/LidarrPage.test.tsx, src/components/lidarr/LidarrPage.tsx | /api/fleet/lidarr/get_lidarr_diskspace | not ported |
-| `lidarr_refresh_artist` | src-tauri/src/commands/mod.rs:1345 | src/components/lidarr/LidarrPage.test.tsx, src/components/lidarr/LidarrPage.tsx | /api/fleet/lidarr/lidarr_refresh_artist | not ported |
-| `lidarr_search_missing` | src-tauri/src/commands/mod.rs:1359 | src/components/lidarr/LidarrPage.test.tsx, src/components/lidarr/LidarrPage.tsx | /api/fleet/lidarr/lidarr_search_missing | not ported |
+| `get_lidarr_status` | src-tauri/src/commands/mod.rs:1266 | src/components/lidarr/LidarrPage.test.tsx, src/components/lidarr/LidarrPage.tsx | /api/fleet/lidarr/get_lidarr_status | ported |
+| `get_lidarr_health` | src-tauri/src/commands/mod.rs:1279 | — | /api/fleet/lidarr/get_lidarr_health | ported |
+| `get_lidarr_artists` | src-tauri/src/commands/mod.rs:1289 | src/components/lidarr/LidarrPage.test.tsx, src/components/lidarr/LidarrPage.tsx | /api/fleet/lidarr/get_lidarr_artists | ported |
+| `get_lidarr_albums` | src-tauri/src/commands/mod.rs:1299 | src/components/lidarr/LidarrPage.test.tsx, src/components/lidarr/LidarrPage.tsx | /api/fleet/lidarr/get_lidarr_albums | ported |
+| `get_lidarr_wanted` | src-tauri/src/commands/mod.rs:1312 | src/components/lidarr/LidarrPage.test.tsx, src/components/lidarr/LidarrPage.tsx | /api/fleet/lidarr/get_lidarr_wanted | ported |
+| `get_lidarr_queue` | src-tauri/src/commands/mod.rs:1325 | — | /api/fleet/lidarr/get_lidarr_queue | ported |
+| `get_lidarr_diskspace` | src-tauri/src/commands/mod.rs:1335 | src/components/lidarr/LidarrPage.test.tsx, src/components/lidarr/LidarrPage.tsx | /api/fleet/lidarr/get_lidarr_diskspace | ported |
+| `lidarr_refresh_artist` | src-tauri/src/commands/mod.rs:1345 | src/components/lidarr/LidarrPage.test.tsx, src/components/lidarr/LidarrPage.tsx | /api/fleet/lidarr/lidarr_refresh_artist | ported |
+| `lidarr_search_missing` | src-tauri/src/commands/mod.rs:1359 | src/components/lidarr/LidarrPage.test.tsx, src/components/lidarr/LidarrPage.tsx | /api/fleet/lidarr/lidarr_search_missing | ported |
 
 ## Home Assistant
 

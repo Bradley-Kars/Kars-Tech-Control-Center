@@ -77,6 +77,17 @@ from .homeassistant_service import (
     HomeAssistantState,
     RealHomeAssistantClient,
 )
+from .lidarr_service import (
+    LidarrAlbum,
+    LidarrArtist,
+    LidarrDiskSpace,
+    LidarrError,
+    LidarrHealthIssue,
+    LidarrQueue,
+    LidarrSystemStatus,
+    LidarrWantedMissing,
+    RealLidarrClient,
+)
 
 router = APIRouter()
 
@@ -1518,3 +1529,223 @@ async def homeassistant_turn_off(request: Request, server_id: str, entity_id: st
     except Exception as exc:  # pragma: no cover — secrets must never leak
         return _probe_error(exc, server)
     return {"status": "off", "entity_id": entity_id}
+
+
+# ---------------------------------------------------------------------------
+# P9: Lidarr — system status, health, artists, albums, wanted/missing, queue,
+# disk space and commands (refresh artist / search missing) over the HTTP
+# /api/v1/ API (X-Api-Key auth)
+# ---------------------------------------------------------------------------
+
+
+def _lidarr_client(server: ServerConfig) -> RealLidarrClient:
+    """Build a RealLidarrClient from a server's service_keys."""
+    keys = server.service_keys
+    base_url = keys.lidarr_url if keys else None
+    api_key = keys.lidarr_api_key if keys else None
+    if not base_url or not base_url.strip():
+        raise ValueError("lidarr_url not configured")
+    return RealLidarrClient(base_url=base_url, api_key=api_key or "")
+
+
+@router.get("/lidarr/get_lidarr_status")
+async def lidarr_status(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/lidarr/get_lidarr_status?server_id=X — Lidarr status.
+
+    Mirrors the Tauri ``get_lidarr_status`` command. A failed probe returns
+    a redacted 502.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _lidarr_client(server)
+        return await client.get_status()
+    except (ValueError, LidarrError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/lidarr/get_lidarr_health")
+async def lidarr_health(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/lidarr/get_lidarr_health?server_id=X — Lidarr health.
+
+    Mirrors the Tauri ``get_lidarr_health`` command.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _lidarr_client(server)
+        return await client.get_health()
+    except (ValueError, LidarrError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/lidarr/get_lidarr_artists")
+async def lidarr_artists(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/lidarr/get_lidarr_artists?server_id=X — Lidarr artists.
+
+    Mirrors the Tauri ``get_lidarr_artists`` command.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _lidarr_client(server)
+        return await client.get_artists()
+    except (ValueError, LidarrError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/lidarr/get_lidarr_albums")
+async def lidarr_albums(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/lidarr/get_lidarr_albums?server_id=X&artistId=X&monitored=X.
+
+    Mirrors the Tauri ``get_lidarr_albums`` command.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _lidarr_client(server)
+        artist_id = request.query_params.get("artist_id")
+        monitored = request.query_params.get("monitored")
+        artist_id_int = int(artist_id) if artist_id else None
+        monitored_bool = None
+        if monitored is not None:
+            monitored_bool = monitored.lower() == "true"
+        return await client.get_albums(artist_id=artist_id_int, monitored=monitored_bool)
+    except (ValueError, LidarrError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/lidarr/get_lidarr_wanted")
+async def lidarr_wanted(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/lidarr/get_lidarr_wanted?server_id=X&page=X&pageSize=X.
+
+    Mirrors the Tauri ``get_lidarr_wanted`` command.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _lidarr_client(server)
+        page = int(request.query_params.get("page", 1))
+        page_size = int(request.query_params.get("pageSize", 20))
+        return await client.get_wanted(page=page, page_size=page_size)
+    except (ValueError, LidarrError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/lidarr/get_lidarr_queue")
+async def lidarr_queue(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/lidarr/get_lidarr_queue?server_id=X&page=X&pageSize=X.
+
+    Mirrors the Tauri ``get_lidarr_queue`` command.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _lidarr_client(server)
+        page = int(request.query_params.get("page", 1))
+        page_size = int(request.query_params.get("pageSize", 20))
+        return await client.get_queue(page=page, page_size=page_size)
+    except (ValueError, LidarrError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/lidarr/get_lidarr_diskspace")
+async def lidarr_diskspace(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/lidarr/get_lidarr_diskspace?server_id=X — Lidarr disk space.
+
+    Mirrors the Tauri ``get_lidarr_diskspace`` command.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _lidarr_client(server)
+        return await client.get_diskspace()
+    except (ValueError, LidarrError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.post("/lidarr/lidarr_refresh_artist")
+async def lidarr_refresh_artist(request: Request, server_id: str, artist_id: str) -> Any:
+    """POST /api/fleet/lidarr/lidarr_refresh_artist?server_id=X&artistId=X.
+
+    Mirrors the Tauri ``lidarr_refresh_artist`` command. Requires scope=write
+    (enforced by the create_app middleware).
+    """
+    if not isinstance(server_id, str) or not server_id.strip():
+        raise ValueError("field 'server_id' is required")
+    if not isinstance(artist_id, str) or not artist_id.strip():
+        raise ValueError("field 'artistId' is required")
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _lidarr_client(server)
+        await client.refresh_series(int(artist_id))
+    except (ValueError, LidarrError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+    return {"status": "refreshed", "artist_id": artist_id}
+
+
+@router.post("/lidarr/lidarr_search_missing")
+async def lidarr_search_missing(request: Request, server_id: str, artist_id: str) -> Any:
+    """POST /api/fleet/lidarr/lidarr_search_missing?server_id=X&artistId=X.
+
+    Mirrors the Tauri ``lidarr_search_missing`` command. Requires scope=write
+    (enforced by the create_app middleware).
+    """
+    if not isinstance(server_id, str) or not server_id.strip():
+        raise ValueError("field 'server_id' is required")
+    if not isinstance(artist_id, str) or not artist_id.strip():
+        raise ValueError("field 'artistId' is required")
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _lidarr_client(server)
+        await client.search_missing(int(artist_id))
+    except (ValueError, LidarrError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+    return {"status": "searching", "artist_id": artist_id}

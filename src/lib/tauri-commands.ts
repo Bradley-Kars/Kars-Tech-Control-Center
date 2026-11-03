@@ -54,6 +54,15 @@ export {
   homeAssistantToggle,
   homeAssistantTurnOn,
   homeAssistantTurnOff,
+  getLidarrStatus,
+  getLidarrHealth,
+  getLidarrArtists,
+  getLidarrAlbums,
+  getLidarrWanted,
+  getLidarrQueue,
+  getLidarrDiskspace,
+  lidarrRefreshArtist,
+  lidarrSearchMissing,
 } from './fleet-api';
 
 export async function dockerRemove(serverId: string, container: string): Promise<string> {
@@ -106,43 +115,6 @@ export async function shutdownServer(serverId: string): Promise<string> {
 
 export async function getArrayInfo(serverId: string): Promise<any> {
   return invoke('get_array_info', { serverId });
-}
-
-// Lidarr
-export async function getLidarrStatus(serverId: string): Promise<any> {
-  return invoke('get_lidarr_status', { serverId });
-}
-
-export async function getLidarrHealth(serverId: string): Promise<any> {
-  return invoke('get_lidarr_health', { serverId });
-}
-
-export async function getLidarrArtists(serverId: string): Promise<any> {
-  return invoke('get_lidarr_artists', { serverId });
-}
-
-export async function getLidarrAlbums(serverId: string): Promise<any> {
-  return invoke('get_lidarr_albums', { serverId });
-}
-
-export async function getLidarrWanted(serverId: string): Promise<any> {
-  return invoke('get_lidarr_wanted', { serverId });
-}
-
-export async function getLidarrQueue(serverId: string): Promise<any> {
-  return invoke('get_lidarr_queue', { serverId });
-}
-
-export async function getLidarrDiskspace(serverId: string): Promise<any> {
-  return invoke('get_lidarr_diskspace', { serverId });
-}
-
-export async function lidarrRefreshArtist(serverId: string, artistId: number): Promise<void> {
-  return invoke('lidarr_refresh_artist', { serverId, artistId });
-}
-
-export async function lidarrSearchMissing(serverId: string, artistId: number): Promise<void> {
-  return invoke('lidarr_search_missing', { serverId, artistId });
 }
 
 // Home Assistant — ported to fleet-api.ts (re-exported above)

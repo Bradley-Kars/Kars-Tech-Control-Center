@@ -427,6 +427,114 @@ export interface HomeAssistantEntity {
   capabilities: any;
 }
 
+// ---------------------------------------------------------------------------
+// Lidarr (ported from src-tauri/src/services/lidarr.rs in P9)
+// ---------------------------------------------------------------------------
+
+export interface LidarrStatus {
+  app_name: string;
+  instance_name: string;
+  version: string;
+  build_time: string | null;
+  is_debug: boolean;
+  is_production: boolean;
+  is_admin: boolean;
+  startup_path: string;
+  app_data: string;
+  os_name: string;
+  os_version: string;
+  is_linux: boolean;
+  is_osx: boolean;
+  is_windows: boolean;
+  branch: string;
+  authentication: string;
+  url_base: string;
+}
+
+export interface LidarrHealthIssue {
+  source: string | null;
+  issue_type: string;
+  message: string;
+  wiki_url: string | null;
+}
+
+export interface LidarrAddOptions {
+  search_for_new_album: boolean;
+  search_for_missing_album: boolean;
+  search_for_cutoff_unmet_album: boolean;
+}
+
+export interface LidarrArtist {
+  id: number;
+  foreign_artist_id: string;
+  artist_name: string;
+  monitored: boolean;
+  metadata_profile_id: number;
+  quality_profile_id: number;
+  root_folder_path: string;
+  add_options: LidarrAddOptions | null;
+  tags: number[];
+}
+
+export interface LidarrAlbumStatistics {
+  track_count: number;
+  track_file_count: number;
+  size_on_disk: number;
+  percent_of_tracks: number;
+}
+
+export interface LidarrAlbum {
+  id: number;
+  foreign_album_id: string;
+  artist_id: number;
+  title: string;
+  album_type: string;
+  status: string;
+  monitored: boolean;
+  release_date: string;
+  genres: string[];
+  statistics: LidarrAlbumStatistics | null;
+}
+
+export interface LidarrWantedMissing {
+  page: number;
+  page_size: number;
+  sort_key: string;
+  sort_direction: string;
+  total_records: number;
+  records: any[];
+}
+
+export interface LidarrQueue {
+  page: number;
+  page_size: number;
+  sort_key: string;
+  sort_direction: string;
+  total_records: number;
+  records: any[];
+}
+
+export interface LidarrDiskSpace {
+  path: string;
+  label: string;
+  free_space: number;
+  total_space: number;
+}
+
+export interface LidarrIndexer {
+  id: number;
+  name: string;
+  implementation: string;
+  implementation_name: string;
+  config_contract: string;
+  info_link: string;
+  message: string | null;
+  priority: number;
+  protocol: string;
+  fields: any[];
+  tags: number[];
+}
+
 export interface ServiceTestResults {
   graphql: boolean;
   nextcloud: boolean;
