@@ -5,11 +5,20 @@ import { describe, expect, it } from 'vitest';
 declare module 'fs' {
   export function readFileSync(path: string, encoding: string): string;
 }
+declare module 'path' {
+  export function dirname(p: string): string;
+  export function join(...paths: string[]): string;
+}
+declare module 'url' {
+  export function fileURLToPath(url: string): string;
+}
 import { readFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 
-const REPO = '/home/slayerbrk/GitHub/Kars-Tech-Control-Center';
-const SOURCE = `${REPO}/src/lib/tauri-commands.ts`;
-const DOC = `${REPO}/docs/tauri-port/COMMANDS.md`;
+const REPO = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
+const SOURCE = join(REPO, 'src', 'lib', 'tauri-commands.ts');
+const DOC = join(REPO, 'docs', 'tauri-port', 'COMMANDS.md');
 
 function sourceCommands(source: string): string[] {
   const commands = new Set<string>();
