@@ -46,6 +46,14 @@ export {
   getAdGuardDhcp,
   adguardEnable,
   adguardDisable,
+  getHomeAssistantStates,
+  getHomeAssistantConfig,
+  getHomeAssistantAreas,
+  getHomeAssistantDevices,
+  getHomeAssistantEntities,
+  homeAssistantToggle,
+  homeAssistantTurnOn,
+  homeAssistantTurnOff,
 } from './fleet-api';
 
 export async function dockerRemove(serverId: string, container: string): Promise<string> {
@@ -137,38 +145,7 @@ export async function lidarrSearchMissing(serverId: string, artistId: number): P
   return invoke('lidarr_search_missing', { serverId, artistId });
 }
 
-// Home Assistant
-export async function getHomeAssistantStates(serverId: string): Promise<any> {
-  return invoke('get_homeassistant_states', { serverId });
-}
-
-export async function getHomeAssistantConfig(serverId: string): Promise<any> {
-  return invoke('get_homeassistant_config', { serverId });
-}
-
-export async function getHomeAssistantAreas(serverId: string): Promise<any> {
-  return invoke('get_homeassistant_areas', { serverId });
-}
-
-export async function getHomeAssistantDevices(serverId: string): Promise<any> {
-  return invoke('get_homeassistant_devices', { serverId });
-}
-
-export async function getHomeAssistantEntities(serverId: string): Promise<any> {
-  return invoke('get_homeassistant_entities', { serverId });
-}
-
-export async function homeAssistantToggle(serverId: string, entityId: string): Promise<void> {
-  return invoke('homeassistant_toggle', { serverId, entityId });
-}
-
-export async function homeAssistantTurnOn(serverId: string, entityId: string): Promise<void> {
-  return invoke('homeassistant_turn_on', { serverId, entityId });
-}
-
-export async function homeAssistantTurnOff(serverId: string, entityId: string): Promise<void> {
-  return invoke('homeassistant_turn_off', { serverId, entityId });
-}
+// Home Assistant — ported to fleet-api.ts (re-exported above)
 
 // MySpeed
 export async function getMySpeedSummary(serverId: string, limit?: number): Promise<any> {

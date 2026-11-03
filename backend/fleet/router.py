@@ -68,6 +68,15 @@ from .rest_service import (
     plex_libraries,
     probe,
 )
+from .homeassistant_service import (
+    HomeAssistantArea,
+    HomeAssistantConfig,
+    HomeAssistantDevice,
+    HomeAssistantEntity,
+    HomeAssistantError,
+    HomeAssistantState,
+    RealHomeAssistantClient,
+)
 
 router = APIRouter()
 
@@ -1310,3 +1319,202 @@ async def adguard_disable(request: Request, server_id: str) -> Any:
         return _probe_error(exc, server)
     except Exception as exc:  # pragma: no cover — secrets must never leak
         return _probe_error(exc, server)
+
+
+# ---------------------------------------------------------------------------
+# P8: Home Assistant — states, config, areas, devices, entity registry and
+# service calls (toggle / turn on / turn off) over the HTTP /api/ API
+# ---------------------------------------------------------------------------
+
+
+def _homeassistant_client(server: ServerConfig) -> RealHomeAssistantClient:
+    """Build a RealHomeAssistantClient from a server's service_keys."""
+    keys = server.service_keys
+    base_url = keys.homeassistant_url if keys else None
+    token = keys.homeassistant_token if keys else None
+    if not base_url or not base_url.strip():
+        raise ValueError("homeassistant_url not configured")
+    return RealHomeAssistantClient(base_url=base_url, token=token or "")
+
+
+def _ha_entity_id_payload(request: Request, server_id: str, entity_id: str) -> None:
+    """Validate that server_id and entity_id are present for HA action routes.
+
+    server_id and entity_id are passed as query parameters, mirroring the
+    GET routes. Raises nothing; the caller resolves the server and 404s when
+    missing.
+    """
+    if not isinstance(server_id, str) or not server_id.strip():
+        raise ValueError("field 'server_id' is required")
+    if not isinstance(entity_id, str) or not entity_id.strip():
+        raise ValueError("field 'entity_id' is required")
+
+
+@router.get("/homeassistant/get_homeassistant_states")
+async def homeassistant_states(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/homeassistant/get_homeassistant_states?server_id=X — HA states.
+
+    Mirrors the Tauri ``get_homeassistant_states`` command. A failed probe
+    returns a redacted 502.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _homeassistant_client(server)
+        return await client.get_states()
+    except (ValueError, HomeAssistantError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/homeassistant/get_homeassistant_config")
+async def homeassistant_config(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/homeassistant/get_homeassistant_config?server_id=X — HA config.
+
+    Mirrors the Tauri ``get_homeassistant_config`` command.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _homeassistant_client(server)
+        return await client.get_config()
+    except (ValueError, HomeAssistantError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/homeassistant/get_homeassistant_areas")
+async def homeassistant_areas(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/homeassistant/get_homeassistant_areas?server_id=X — HA areas.
+
+    Mirrors the Tauri ``get_homeassistant_areas`` command.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _homeassistant_client(server)
+        return await client.get_areas()
+    except (ValueError, HomeAssistantError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/homeassistant/get_homeassistant_devices")
+async def homeassistant_devices(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/homeassistant/get_homeassistant_devices?server_id=X — HA devices.
+
+    Mirrors the Tauri ``get_homeassistant_devices`` command.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _homeassistant_client(server)
+        return await client.get_devices()
+    except (ValueError, HomeAssistantError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/homeassistant/get_homeassistant_entities")
+async def homeassistant_entities(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/homeassistant/get_homeassistant_entities?server_id=X — HA entity registry.
+
+    Mirrors the Tauri ``get_homeassistant_entities`` command (entity registry).
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _homeassistant_client(server)
+        return await client.get_entities()
+    except (ValueError, HomeAssistantError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.post("/homeassistant/homeassistant_toggle")
+async def homeassistant_toggle(request: Request, server_id: str, entity_id: str) -> Any:
+    """POST /api/fleet/homeassistant/homeassistant_toggle?server_id=X&entity_id=X — toggle an entity.
+
+    Mirrors the Tauri ``homeassistant_toggle`` command. Requires scope=write
+    (enforced by the create_app middleware).
+    """
+    _ha_entity_id_payload(request, server_id, entity_id)
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _homeassistant_client(server)
+        await client.toggle_entity(entity_id)
+    except (ValueError, HomeAssistantError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+    return {"status": "toggled", "entity_id": entity_id}
+
+
+@router.post("/homeassistant/homeassistant_turn_on")
+async def homeassistant_turn_on(request: Request, server_id: str, entity_id: str) -> Any:
+    """POST /api/fleet/homeassistant/homeassistant_turn_on?server_id=X&entity_id=X — turn an entity on.
+
+    Mirrors the Tauri ``homeassistant_turn_on`` command. Requires scope=write
+    (enforced by the create_app middleware).
+    """
+    _ha_entity_id_payload(request, server_id, entity_id)
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _homeassistant_client(server)
+        await client.turn_on_entity(entity_id)
+    except (ValueError, HomeAssistantError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+    return {"status": "on", "entity_id": entity_id}
+
+
+@router.post("/homeassistant/homeassistant_turn_off")
+async def homeassistant_turn_off(request: Request, server_id: str, entity_id: str) -> Any:
+    """POST /api/fleet/homeassistant/homeassistant_turn_off?server_id=X&entity_id=X — turn an entity off.
+
+    Mirrors the Tauri ``homeassistant_turn_off`` command. Requires scope=write
+    (enforced by the create_app middleware).
+    """
+    _ha_entity_id_payload(request, server_id, entity_id)
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _homeassistant_client(server)
+        await client.turn_off_entity(entity_id)
+    except (ValueError, HomeAssistantError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+    return {"status": "off", "entity_id": entity_id}

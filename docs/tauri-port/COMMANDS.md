@@ -79,14 +79,14 @@ set changes.
 
 | Command | Rust handler | UI files | Target route | Status |
 |---|---|---|---|---|
-| `get_homeassistant_states` | src-tauri/src/commands/mod.rs:1373 | — | /api/fleet/homeassistant/get_homeassistant_states | not ported |
-| `get_homeassistant_config` | src-tauri/src/commands/mod.rs:1383 | — | /api/fleet/homeassistant/get_homeassistant_config | not ported |
-| `get_homeassistant_areas` | src-tauri/src/commands/mod.rs:1393 | — | /api/fleet/homeassistant/get_homeassistant_areas | not ported |
-| `get_homeassistant_devices` | src-tauri/src/commands/mod.rs:1403 | — | /api/fleet/homeassistant/get_homeassistant_devices | not ported |
-| `get_homeassistant_entities` | src-tauri/src/commands/mod.rs:1413 | — | /api/fleet/homeassistant/get_homeassistant_entities | not ported |
-| `homeassistant_toggle` | src-tauri/src/commands/mod.rs:1426 | — | /api/fleet/homeassistant/homeassistant_toggle | not ported |
-| `homeassistant_turn_on` | src-tauri/src/commands/mod.rs:1440 | — | /api/fleet/homeassistant/homeassistant_turn_on | not ported |
-| `homeassistant_turn_off` | src-tauri/src/commands/mod.rs:1454 | — | /api/fleet/homeassistant/homeassistant_turn_off | not ported |
+| `get_homeassistant_states` | src-tauri/src/commands/mod.rs:1373 | — | /api/fleet/homeassistant/get_homeassistant_states | ported |
+| `get_homeassistant_config` | src-tauri/src/commands/mod.rs:1383 | — | /api/fleet/homeassistant/get_homeassistant_config | ported |
+| `get_homeassistant_areas` | src-tauri/src/commands/mod.rs:1393 | — | /api/fleet/homeassistant/get_homeassistant_areas | ported |
+| `get_homeassistant_devices` | src-tauri/src/commands/mod.rs:1403 | — | /api/fleet/homeassistant/get_homeassistant_devices | ported |
+| `get_homeassistant_entities` | src-tauri/src/commands/mod.rs:1413 | — | /api/fleet/homeassistant/get_homeassistant_entities | ported |
+| `homeassistant_toggle` | src-tauri/src/commands/mod.rs:1426 | — | /api/fleet/homeassistant/homeassistant_toggle | ported |
+| `homeassistant_turn_on` | src-tauri/src/commands/mod.rs:1440 | — | /api/fleet/homeassistant/homeassistant_turn_on | ported |
+| `homeassistant_turn_off` | src-tauri/src/commands/mod.rs:1454 | — | /api/fleet/homeassistant/homeassistant_turn_off | ported |
 
 ## MySpeed
 

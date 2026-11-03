@@ -45,6 +45,11 @@ import type {
   AdGuardStats,
   AdGuardQueryLog,
   AdGuardDHCP,
+  HomeAssistantState,
+  HomeAssistantConfig,
+  HomeAssistantArea,
+  HomeAssistantDevice,
+  HomeAssistantEntity,
 } from './types';
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/+$/, '');
@@ -464,6 +469,107 @@ export async function adguardDisable(
 ): Promise<void> {
   return request<void>(
     `/fleet/adguard/disable?server_id=${encodeURIComponent(serverId)}`,
+    { method: 'POST', token },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Home Assistant (ported from tauri-commands.ts)
+// ---------------------------------------------------------------------------
+
+/** GET /api/fleet/homeassistant/get_homeassistant_states?server_id=X — HA entity states. */
+export async function getHomeAssistantStates(
+  serverId: string,
+  token?: string,
+): Promise<HomeAssistantState[]> {
+  return request<HomeAssistantState[]>(
+    `/fleet/homeassistant/get_homeassistant_states?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/homeassistant/get_homeassistant_config?server_id=X — HA server config. */
+export async function getHomeAssistantConfig(
+  serverId: string,
+  token?: string,
+): Promise<HomeAssistantConfig> {
+  return request<HomeAssistantConfig>(
+    `/fleet/homeassistant/get_homeassistant_config?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/homeassistant/get_homeassistant_areas?server_id=X — HA areas. */
+export async function getHomeAssistantAreas(
+  serverId: string,
+  token?: string,
+): Promise<HomeAssistantArea[]> {
+  return request<HomeAssistantArea[]>(
+    `/fleet/homeassistant/get_homeassistant_areas?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/homeassistant/get_homeassistant_devices?server_id=X — HA devices. */
+export async function getHomeAssistantDevices(
+  serverId: string,
+  token?: string,
+): Promise<HomeAssistantDevice[]> {
+  return request<HomeAssistantDevice[]>(
+    `/fleet/homeassistant/get_homeassistant_devices?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/homeassistant/get_homeassistant_entities?server_id=X — HA entity registry. */
+export async function getHomeAssistantEntities(
+  serverId: string,
+  token?: string,
+): Promise<HomeAssistantEntity[]> {
+  return request<HomeAssistantEntity[]>(
+    `/fleet/homeassistant/get_homeassistant_entities?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** POST /api/fleet/homeassistant/homeassistant_toggle?server_id=X&entity_id=X — toggle an entity. */
+export async function homeAssistantToggle(
+  serverId: string,
+  entityId: string,
+  token?: string,
+): Promise<void> {
+  return request<void>(
+    `/fleet/homeassistant/homeassistant_toggle?server_id=${encodeURIComponent(
+      serverId,
+    )}&entity_id=${encodeURIComponent(entityId)}`,
+    { method: 'POST', token },
+  );
+}
+
+/** POST /api/fleet/homeassistant/homeassistant_turn_on?server_id=X&entity_id=X — turn an entity on. */
+export async function homeAssistantTurnOn(
+  serverId: string,
+  entityId: string,
+  token?: string,
+): Promise<void> {
+  return request<void>(
+    `/fleet/homeassistant/homeassistant_turn_on?server_id=${encodeURIComponent(
+      serverId,
+    )}&entity_id=${encodeURIComponent(entityId)}`,
+    { method: 'POST', token },
+  );
+}
+
+/** POST /api/fleet/homeassistant/homeassistant_turn_off?server_id=X&entity_id=X — turn an entity off. */
+export async function homeAssistantTurnOff(
+  serverId: string,
+  entityId: string,
+  token?: string,
+): Promise<void> {
+  return request<void>(
+    `/fleet/homeassistant/homeassistant_turn_off?server_id=${encodeURIComponent(
+      serverId,
+    )}&entity_id=${encodeURIComponent(entityId)}`,
     { method: 'POST', token },
   );
 }

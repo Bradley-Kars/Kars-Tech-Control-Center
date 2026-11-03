@@ -18,6 +18,11 @@ import type {
   AdGuardStats,
   AdGuardQueryLog,
   AdGuardDHCP,
+  HomeAssistantState,
+  HomeAssistantConfig,
+  HomeAssistantArea,
+  HomeAssistantDevice,
+  HomeAssistantEntity,
 } from './types';
 import {
   setAuthToken,
@@ -52,6 +57,14 @@ import {
   getAdGuardDhcp,
   adguardEnable,
   adguardDisable,
+  getHomeAssistantStates,
+  getHomeAssistantConfig,
+  getHomeAssistantAreas,
+  getHomeAssistantDevices,
+  getHomeAssistantEntities,
+  homeAssistantToggle,
+  homeAssistantTurnOn,
+  homeAssistantTurnOff,
 } from './fleet-api';
 
 const fetchMock = vi.fn();
@@ -982,6 +995,233 @@ describe('adguardDisable', () => {
     setAuthToken('fleet-secret');
     fetchMock.mockResolvedValue(jsonResponse({ status: 'disabled' }));
     await adguardDisable('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getHomeAssistantStates', () => {
+  const states: HomeAssistantState[] = [
+    {
+      entity_id: 'light.kitchen',
+      state: 'on',
+      attributes: { brightness: 255 },
+      last_changed: '2026-11-03T10:00:00Z',
+      last_updated: '2026-11-03T10:00:00Z',
+      context: { id: 'abc123' },
+    },
+  ];
+
+  it('GETs /api/fleet/homeassistant/get_homeassistant_states?server_id=X and returns states', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(states));
+    const result = await getHomeAssistantStates('s1');
+    expect(result).toEqual(states);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/homeassistant/get_homeassistant_states?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(states));
+    await getHomeAssistantStates('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getHomeAssistantConfig', () => {
+  const config: HomeAssistantConfig = {
+    components: ['frontend', 'http'],
+    config_dir: '/config',
+    elevation: 0.0,
+    latitude: 51.5,
+    location_name: 'Home',
+    longitude: -0.1,
+    time_zone: 'Europe/London',
+    unit_system: { unit_system: 'metric' },
+    version: '2026.11.0',
+    allowlist_external_dirs: [],
+    allowlist_external_urls: [],
+    currency: 'GBP',
+    external_url: 'https://<device>.<tailnet>.ts.net:8123',
+    internal_url: 'http://<device>.<tailnet>.local:8123',
+    theme: null,
+    language: 'en',
+  };
+
+  it('GETs /api/fleet/homeassistant/get_homeassistant_config?server_id=X and returns config', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(config));
+    const result = await getHomeAssistantConfig('s1');
+    expect(result).toEqual(config);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/homeassistant/get_homeassistant_config?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(config));
+    await getHomeAssistantConfig('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getHomeAssistantAreas', () => {
+  const areas: HomeAssistantArea[] = [
+    { area_id: 'area-1', name: 'Kitchen', picture: null, icon: 'mdi:food', floor_id: null },
+  ];
+
+  it('GETs /api/fleet/homeassistant/get_homeassistant_areas?server_id=X and returns areas', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(areas));
+    const result = await getHomeAssistantAreas('s1');
+    expect(result).toEqual(areas);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/homeassistant/get_homeassistant_areas?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(areas));
+    await getHomeAssistantAreas('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getHomeAssistantDevices', () => {
+  const devices: HomeAssistantDevice[] = [
+    {
+      id: 'device-1',
+      name: 'Kitchen Light',
+      name_by_user: null,
+      model: 'LZB01',
+      manufacturer: 'Philips',
+      sw_version: '2.0',
+      hw_version: '1.0',
+      area_id: 'area-1',
+      labels: ['lighting'],
+      config_entries: ['entry-1'],
+      entry_type: null,
+      identifiers: [['hue', '001']],
+      connections: [],
+      via_device_id: null,
+    },
+  ];
+
+  it('GETs /api/fleet/homeassistant/get_homeassistant_devices?server_id=X and returns devices', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(devices));
+    const result = await getHomeAssistantDevices('s1');
+    expect(result).toEqual(devices);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/homeassistant/get_homeassistant_devices?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(devices));
+    await getHomeAssistantDevices('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getHomeAssistantEntities', () => {
+  const entities: HomeAssistantEntity[] = [
+    {
+      entity_id: 'light.kitchen',
+      unique_id: 'unique-1',
+      platform: 'hue',
+      device_id: 'device-1',
+      area_id: 'area-1',
+      name: 'Kitchen Light',
+      original_name: null,
+      disabled_by: null,
+      hidden_by: null,
+      entity_category: null,
+      icon: null,
+      unit_of_measurement: null,
+      device_class: 'light',
+      original_device_class: null,
+      supported_features: 1,
+      capabilities: { supported_color_modes: [1, 2] },
+    },
+  ];
+
+  it('GETs /api/fleet/homeassistant/get_homeassistant_entities?server_id=X and returns entities', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(entities));
+    const result = await getHomeAssistantEntities('s1');
+    expect(result).toEqual(entities);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/homeassistant/get_homeassistant_entities?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(entities));
+    await getHomeAssistantEntities('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('homeAssistantToggle', () => {
+  it('POSTs /api/fleet/homeassistant/homeassistant_toggle?server_id=X&entity_id=X and returns void', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({}));
+    await homeAssistantToggle('s1', 'light.kitchen');
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/homeassistant/homeassistant_toggle?server_id=s1&entity_id=light.kitchen',
+    );
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('POST');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse({}));
+    await homeAssistantToggle('s1', 'light.kitchen');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('homeAssistantTurnOn', () => {
+  it('POSTs /api/fleet/homeassistant/homeassistant_turn_on?server_id=X&entity_id=X and returns void', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({}));
+    await homeAssistantTurnOn('s1', 'light.kitchen');
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/homeassistant/homeassistant_turn_on?server_id=s1&entity_id=light.kitchen',
+    );
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('POST');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse({}));
+    await homeAssistantTurnOn('s1', 'light.kitchen');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('homeAssistantTurnOff', () => {
+  it('POSTs /api/fleet/homeassistant/homeassistant_turn_off?server_id=X&entity_id=X and returns void', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({}));
+    await homeAssistantTurnOff('s1', 'light.kitchen');
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/homeassistant/homeassistant_turn_off?server_id=s1&entity_id=light.kitchen',
+    );
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('POST');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse({}));
+    await homeAssistantTurnOff('s1', 'light.kitchen');
     const [, init] = fetchMock.mock.calls[0];
     expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
   });

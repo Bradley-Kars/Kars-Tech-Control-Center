@@ -339,6 +339,94 @@ export interface SmartInfo {
   health: string;
 }
 
+// ---------------------------------------------------------------------------
+// Home Assistant (ported from src-tauri/src/services/homeassistant.rs in P8)
+// ---------------------------------------------------------------------------
+
+export interface HomeAssistantState {
+  entity_id: string;
+  state: string;
+  attributes: Record<string, any>;
+  last_changed: string;
+  last_updated: string;
+  context: Record<string, any>;
+}
+
+export interface HomeAssistantConfig {
+  components: string[];
+  config_dir: string;
+  elevation: number;
+  latitude: number;
+  location_name: string;
+  longitude: number;
+  time_zone: string;
+  unit_system: any;
+  version: string;
+  allowlist_external_dirs: string[];
+  allowlist_external_urls: string[];
+  currency: string;
+  external_url: string | null;
+  internal_url: string | null;
+  theme: string | null;
+  language: string | null;
+}
+
+export interface HomeAssistantService {
+  domain: string;
+  service: string;
+  description: string;
+  fields: Record<string, any>;
+  target: any;
+}
+
+export interface HomeAssistantServices {
+  services: Record<string, Record<string, HomeAssistantService>>;
+}
+
+export interface HomeAssistantArea {
+  area_id: string;
+  name: string;
+  picture: string | null;
+  icon: string | null;
+  floor_id: string | null;
+}
+
+export interface HomeAssistantDevice {
+  id: string;
+  name: string;
+  name_by_user: string | null;
+  model: string | null;
+  manufacturer: string | null;
+  sw_version: string | null;
+  hw_version: string | null;
+  area_id: string | null;
+  labels: string[];
+  config_entries: string[];
+  entry_type: string | null;
+  identifiers: string[][];
+  connections: string[][];
+  via_device_id: string | null;
+}
+
+export interface HomeAssistantEntity {
+  entity_id: string;
+  unique_id: string;
+  platform: string;
+  device_id: string | null;
+  area_id: string | null;
+  name: string | null;
+  original_name: string | null;
+  disabled_by: string | null;
+  hidden_by: string | null;
+  entity_category: string | null;
+  icon: string | null;
+  unit_of_measurement: string | null;
+  device_class: string | null;
+  original_device_class: string | null;
+  supported_features: number;
+  capabilities: any;
+}
+
 export interface ServiceTestResults {
   graphql: boolean;
   nextcloud: boolean;
