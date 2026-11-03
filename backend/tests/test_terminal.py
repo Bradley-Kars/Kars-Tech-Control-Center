@@ -185,3 +185,74 @@ class TestAdmin:
             assert msg["type"] == "output"
             assert "hello" in msg["data"]
 
+    def test_empty_token_rejected(self, app_client):
+        """A present-but-empty token is a missing identity: refused."""
+        client, _secret = app_client
+        with pytest.raises(WebSocketDisconnect):
+            with client.websocket_connect("/ws/pty/stub?token="):
+                pass  # pragma: no cover - should not accept
+
+
+# ---------------------------------------------------------------------------
+# Origin validation (T3)
+# ---------------------------------------------------------------------------
+
+
+class TestOrigin:
+    def test_bad_origin_rejected(self, app_client):
+        """An Origin header whose host differs from the Host header is
+        refused before the pty is started (CSRF-style protection)."""
+        client, secret = app_client
+        with pytest.raises(WebSocketDisconnect):
+            with client.websocket_connect(
+                f"/ws/pty/stub?token={secret}",
+                headers={"Origin": "http://evil.example"},
+            ):
+                pass  # pragma: no cover - should not accept
+
+    def test_no_origin_allowed(self, app_client):
+        """No Origin header: the connection proceeds (non-browser clients)."""
+        client, secret = app_client
+        with client.websocket_connect(f"/ws/pty/stub?token={secret}") as ws:
+            ws.send_json({"type": "input", "data": "hello"})
+            msg = ws.receive_json()
+            assert msg["type"] == "output"
+            assert "hello" in msg["data"]
+
+    def test_matching_origin_allowed(self, app_client):
+        """An Origin matching the Host header is accepted."""
+        client, secret = app_client
+        with client.websocket_connect(
+            f"/ws/pty/stub?token={secret}",
+            headers={"Origin": "http://testserver"},
+        ) as ws:
+            ws.send_json({"type": "input", "data": "hello"})
+            msg = ws.receive_json()
+            assert msg["type"] == "output"
+            assert "hello" in msg["data"]
+
+
+# ---------------------------------------------------------------------------
+# Client-supplied argv rejection (T3)
+# ---------------------------------------------------------------------------
+
+
+class TestArgvRejection:
+    def test_unknown_message_type_rejected(self, app_client):
+        """Any message type other than input/resize closes the connection."""
+        client, secret = app_client
+        with client.websocket_connect(f"/ws/pty/stub?token={secret}") as ws:
+            ws.send_json({"type": "exec", "argv": ["/bin/sh", "-c", "id"]})
+            with pytest.raises(WebSocketDisconnect):
+                ws.receive_json()
+
+    def test_argv_key_rejected(self, app_client):
+        """A message carrying an argv key is rejected even with a known type."""
+        client, secret = app_client
+        with client.websocket_connect(f"/ws/pty/stub?token={secret}") as ws:
+            ws.send_json(
+                {"type": "input", "data": "hello", "argv": ["/bin/sh"]}
+            )
+            with pytest.raises(WebSocketDisconnect):
+                ws.receive_json()
+

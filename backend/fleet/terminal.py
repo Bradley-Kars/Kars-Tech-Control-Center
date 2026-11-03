@@ -277,6 +277,17 @@ def create_router(
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
 
+        # Origin validation (CSRF-style protection for websocket connections).
+        # A browser always sends Origin; reject it when its host differs from
+        # the Host header.  No Origin header (non-browser clients) is allowed.
+        origin = websocket.headers.get("origin")
+        if origin is not None:
+            origin_host = origin.split("://")[-1].split("/")[0].split(":")[0]
+            host = websocket.headers.get("host", "").split(":")[0]
+            if origin_host and origin_host != host:
+                await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+                return
+
         await websocket.accept()
 
         session = PtySession(profile, websocket)
@@ -294,7 +305,12 @@ def create_router(
                 raw = await websocket.receive_json()
                 if not isinstance(raw, dict):
                     continue
+                # Reject any attempt to supply argv from the client: only the
+                # allowlisted message types (input, resize) are accepted.
                 msg_type = raw.get("type")
+                if msg_type not in ("input", "resize") or "argv" in raw:
+                    await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+                    return
                 if msg_type == "input":
                     data = raw.get("data")
                     if isinstance(data, str):
