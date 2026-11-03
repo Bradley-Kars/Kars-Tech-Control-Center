@@ -14,6 +14,10 @@ import type {
   NextcloudStorage,
   NextcloudUser,
   NextcloudActivity,
+  AdGuardStatus,
+  AdGuardStats,
+  AdGuardQueryLog,
+  AdGuardDHCP,
 } from './types';
 import {
   setAuthToken,
@@ -40,6 +44,14 @@ import {
   getNextcloudStorage,
   getNextcloudUsers,
   getNextcloudActivity,
+  getAdGuardStatus,
+  getAdGuardStats,
+  getAdGuardQueryLog,
+  getAdGuardClients,
+  getAdGuardFilters,
+  getAdGuardDhcp,
+  adguardEnable,
+  adguardDisable,
 } from './fleet-api';
 
 const fetchMock = vi.fn();
@@ -760,6 +772,216 @@ describe('getNextcloudActivity', () => {
     setAuthToken('fleet-secret');
     fetchMock.mockResolvedValue(jsonResponse(activity));
     await getNextcloudActivity('s1', 20);
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// AdGuard
+// ---------------------------------------------------------------------------
+
+describe('getAdGuardStatus', () => {
+  const status: AdGuardStatus = {
+    version: '0.107.0',
+    dns_addresses: ['10.0.0.1', '10.0.0.2'],
+    config_hash: 'abc123',
+    protection_enabled: true,
+  };
+
+  it('GETs /api/fleet/adguard/status?server_id=X and returns the status', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(status));
+    const result = await getAdGuardStatus('s1');
+    expect(result).toEqual(status);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/adguard/status?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(status));
+    await getAdGuardStatus('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(getAdGuardStatus('s1')).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'not found' }, 404));
+    let err: { status: number; detail: string } | null = null;
+    await getAdGuardStatus('s1').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(404);
+    expect(err!.detail).toBe('not found');
+  });
+});
+
+describe('getAdGuardStats', () => {
+  const stats: AdGuardStats = {
+    dns_queries: {
+      total: 10000,
+      blocked: 2500,
+      replaced: 100,
+      safe_browsing: 50,
+      parental: 25,
+      avg_processing_time: 12.5,
+    },
+    blocked: { domains: 2000, clients: 5 },
+    replaced: { domains: 80, clients: 3 },
+    clients: { total: 50, active: 45 },
+    filters: { total: 10, enabled: 9 },
+  };
+
+  it('GETs /api/fleet/adguard/stats?server_id=X and returns the stats', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(stats));
+    const result = await getAdGuardStats('s1');
+    expect(result).toEqual(stats);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/adguard/stats?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(stats));
+    await getAdGuardStats('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(getAdGuardStats('s1')).rejects.toMatchObject({ status: 0 });
+  });
+});
+
+describe('getAdGuardQueryLog', () => {
+  const log: AdGuardQueryLog = { data: [], limit: 50, offset: 0, total: 0 };
+
+  it('GETs /api/fleet/adguard/querylog?server_id=X&limit=X&offset=X', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(log));
+    const result = await getAdGuardQueryLog('s1', 20, 0);
+    expect(result).toEqual(log);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/adguard/querylog?server_id=s1&limit=20&offset=0'
+    );
+  });
+
+  it('omits limit and offset when not provided', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(log));
+    await getAdGuardQueryLog('s1');
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/adguard/querylog?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(log));
+    await getAdGuardQueryLog('s1', 20, 0);
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getAdGuardClients', () => {
+  const clients = [{ name: 'laptop', ids: ['192.168.1.50'] }];
+
+  it('GETs /api/fleet/adguard/clients?server_id=X and returns clients', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(clients));
+    const result = await getAdGuardClients('s1');
+    expect(result).toEqual(clients);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/adguard/clients?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(clients));
+    await getAdGuardClients('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getAdGuardFilters', () => {
+  const filters = [{ name: 'Default', rules_count: 100, enabled: true }];
+
+  it('GETs /api/fleet/adguard/filters?server_id=X and returns filters', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(filters));
+    const result = await getAdGuardFilters('s1');
+    expect(result).toEqual(filters);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/adguard/filters?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(filters));
+    await getAdGuardFilters('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getAdGuardDhcp', () => {
+  const dhcp: AdGuardDHCP = { enabled: true, leases: [] };
+
+  it('GETs /api/fleet/adguard/dhcp?server_id=X and returns dhcp', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(dhcp));
+    const result = await getAdGuardDhcp('s1');
+    expect(result).toEqual(dhcp);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/adguard/dhcp?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(dhcp));
+    await getAdGuardDhcp('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('adguardEnable', () => {
+  it('POSTs /api/fleet/adguard/enable?server_id=X and returns void', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ status: 'enabled' }));
+    await adguardEnable('s1');
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/adguard/enable?server_id=s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('POST');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse({ status: 'enabled' }));
+    await adguardEnable('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('adguardDisable', () => {
+  it('POSTs /api/fleet/adguard/disable?server_id=X and returns void', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ status: 'disabled' }));
+    await adguardDisable('s1');
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/adguard/disable?server_id=s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('POST');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse({ status: 'disabled' }));
+    await adguardDisable('s1');
     const [, init] = fetchMock.mock.calls[0];
     expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
   });

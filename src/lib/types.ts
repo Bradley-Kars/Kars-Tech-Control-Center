@@ -556,6 +556,64 @@ export interface NextcloudActivity {
   activities: ActivityItem[];
 }
 
+// --- AdGuard Home (ported in P7) ---------------------------------------------
+// Mirrors the local interfaces in src/components/adguard/AdGuardPage.tsx
+// and the Rust structs in src-tauri/src/services/adguard.rs.
+export interface AdGuardDnsQueries {
+  total: number;
+  blocked: number;
+  replaced: number;
+  safe_browsing: number;
+  parental: number;
+  avg_processing_time: number;
+}
+
+export interface AdGuardStats {
+  dns_queries: AdGuardDnsQueries;
+  blocked: { domains: number; clients: number };
+  replaced: { domains: number; clients: number };
+  clients: { total: number; active: number };
+  filters: { total: number; enabled: number };
+}
+
+export interface AdGuardQueryLogEntry {
+  time: string;
+  client: string;
+  name: string;
+  type: string;
+  status: string;
+  reason?: string;
+  upstream?: string;
+  elapsed_ms?: string;
+}
+
+export interface AdGuardQueryLog {
+  data: AdGuardQueryLogEntry[];
+  limit: number;
+  offset: number;
+  total: number;
+}
+
+export interface AdGuardDHCPLease {
+  ip: string;
+  mac: string;
+  hostname: string;
+  expires: number;
+  id: string;
+}
+
+export interface AdGuardDHCP {
+  enabled: boolean;
+  leases: AdGuardDHCPLease[];
+}
+
+export interface AdGuardStatus {
+  version: string;
+  dns_addresses: string[];
+  config_hash: string;
+  protection_enabled: boolean;
+}
+
 // --- OpenCode chat (sidecar) -------------------------------------------------
 export interface OpencodeStatus {
   running: boolean;

@@ -41,6 +41,10 @@ import type {
   NextcloudStorage,
   NextcloudUser,
   NextcloudActivity,
+  AdGuardStatus,
+  AdGuardStats,
+  AdGuardQueryLog,
+  AdGuardDHCP,
 } from './types';
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/+$/, '');
@@ -366,4 +370,100 @@ export async function getNextcloudActivity(
     serverId,
   )}${limit !== undefined ? `&limit=${encodeURIComponent(String(limit))}` : ""}`;
   return request<NextcloudActivity>(url, { token });
+}
+
+// ---------------------------------------------------------------------------
+// AdGuard Home (ported from tauri-commands.ts)
+// ---------------------------------------------------------------------------
+
+/** GET /api/fleet/adguard/status?server_id=X — AdGuard Home status. */
+export async function getAdGuardStatus(
+  serverId: string,
+  token?: string,
+): Promise<AdGuardStatus> {
+  return request<AdGuardStatus>(
+    `/fleet/adguard/status?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/adguard/stats?server_id=X — AdGuard Home statistics. */
+export async function getAdGuardStats(
+  serverId: string,
+  token?: string,
+): Promise<AdGuardStats> {
+  return request<AdGuardStats>(
+    `/fleet/adguard/stats?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/adguard/querylog?server_id=X&limit=X&offset=X — AdGuard query log. */
+export async function getAdGuardQueryLog(
+  serverId: string,
+  limit?: number,
+  offset?: number,
+  token?: string,
+): Promise<AdGuardQueryLog> {
+  const url = `/fleet/adguard/querylog?server_id=${encodeURIComponent(
+    serverId,
+  )}${limit !== undefined ? `&limit=${encodeURIComponent(String(limit))}` : ""}${
+    offset !== undefined ? `&offset=${encodeURIComponent(String(offset))}` : ""
+  }`;
+  return request<AdGuardQueryLog>(url, { token });
+}
+
+/** GET /api/fleet/adguard/clients?server_id=X — AdGuard Home clients. */
+export async function getAdGuardClients(
+  serverId: string,
+  token?: string,
+): Promise<any> {
+  return request<any>(
+    `/fleet/adguard/clients?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/adguard/filters?server_id=X — AdGuard Home filters. */
+export async function getAdGuardFilters(
+  serverId: string,
+  token?: string,
+): Promise<any> {
+  return request<any>(
+    `/fleet/adguard/filters?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/adguard/dhcp?server_id=X — AdGuard Home DHCP status. */
+export async function getAdGuardDhcp(
+  serverId: string,
+  token?: string,
+): Promise<AdGuardDHCP> {
+  return request<AdGuardDHCP>(
+    `/fleet/adguard/dhcp?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** POST /api/fleet/adguard/enable?server_id=X — enable AdGuard protection. */
+export async function adguardEnable(
+  serverId: string,
+  token?: string,
+): Promise<void> {
+  return request<void>(
+    `/fleet/adguard/enable?server_id=${encodeURIComponent(serverId)}`,
+    { method: 'POST', token },
+  );
+}
+
+/** POST /api/fleet/adguard/disable?server_id=X — disable AdGuard protection. */
+export async function adguardDisable(
+  serverId: string,
+  token?: string,
+): Promise<void> {
+  return request<void>(
+    `/fleet/adguard/disable?server_id=${encodeURIComponent(serverId)}`,
+    { method: 'POST', token },
+  );
 }

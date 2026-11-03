@@ -30,6 +30,15 @@ from .emhttp import EmhttpError, RealEmhttpClient
 from .parsers.nvidia import parse_nvidia_smi
 from .parsers.smart import parse_smartctl
 from .transport import SshCommandError, SshHelper, TransportError
+from .adguard_service import (
+    AdGuardDHCP,
+    AdGuardError,
+    AdGuardFilter,
+    AdGuardQueryLog,
+    AdGuardStats,
+    AdGuardStatus,
+    RealAdGuardClient,
+)
 from .nextcloud_service import (
     NextcloudActivity,
     NextcloudClient,
@@ -39,6 +48,15 @@ from .nextcloud_service import (
     NextcloudSystemStatus,
     NextcloudUser,
     RealNextcloudClient,
+)
+from .adguard_service import (
+    AdGuardClient,
+    AdGuardDHCP,
+    AdGuardError,
+    AdGuardQueryLog,
+    AdGuardStatus,
+    AdGuardStats,
+    RealAdGuardClient,
 )
 from .rest_service import (
     PlexIdentity,
@@ -898,6 +916,397 @@ async def nextcloud_activity(request: Request, server_id: str) -> Any:
         client = _nextcloud_client(server)
         return await client.get_activity(limit_int)
     except (ValueError, NextcloudError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+# ---------------------------------------------------------------------------
+# P7: AdGuard Home — status, stats, query log, clients, filters, DHCP and
+# protection enable/disable over the local /control/ API
+# ---------------------------------------------------------------------------
+
+
+def _adguard_client(server: ServerConfig) -> RealAdGuardClient:
+    """Build a RealAdGuardClient from a server's service_keys."""
+    keys = server.service_keys
+    base_url = keys.adguard_url if keys else None
+    username = keys.adguard_user if keys else None
+    password = keys.adguard_pass if keys else None
+    if not base_url or not base_url.strip():
+        raise ValueError("adguard_url not configured")
+    return RealAdGuardClient(
+        base_url=base_url,
+        username=username or "",
+        password=password or "",
+    )
+
+
+def _adguard_action_payload(body: Any) -> str | JSONResponse:
+    """Validate an AdGuard action body: {server_id}."""
+    if not isinstance(body, dict) or not body:
+        return JSONResponse(
+            {"detail": "body must be a non-empty object"}, status_code=422
+        )
+    server_id = body.get("server_id")
+    if not isinstance(server_id, str) or not server_id.strip():
+        return JSONResponse(
+            {"detail": "field 'server_id' is required"}, status_code=422
+        )
+    return server_id
+
+
+@router.get("/adguard/get_adguard_status")
+async def adguard_status(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/adguard/get_adguard_status?server_id=X — AdGuard status.
+
+    Mirrors the Tauri ``get_adguard_status`` command. A failed probe returns a
+    redacted 502.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _adguard_client(server)
+        return await client.get_status()
+    except (ValueError, AdGuardError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/adguard/get_adguard_stats")
+async def adguard_stats(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/adguard/get_adguard_stats?server_id=X — AdGuard stats.
+
+    Mirrors the Tauri ``get_adguard_stats`` command.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _adguard_client(server)
+        return await client.get_stats()
+    except (ValueError, AdGuardError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/adguard/get_adguard_query_log")
+async def adguard_query_log(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/adguard/get_adguard_query_log?server_id=X&limit=X&offset=X.
+
+    Mirrors the Tauri ``get_adguard_query_log`` command.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        limit = int(request.query_params.get("limit", 50))
+        offset = int(request.query_params.get("offset", 0))
+    except ValueError:
+        return JSONResponse(
+            {"detail": "limit and offset must be integers"}, status_code=422
+        )
+    try:
+        client = _adguard_client(server)
+        return await client.get_query_log(limit=limit, offset=offset)
+    except (ValueError, AdGuardError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/adguard/get_adguard_clients")
+async def adguard_clients(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/adguard/get_adguard_clients?server_id=X — AdGuard clients."""
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _adguard_client(server)
+        return await client.get_clients()
+    except (ValueError, AdGuardError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/adguard/get_adguard_filters")
+async def adguard_filters(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/adguard/get_adguard_filters?server_id=X — AdGuard filters."""
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _adguard_client(server)
+        return await client.get_filters()
+    except (ValueError, AdGuardError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/adguard/get_adguard_dhcp")
+async def adguard_dhcp(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/adguard/get_adguard_dhcp?server_id=X — AdGuard DHCP state."""
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _adguard_client(server)
+        return await client.get_dhcp()
+    except (ValueError, AdGuardError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.post("/adguard/adguard_enable")
+async def adguard_enable(request: Request, body: dict) -> Any:
+    """POST /api/fleet/adguard/adguard_enable — enable DNS protection.
+
+    Body: {server_id}. Requires scope=write (enforced by the create_app
+    middleware).
+    """
+    server_id = _adguard_action_payload(body)
+    if isinstance(server_id, JSONResponse):
+        return server_id
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _adguard_client(server)
+        await client.enable_protection()
+    except (ValueError, AdGuardError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+    return JSONResponse(content={"ok": True})
+
+
+@router.post("/adguard/adguard_disable")
+async def adguard_disable(request: Request, body: dict) -> Any:
+    """POST /api/fleet/adguard/adguard_disable — disable DNS protection.
+
+    Body: {server_id}. Requires scope=write (enforced by the create_app
+    middleware).
+    """
+    server_id = _adguard_action_payload(body)
+    if isinstance(server_id, JSONResponse):
+        return server_id
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _adguard_client(server)
+        await client.disable_protection()
+    except (ValueError, AdGuardError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+    return JSONResponse(content={"ok": True})
+
+
+# ---------------------------------------------------------------------------
+# P7: AdGuard Home over HTTP (basic auth)
+# ---------------------------------------------------------------------------
+
+
+def _adguard_client(server: ServerConfig) -> RealAdGuardClient:
+    """Build a RealAdGuardClient from a server's service_keys."""
+    keys = server.service_keys
+    base_url = keys.adguard_url if keys else None
+    username = keys.adguard_user if keys else None
+    password = keys.adguard_pass if keys else None
+    if not base_url or not base_url.strip():
+        raise ValueError("adguard_url not configured")
+    return RealAdGuardClient(
+        base_url=base_url,
+        username=username or "",
+        password=password or "",
+    )
+
+
+@router.get("/adguard/status")
+async def adguard_status(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/adguard/status?server_id=X — AdGuard Home status.
+
+    Mirrors the Tauri ``get_adguard_status`` command over the AdGuard Home API.
+    A failed probe returns a redacted 502.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _adguard_client(server)
+        return await client.get_status()
+    except (ValueError, AdGuardError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/adguard/stats")
+async def adguard_stats(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/adguard/stats?server_id=X — AdGuard Home statistics.
+
+    Mirrors the Tauri ``get_adguard_stats`` command over the AdGuard Home API.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _adguard_client(server)
+        return await client.get_stats()
+    except (ValueError, AdGuardError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/adguard/querylog")
+async def adguard_querylog(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/adguard/querylog?server_id=X&limit=X&offset=X — AdGuard query log.
+
+    Mirrors the Tauri ``get_adguard_query_log`` command over the AdGuard Home API.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    limit = request.query_params.get("limit")
+    offset = request.query_params.get("offset")
+    limit_int = int(limit) if limit else 50
+    offset_int = int(offset) if offset else 0
+    try:
+        client = _adguard_client(server)
+        return await client.get_query_log(limit_int, offset_int)
+    except (ValueError, AdGuardError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/adguard/clients")
+async def adguard_clients(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/adguard/clients?server_id=X — AdGuard Home clients.
+
+    Mirrors the Tauri ``get_adguard_clients`` command over the AdGuard Home API.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _adguard_client(server)
+        return await client.get_clients()
+    except (ValueError, AdGuardError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/adguard/filters")
+async def adguard_filters(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/adguard/filters?server_id=X — AdGuard Home filters.
+
+    Mirrors the Tauri ``get_adguard_filters`` command over the AdGuard Home API.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _adguard_client(server)
+        return await client.get_filters()
+    except (ValueError, AdGuardError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/adguard/dhcp")
+async def adguard_dhcp(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/adguard/dhcp?server_id=X — AdGuard Home DHCP status.
+
+    Mirrors the Tauri ``get_adguard_dhcp`` command over the AdGuard Home API.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _adguard_client(server)
+        return await client.get_dhcp()
+    except (ValueError, AdGuardError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.post("/adguard/enable")
+async def adguard_enable(request: Request, server_id: str) -> Any:
+    """POST /api/fleet/adguard/enable?server_id=X — enable AdGuard protection.
+
+    Mirrors the Tauri ``adguard_enable`` command over the AdGuard Home API.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _adguard_client(server)
+        await client.enable_protection()
+        return {"status": "enabled"}
+    except (ValueError, AdGuardError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.post("/adguard/disable")
+async def adguard_disable(request: Request, server_id: str) -> Any:
+    """POST /api/fleet/adguard/disable?server_id=X — disable AdGuard protection.
+
+    Mirrors the Tauri ``adguard_disable`` command over the AdGuard Home API.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _adguard_client(server)
+        await client.disable_protection()
+        return {"status": "disabled"}
+    except (ValueError, AdGuardError, httpx.HTTPError) as exc:
         return _probe_error(exc, server)
     except Exception as exc:  # pragma: no cover — secrets must never leak
         return _probe_error(exc, server)

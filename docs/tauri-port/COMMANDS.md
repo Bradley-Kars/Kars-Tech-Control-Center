@@ -100,14 +100,14 @@ set changes.
 
 | Command | Rust handler | UI files | Target route | Status |
 |---|---|---|---|---|
-| `get_adguard_status` | src-tauri/src/commands/mod.rs:1503 | — | /api/fleet/adguard/get_adguard_status | not ported |
-| `get_adguard_stats` | src-tauri/src/commands/mod.rs:1513 | — | /api/fleet/adguard/get_adguard_stats | not ported |
-| `get_adguard_query_log` | src-tauri/src/commands/mod.rs:1523 | — | /api/fleet/adguard/get_adguard_query_log | not ported |
-| `get_adguard_clients` | src-tauri/src/commands/mod.rs:1538 | — | /api/fleet/adguard/get_adguard_clients | not ported |
-| `get_adguard_filters` | src-tauri/src/commands/mod.rs:1548 | — | /api/fleet/adguard/get_adguard_filters | not ported |
-| `get_adguard_dhcp` | src-tauri/src/commands/mod.rs:1558 | — | /api/fleet/adguard/get_adguard_dhcp | not ported |
-| `adguard_enable` | src-tauri/src/commands/mod.rs:1568 | src/components/adguard/AdGuardPage.test.tsx, src/components/adguard/AdGuardPage.tsx | /api/fleet/adguard/adguard_enable | not ported |
-| `adguard_disable` | src-tauri/src/commands/mod.rs:1578 | src/components/adguard/AdGuardPage.test.tsx, src/components/adguard/AdGuardPage.tsx | /api/fleet/adguard/adguard_disable | not ported |
+| `get_adguard_status` | src-tauri/src/commands/mod.rs:1503 | src/components/adguard/AdGuardPage.tsx | /api/fleet/adguard/status | ported |
+| `get_adguard_stats` | src-tauri/src/commands/mod.rs:1513 | src/components/adguard/AdGuardPage.tsx | /api/fleet/adguard/stats | ported |
+| `get_adguard_query_log` | src-tauri/src/commands/mod.rs:1523 | src/components/adguard/AdGuardPage.tsx | /api/fleet/adguard/querylog | ported |
+| `get_adguard_clients` | src-tauri/src/commands/mod.rs:1538 | src/components/adguard/AdGuardPage.tsx | /api/fleet/adguard/clients | ported |
+| `get_adguard_filters` | src-tauri/src/commands/mod.rs:1548 | src/components/adguard/AdGuardPage.tsx | /api/fleet/adguard/filters | ported |
+| `get_adguard_dhcp` | src-tauri/src/commands/mod.rs:1558 | src/components/adguard/AdGuardPage.tsx | /api/fleet/adguard/dhcp | ported |
+| `adguard_enable` | src-tauri/src/commands/mod.rs:1568 | src/components/adguard/AdGuardPage.test.tsx, src/components/adguard/AdGuardPage.tsx | /api/fleet/adguard/enable | ported |
+| `adguard_disable` | src-tauri/src/commands/mod.rs:1578 | src/components/adguard/AdGuardPage.test.tsx, src/components/adguard/AdGuardPage.tsx | /api/fleet/adguard/disable | ported |
 
 ## Phone (host-local)
 

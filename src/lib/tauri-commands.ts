@@ -38,6 +38,14 @@ export {
   getNextcloudStorage,
   getNextcloudUsers,
   getNextcloudActivity,
+  getAdGuardStatus,
+  getAdGuardStats,
+  getAdGuardQueryLog,
+  getAdGuardClients,
+  getAdGuardFilters,
+  getAdGuardDhcp,
+  adguardEnable,
+  adguardDisable,
 } from './fleet-api';
 
 export async function dockerRemove(serverId: string, container: string): Promise<string> {
@@ -175,38 +183,7 @@ export async function getMySpeedServers(serverId: string): Promise<any> {
   return invoke('get_myspeed_servers', { serverId });
 }
 
-// AdGuard Home
-export async function getAdGuardStatus(serverId: string): Promise<any> {
-  return invoke('get_adguard_status', { serverId });
-}
-
-export async function getAdGuardStats(serverId: string): Promise<any> {
-  return invoke('get_adguard_stats', { serverId });
-}
-
-export async function getAdGuardQueryLog(serverId: string, limit: number, offset: number): Promise<any> {
-  return invoke('get_adguard_query_log', { serverId, limit, offset });
-}
-
-export async function getAdGuardClients(serverId: string): Promise<any> {
-  return invoke('get_adguard_clients', { serverId });
-}
-
-export async function getAdGuardFilters(serverId: string): Promise<any> {
-  return invoke('get_adguard_filters', { serverId });
-}
-
-export async function getAdGuardDhcp(serverId: string): Promise<any> {
-  return invoke('get_adguard_dhcp', { serverId });
-}
-
-export async function adguardEnable(serverId: string): Promise<void> {
-  return invoke('adguard_enable', { serverId });
-}
-
-export async function adguardDisable(serverId: string): Promise<void> {
-  return invoke('adguard_disable', { serverId });
-}
+// AdGuard Home — ported to fleet-api.ts (re-exported above)
 
 // Phone
 export async function getPhoneDeviceInfo(serverId: string): Promise<any> {
