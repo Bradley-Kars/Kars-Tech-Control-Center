@@ -59,7 +59,7 @@ export function Gauge({
   const clampedValue = Math.max(0, Math.min(100, value));
   const offset = circumference - (clampedValue / 100) * circumference;
   // Fit text inside the ring: JetBrains Mono ≈ 0.62em per char.
-  const rawText = loading ? '··' : valueFormatter(clampedValue);
+  const rawText = loading ? '—' : valueFormatter(clampedValue);
   const innerDiameter = 2 * radius - strokeWidth;
   const maxTextWidth = Math.max(innerDiameter - 8, 8);
   const fittedFontSize = Math.max(

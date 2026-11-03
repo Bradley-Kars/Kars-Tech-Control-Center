@@ -41,8 +41,14 @@ describe('Gauge', () => {
     expect(px).toBe(10);
   });
 
-  it('shows pulsing placeholder while loading', () => {
-    render(<Gauge value={42} loading />);
-    expect(screen.getByText('··')).toBeInTheDocument();
+  it('shows an explicit loading label instead of an unreadable placeholder', () => {
+    render(<Gauge value={42} loading size="base" />);
+    expect(screen.getByText('—')).toBeInTheDocument();
+  });
+
+  it('clamps value font to a minimum readable size for very long/high values', () => {
+    render(<Gauge value={100} size="xs" valueFormatter={() => '1234567890'} />);
+    const span = screen.getByText('1234567890');
+    expect(parseFloat(span.style.fontSize)).toBeGreaterThanOrEqual(10);
   });
 });
