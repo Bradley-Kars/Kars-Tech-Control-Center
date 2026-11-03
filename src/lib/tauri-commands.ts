@@ -24,17 +24,7 @@ export async function testConnection(config: ServerConfig): Promise<TestConnecti
   return invoke('test_connection', { config });
 }
 
-export async function saveServer(config: ServerConfig): Promise<void> {
-  return invoke('save_server', { config });
-}
-
-export async function removeServer(id: string): Promise<void> {
-  return invoke('remove_server', { id });
-}
-
-export async function getServers(): Promise<ServerConfig[]> {
-  return invoke('get_servers');
-}
+export { getServers, saveServer, removeServer } from './fleet-api';
 
 export async function getSystemStats(serverId: string): Promise<any> {
   return invoke('get_system_stats', { serverId });
