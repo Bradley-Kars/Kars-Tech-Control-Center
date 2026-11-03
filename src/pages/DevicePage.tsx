@@ -102,7 +102,7 @@ function DeviceHeader({
           <h1 className="font-[var(--kts-font-heading)] font-bold truncate" style={{ fontSize: 'var(--kts-font-size-3xl)', letterSpacing: '-0.02em' }}>
             {meta.label}
           </h1>
-          <StatusBadge state={badgeState} label={badgeLabel} pulsing={status === 'online'} />
+          <StatusBadge state={badgeState} label={badgeLabel} pulsing={status !== 'online'} />
         </div>
         <p className="text-[var(--kts-text-secondary)] mt-0.5" style={{ fontSize: 'var(--kts-font-size-sm)' }}>
           {meta.blurb}
@@ -149,7 +149,7 @@ function LocalDevice() {
       <DeviceHeader deviceId="local" status={loading ? 'unknown' : system ? 'online' : 'offline'} onRefresh={refresh} />
 
       {/* Vitals */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card padded>
           <Gauge size="base" value={cpu} variant={offline ? 'default' : cpu > 80 ? 'danger' : cpu > 50 ? 'warning' : 'success'} label="CPU" showValue loading={loading} />
         </Card>
@@ -174,21 +174,28 @@ function LocalDevice() {
         {/* System details */}
         <Card>
           <CardSection title="System" subtitle="This machine">
-            <dl className="divide-y divide-[var(--kts-border-default)]" style={{ fontSize: 'var(--kts-font-size-sm)' }}>
-              {[
-                ['Hostname', system?.hostname ?? '—'],
-                ['Kernel', system?.kernel ?? '—'],
-                ['Uptime', system?.uptime ?? '—'],
-                ['CPU', system?.cpu_brand ?? '—'],
-                ['Cores', system?.cpu_cores != null ? String(system.cpu_cores) : '—'],
-                ['Memory', system?.memory_total_mb != null ? `${Math.round(system.memory_used_mb ?? 0)} / ${Math.round(system.memory_total_mb)} MB` : '—'],
-              ].map(([k, v]) => (
-                <div key={k} className="flex items-center justify-between py-2.5 gap-4">
-                  <dt className="text-[var(--kts-text-secondary)]">{k}</dt>
-                  <dd className="font-[var(--kts-font-mono)] text-[var(--kts-text-primary)] truncate text-right">{v}</dd>
-                </div>
-              ))}
-            </dl>
+              <dl className="divide-y divide-[var(--kts-border-default)]" style={{ fontSize: 'var(--kts-font-size-sm)' }}>
+                {[
+                  ['Hostname', system?.hostname ?? '—', system ? undefined : 'offline'],
+                  ['Kernel', system?.kernel ?? '—', system ? undefined : 'offline'],
+                  ['Uptime', system?.uptime ?? '—', system ? undefined : 'offline'],
+                  ['CPU', system?.cpu_brand ?? '—', system ? undefined : 'offline'],
+                  ['Cores', system?.cpu_cores != null ? String(system.cpu_cores) : '—', system ? undefined : 'offline'],
+                  ['Memory', system?.memory_total_mb != null ? `${Math.round(system.memory_used_mb ?? 0)} / ${Math.round(system.memory_total_mb)} MB` : '—', system ? undefined : 'offline'],
+                ].map(([k, v, reason]) => (
+                  <div key={k} className="flex items-center justify-between py-2.5 gap-4">
+                    <dt className="text-[var(--kts-text-secondary)]">{k}</dt>
+                    <dd className="font-[var(--kts-font-mono)] text-[var(--kts-text-primary)] truncate text-right">{v}</dd>
+                    {reason && (
+                      <Tooltip content={reason === 'offline' ? 'Device offline — no data available' : 'No data available'} position="top">
+                        <span className="text-[var(--kts-text-tertiary)]" style={{ fontSize: 'var(--kts-font-size-xs)' }}>
+                          {v}
+                        </span>
+                      </Tooltip>
+                    )}
+                  </div>
+                ))}
+              </dl>
           </CardSection>
         </Card>
 
