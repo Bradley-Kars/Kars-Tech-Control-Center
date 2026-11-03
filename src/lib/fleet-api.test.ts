@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { ServerConfig, TestConnectionResult } from './types';
+import type {
+  ServerConfig,
+  SystemStats,
+  GpuInfo,
+  SmartInfo,
+  TestConnectionResult,
+} from './types';
 import {
   setAuthToken,
   clearAuthToken,
@@ -8,6 +14,10 @@ import {
   saveServer,
   removeServer,
   testConnection,
+  getSystemStats,
+  getGpuInfo,
+  getSmartData,
+  getLocalSystemStats,
 } from './fleet-api';
 
 const fetchMock = vi.fn();
@@ -214,5 +224,111 @@ describe('testConnection', () => {
     expect(err).not.toBeNull();
     expect(err!.status).toBe(422);
     expect(err!.detail).toBe('bad config');
+  });
+});
+
+describe('getSystemStats', () => {
+  const stats: SystemStats = {
+    hostname: 'home-server',
+    kernel: '6.1.15-unraid',
+    uptime: 'up 3 days',
+    cpu_usage: 12.4,
+    cpu_cores: 16,
+    memory_total_mb: 32768,
+    memory_used_mb: 16777,
+    memory_usage_pct: 51.2,
+    load_avg: [0.5, 0.4, 0.3],
+    array_state: 'UNKNOWN',
+  };
+
+  it('GETs /fleet/system/stats?server_id=X and returns the parsed stats', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(stats));
+    const result = await getSystemStats('s1');
+    expect(result).toEqual(stats);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/system/stats?server_id=s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('GET');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(stats));
+    await getSystemStats('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getGpuInfo', () => {
+  const gpu: GpuInfo = {
+    name: 'GeForce RTX 4090',
+    driver_version: '535.86.01',
+    cuda_version: '',
+    temperature: '58',
+    power_usage: '',
+    power_cap: '',
+    memory_used: '2048',
+    memory_total: '24576',
+    utilization: '99',
+    fan_speed: '',
+  };
+
+  it('GETs /fleet/gpu-info?server_id=X and returns the GPU info', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(gpu));
+    const result = await getGpuInfo('s1');
+    expect(result).toEqual(gpu);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/unraid/get_gpu_info?server_id=s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('GET');
+  });
+});
+
+describe('getSmartData', () => {
+  const smart: SmartInfo = {
+    device: '/dev/sda',
+    model: 'Samsung SSD 870 EVO',
+    capacity: '500 GB',
+    power_on_hours: '12345',
+    temperature: '32',
+    reallocated_sectors: '0',
+    pending_sectors: '0',
+    health: 'PASSED',
+  };
+
+  it('GETs /fleet/smart-data?server_id=X&device=Y and returns SMART info', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(smart));
+    const result = await getSmartData('s1', '/dev/sda');
+    expect(result).toEqual(smart);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/unraid/get_smart_data?server_id=s1&device=%2Fdev%2Fsda');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('GET');
+  });
+});
+
+describe('getLocalSystemStats', () => {
+  const stats: SystemStats = {
+    hostname: 'localhost',
+    kernel: '6.1.15',
+    uptime: 'up 1 hour',
+    cpu_usage: 5.0,
+    cpu_cores: 8,
+    memory_total_mb: 16384,
+    memory_used_mb: 4096,
+    memory_usage_pct: 25.0,
+    load_avg: [0.1, 0.2, 0.3],
+    array_state: 'UNKNOWN',
+  };
+
+  it('GETs /fleet/local/stats and returns host-local stats', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(stats));
+    const result = await getLocalSystemStats();
+    expect(result).toEqual(stats);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/local/stats');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('GET');
   });
 });

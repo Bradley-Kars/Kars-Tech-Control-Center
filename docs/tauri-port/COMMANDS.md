@@ -34,11 +34,11 @@ set changes.
 
 | Command | Rust handler | UI files | Target route | Status |
 |---|---|---|---|---|
-| `get_system_stats` | src-tauri/src/commands/mod.rs:255 | src/App.test.tsx, src/hooks/index.ts | /api/fleet/system/stats | not ported |
+| `get_system_stats` | src-tauri/src/commands/mod.rs:255 | src/App.test.tsx, src/hooks/index.ts | /api/fleet/system/stats | ported |
 | `get_docker_containers` | src-tauri/src/commands/mod.rs:584 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx, src/components/docker/DockerPage.test.tsx, src/components/docker/DockerPage.tsx | /api/fleet/unraid/get_docker_containers | not ported |
-| `get_gpu_info` | src-tauri/src/commands/mod.rs:896 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx | /api/fleet/unraid/get_gpu_info | not ported |
+| `get_gpu_info` | src-tauri/src/commands/mod.rs:896 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx | /api/fleet/unraid/get_gpu_info | ported |
 | `get_disks` | src-tauri/src/commands/mod.rs:767 | src/components/storage/StoragePage.test.tsx, src/components/storage/StoragePage.tsx | /api/fleet/unraid/get_disks | not ported |
-| `get_smart_data` | src-tauri/src/commands/mod.rs:753 | src/components/storage/StoragePage.test.tsx, src/components/storage/StoragePage.tsx | /api/fleet/unraid/get_smart_data | not ported |
+| `get_smart_data` | src-tauri/src/commands/mod.rs:753 | src/components/storage/StoragePage.test.tsx, src/components/storage/StoragePage.tsx | /api/fleet/unraid/get_smart_data | ported |
 | `get_shares` | src-tauri/src/commands/mod.rs:848 | src/components/storage/StoragePage.test.tsx, src/components/storage/StoragePage.tsx | /api/fleet/unraid/get_shares | not ported |
 | `get_processes` | src-tauri/src/commands/mod.rs:907 | src/components/system/SystemPage.test.tsx, src/components/system/SystemPage.tsx | /api/fleet/unraid/get_processes | not ported |
 | `get_syslog` | src-tauri/src/commands/mod.rs:918 | src/components/system/SystemPage.test.tsx, src/components/system/SystemPage.tsx | /api/fleet/unraid/get_syslog | not ported |
@@ -191,7 +191,7 @@ set changes.
 
 | Command | Rust handler | UI files | Target route | Status |
 |---|---|---|---|---|
-| `get_local_system_stats` | src-tauri/src/commands/mod.rs:1186 | src/App.test.tsx, src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx, src/hooks/index.ts | /api/fleet/local/stats (host-only) | not ported |
+| `get_local_system_stats` | src-tauri/src/commands/mod.rs:1186 | src/App.test.tsx, src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx, src/hooks/index.ts | /api/fleet/local/stats (host-only) | ported |
 
 ## REST services (Plex + generic)
 

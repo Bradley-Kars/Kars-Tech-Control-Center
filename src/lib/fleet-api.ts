@@ -9,15 +9,19 @@
  *   - FleetApiError (with .status and .detail) on non-ok responses
  *
  * Ported from src/lib/tauri-commands.ts:
- *   getServers      -> GET    /api/fleet/servers
- *   saveServer      -> POST   /api/fleet/servers
- *   removeServer    -> DELETE /api/fleet/servers/{id}
- *   testConnection  -> POST   /api/fleet/test_connection
+ *   getServers         -> GET    /api/fleet/servers
+ *   saveServer         -> POST   /api/fleet/servers
+ *   removeServer       -> DELETE /api/fleet/servers/{id}
+ *   testConnection     -> POST   /api/fleet/test_connection
+ *   getSystemStats     -> GET    /api/fleet/system/stats?server_id=X
+ *   getGpuInfo         -> GET    /api/fleet/unraid/get_gpu_info?server_id=X
+ *   getSmartData       -> GET    /api/fleet/unraid/get_smart_data?server_id=X&device=X
+ *   getLocalSystemStats-> GET    /api/fleet/local/stats (host-local, no SSH)
  *
  * Everything else in tauri-commands.ts stays a "not ported yet" stub there.
  */
 
-import type { ServerConfig, TestConnectionResult } from './types';
+import type { ServerConfig, SystemStats, GpuInfo, SmartInfo, TestConnectionResult } from './types';
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/+$/, '');
 
@@ -148,4 +152,36 @@ export async function testConnection(
     body: config,
     token,
   });
+}
+
+/** GET /api/fleet/system/stats?server_id=X — system stats probed over SSH. */
+export async function getSystemStats(serverId: string, token?: string): Promise<SystemStats> {
+  return request<SystemStats>(`/fleet/system/stats?server_id=${encodeURIComponent(serverId)}`, {
+    token,
+  });
+}
+
+/** GET /api/fleet/unraid/get_gpu_info?server_id=X — GPU info via nvidia-smi over SSH. */
+export async function getGpuInfo(serverId: string, token?: string): Promise<GpuInfo | null> {
+  return request<GpuInfo | null>(
+    `/fleet/unraid/get_gpu_info?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/unraid/get_smart_data?server_id=X&device=/dev/sda — SMART data over SSH. */
+export async function getSmartData(
+  serverId: string,
+  device: string,
+  token?: string,
+): Promise<SmartInfo> {
+  return request<SmartInfo>(
+    `/fleet/unraid/get_smart_data?server_id=${encodeURIComponent(serverId)}&device=${encodeURIComponent(device)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/local/stats — host-local system stats (no SSH, no server). */
+export async function getLocalSystemStats(token?: string): Promise<any> {
+  return request<any>('/fleet/local/stats', { token });
 }

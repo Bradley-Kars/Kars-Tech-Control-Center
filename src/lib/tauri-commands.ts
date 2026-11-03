@@ -1,6 +1,5 @@
 import { invoke as rawInvoke, Channel, isTauri as isTauriCheck } from '@tauri-apps/api/core';
 import type {
-  GpuInfo, SmartInfo,
   RestServiceHealth, PlexIdentity, PlexLibrary,
   MeshDevice, DeviceStatus, BatchCommand, BatchResult,
   EnrollmentInfo, SyncResult,
@@ -20,11 +19,16 @@ async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T
   return rawInvoke(cmd, args) as T;
 }
 
-export { getServers, saveServer, removeServer, testConnection } from './fleet-api';
-
-export async function getSystemStats(serverId: string): Promise<any> {
-  return invoke('get_system_stats', { serverId });
-}
+export {
+  getServers,
+  saveServer,
+  removeServer,
+  testConnection,
+  getSystemStats,
+  getGpuInfo,
+  getSmartData,
+  getLocalSystemStats,
+} from './fleet-api';
 
 export async function getDockerContainers(serverId: string): Promise<any[]> {
   return invoke('get_docker_containers', { serverId });
@@ -50,16 +54,8 @@ export async function dockerRemove(serverId: string, container: string): Promise
   return invoke('docker_remove', { serverId, container });
 }
 
-export async function getGpuInfo(serverId: string): Promise<GpuInfo | null> {
-  return invoke('get_gpu_info', { serverId });
-}
-
 export async function getDisks(serverId: string): Promise<any[]> {
   return invoke('get_disks', { serverId });
-}
-
-export async function getSmartData(serverId: string, device: string): Promise<SmartInfo> {
-  return invoke('get_smart_data', { serverId, device });
 }
 
 export async function getShares(serverId: string): Promise<any[]> {
@@ -498,10 +494,6 @@ export async function allyLaunchAgent(serverId: string): Promise<{ ok: boolean; 
   return invoke('ally_launch_agent', { serverId });
 }
 
-// Local "This System" (the machine running KTS Master Control itself)
-export async function getLocalSystemStats(): Promise<any> {
-  return invoke('get_local_system_stats');
-}
 // REST services — see the note on RestServiceHealth in types.ts.
 export async function getRestServiceHealth(serverId: string): Promise<RestServiceHealth[]> {
   return invoke('get_rest_service_health', { serverId });
