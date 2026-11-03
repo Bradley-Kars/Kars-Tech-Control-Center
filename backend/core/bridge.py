@@ -40,6 +40,8 @@ from . import paths
 from fleet.router import router as fleet_router
 from .safe_io import safe_read
 from .services.ticket_service import VersionMismatch
+from .services.unraid_service import RealUnraidClient
+from fleet.emhttp import EmhttpError, RealEmhttpClient
 
 
 # Service actor for bridge-originated writes (MC-2 T1).
@@ -1297,10 +1299,24 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
 
 
     def _unraid_client() -> RealUnraidClient | None:
-        """Build a RealUnraidClient from KTS_UNRAID_TOKEN, or None if not configured."""
+        """Build a RealUnraidClient from KTS_UNRAID_TOKEN, or None if not configured.
+
+        Used by the /api/unraid/docker and /api/unraid/summary endpoints
+        (docker is not in the emhttp client's P4 scope).
+        """
         if not _UNRAID_TOKEN:
             return None
         return RealUnraidClient(token=_UNRAID_TOKEN)
+
+    def _emhttp_client() -> RealEmhttpClient | None:
+        """Build a RealEmhttpClient from KTS_UNRAID_TOKEN, or None if not configured.
+
+        Used by the /api/unraid/array, /api/unraid/shares,
+        /api/unraid/parity and /api/unraid/disks endpoints.
+        """
+        if not _UNRAID_TOKEN:
+            return None
+        return RealEmhttpClient(base_url="https://localhost:443", api_key=_UNRAID_TOKEN)
 
 
     def _adguard_client() -> RealAdGuardClient | None:
@@ -1321,26 +1337,22 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
 
     @app.get("/api/unraid/array")
     async def unraid_array():
-        client = _unraid_client()
+        client = _emhttp_client()
         if client is None:
             return JSONResponse({"detail": "KTS_UNRAID_TOKEN not configured"}, status_code=503)
         try:
-            return await client.get_array()
-        except PermissionError as e:
-            return JSONResponse({"detail": str(e)}, status_code=403)
-        except Exception as e:
+            return await client.get_array_info()
+        except EmhttpError as e:
             return JSONResponse({"detail": str(e)}, status_code=502)
 
     @app.get("/api/unraid/shares")
     async def unraid_shares():
-        client = _unraid_client()
+        client = _emhttp_client()
         if client is None:
             return JSONResponse({"detail": "KTS_UNRAID_TOKEN not configured"}, status_code=503)
         try:
             return await client.get_shares()
-        except PermissionError as e:
-            return JSONResponse({"detail": str(e)}, status_code=403)
-        except Exception as e:
+        except EmhttpError as e:
             return JSONResponse({"detail": str(e)}, status_code=502)
 
     @app.get("/api/unraid/docker")
@@ -1365,6 +1377,26 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
         except PermissionError as e:
             return JSONResponse({"detail": str(e)}, status_code=403)
         except Exception as e:
+            return JSONResponse({"detail": str(e)}, status_code=502)
+
+    @app.get("/api/unraid/parity")
+    async def unraid_parity():
+        client = _emhttp_client()
+        if client is None:
+            return JSONResponse({"detail": "KTS_UNRAID_TOKEN not configured"}, status_code=503)
+        try:
+            return await client.get_array_check_status()
+        except EmhttpError as e:
+            return JSONResponse({"detail": str(e)}, status_code=502)
+
+    @app.get("/api/unraid/disks")
+    async def unraid_disks():
+        client = _emhttp_client()
+        if client is None:
+            return JSONResponse({"detail": "KTS_UNRAID_TOKEN not configured"}, status_code=503)
+        try:
+            return await client.get_disks()
+        except EmhttpError as e:
             return JSONResponse({"detail": str(e)}, status_code=502)
 
     # --- AdGuard monitoring (H2c slice 3) ---
