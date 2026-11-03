@@ -38,6 +38,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from .auth import TokenTable, HEADER, default_token_table
 from . import paths
 from fleet.router import router as fleet_router
+from fleet.terminal import create_router  # noqa: E402 - Phase 3 websocket PTY
 from .safe_io import safe_read
 from .services.ticket_service import VersionMismatch
 from .services.unraid_service import RealUnraidClient
@@ -1486,6 +1487,13 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
     # Auth + scope enforcement come from the require_token middleware above;
     # responses are redacted by fleet.config.redact_server.
     app.include_router(fleet_router, prefix="/api/fleet")
+
+    # --- Phase 3: websocket PTY terminal ---
+    # /ws/pty/{profile_name} — real pty per profile ("opencode" default,
+    # "ssh:<server_id>" per registered server). Auth is handled inside the
+    # endpoint (?token= query param) because websockets bypass the /api
+    # middleware.
+    app.include_router(create_router(table))
 
     # TrustedHostMiddleware runs outermost (added last), so a forged Host
     # header is rejected with 400 before authentication runs (W5.3).
