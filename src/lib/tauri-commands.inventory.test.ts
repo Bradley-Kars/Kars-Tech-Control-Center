@@ -1,24 +1,19 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'fs';
 
 // Ambient declaration so the test can read repo files under vitest (Node) and
 // still satisfy `tsc -b` (bundler resolution, no node types in tsconfig.app).
 declare module 'fs' {
   export function readFileSync(path: string, encoding: string): string;
 }
-declare module 'path' {
-  export function dirname(p: string): string;
-  export function join(...paths: string[]): string;
-}
-declare module 'url' {
-  export function fileURLToPath(url: string): string;
-}
-import { readFileSync } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
 
-const REPO = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
-const SOURCE = join(REPO, 'src', 'lib', 'tauri-commands.ts');
-const DOC = join(REPO, 'docs', 'tauri-port', 'COMMANDS.md');
+// Resolve the repo root from this test file's module URL so no
+// machine-specific path is hardcoded in the repository. Pure string ops keep
+// `tsc -b` happy without augmenting Node built-in modules.
+const filePath = import.meta.url.replace(/^file:\/\//, '');
+const REPO = filePath.split('/').slice(0, -3).join('/');
+const SOURCE = `${REPO}/src/lib/tauri-commands.ts`;
+const DOC = `${REPO}/docs/tauri-port/COMMANDS.md`;
 
 function sourceCommands(source: string): string[] {
   const commands = new Set<string>();
