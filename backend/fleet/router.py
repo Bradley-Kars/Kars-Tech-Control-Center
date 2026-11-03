@@ -104,6 +104,14 @@ from .meshcentral_service import (  # noqa: E402 - P11
     BatchCommand,
     BatchResult,
 )
+from .remote_service import (  # noqa: E402 - P12
+    RemoteClient,
+    RealRemoteClient,
+    RemoteError,
+    ShellResult,
+    RemoteFileInfo,
+    RemoteProcess,
+)
 
 router = APIRouter()
 
@@ -2119,6 +2127,155 @@ async def meshcentral_get_fleet_stats(request: Request, server_id: str) -> Any:
         client = _meshcentral_client(server)
         return await client.get_fleet_stats()
     except (ValueError, MeshCentralError, SshCommandError, TransportError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+# ---------------------------------------------------------------------------
+# P12: remote shell, file listing, and process list over mesh or SSH
+# ---------------------------------------------------------------------------
+
+
+def _remote_client(server: ServerConfig) -> RealRemoteClient:
+    """Build a RealRemoteClient from a server config (SSH + optional mesh)."""
+    return RealRemoteClient(server=server, ssh=SshHelper.from_config(server))
+
+
+def _remote_shell_payload(body: Any) -> tuple[str, str, int] | JSONResponse:
+    """Validate a shell_exec body: {server_id, command, timeout_secs?}."""
+    if not isinstance(body, dict) or not body:
+        return JSONResponse(
+            {"detail": "body must be a non-empty object"}, status_code=422
+        )
+    server_id = body.get("server_id")
+    command = body.get("command")
+    timeout_secs = body.get("timeout_secs", 60)
+    if not isinstance(server_id, str) or not server_id.strip():
+        return JSONResponse(
+            {"detail": "field 'server_id' is required"}, status_code=422
+        )
+    if not isinstance(command, str) or not command.strip():
+        return JSONResponse(
+            {"detail": "field 'command' is required"}, status_code=422
+        )
+    if not isinstance(timeout_secs, int) or isinstance(timeout_secs, bool) or timeout_secs < 1:
+        return JSONResponse(
+            {"detail": "field 'timeout_secs' must be a positive integer"}, status_code=422
+        )
+    return server_id, command, timeout_secs
+
+
+@router.post("/meshcentral/shell_exec")
+async def meshcentral_shell_exec(request: Request, body: dict) -> Any:
+    """POST /api/fleet/meshcentral/shell_exec — run a shell command on a device.
+
+    Body: {server_id, command, timeout_secs?}. Requires scope=write (enforced
+    by the create_app middleware). Mirrors the Tauri ``meshcentral_shell_exec``
+    command. A failed probe returns a redacted 502.
+    """
+    validated = _remote_shell_payload(body)
+    if isinstance(validated, JSONResponse):
+        return validated
+    server_id, command, timeout_secs = validated
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _remote_client(server)
+        result = await client.execute_shell(command, timeout_secs=timeout_secs)
+        return {
+            "device_id": result.device_id,
+            "command": result.command,
+            "exit_code": result.exit_code,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "success": result.success,
+        }
+    except (ValueError, RemoteError, SshCommandError, TransportError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/meshcentral/list_dir")
+async def meshcentral_list_dir(
+    request: Request, server_id: str, path: str
+) -> Any:
+    """GET /api/fleet/meshcentral/list_dir?server_id=X&path=X — list a remote dir.
+
+    Mirrors the Tauri ``meshcentral_list_dir`` command. A failed probe returns
+    a redacted 502.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    if not isinstance(path, str) or not path.strip():
+        return JSONResponse(
+            {"detail": "field 'path' is required"}, status_code=422
+        )
+    try:
+        client = _remote_client(server)
+        files = await client.list_dir(path)
+        return [
+            {
+                "path": f.path,
+                "is_dir": f.is_dir,
+                "size": f.size,
+                "modified": f.modified,
+                "permissions": f.permissions,
+            }
+            for f in files
+        ]
+    except (ValueError, RemoteError, SshCommandError, TransportError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/meshcentral/get_processes")
+async def meshcentral_get_processes(
+    request: Request, server_id: str, limit: str = "50"
+) -> Any:
+    """GET /api/fleet/meshcentral/get_processes?server_id=X&limit=X — list procs.
+
+    Mirrors the Tauri ``meshcentral_get_processes`` command. A failed probe
+    returns a redacted 502.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        limit_int = int(limit)
+    except (TypeError, ValueError):
+        return JSONResponse(
+            {"detail": "limit must be an integer"}, status_code=422
+        )
+    if limit_int < 1:
+        return JSONResponse(
+            {"detail": "limit must be a positive integer"}, status_code=422
+        )
+    try:
+        client = _remote_client(server)
+        processes = await client.get_processes(limit_int)
+        return [
+            {
+                "pid": p.pid,
+                "name": p.name,
+                "cpu_percent": p.cpu_percent,
+                "memory_percent": p.memory_percent,
+                "user": p.user,
+                "command": p.command,
+            }
+            for p in processes
+        ]
+    except (ValueError, RemoteError, SshCommandError, TransportError) as exc:
         return _probe_error(exc, server)
     except Exception as exc:  # pragma: no cover — secrets must never leak
         return _probe_error(exc, server)

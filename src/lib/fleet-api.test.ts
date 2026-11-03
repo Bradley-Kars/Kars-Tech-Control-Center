@@ -35,6 +35,9 @@ import type {
   BatchResult,
   EnrollmentInfo,
   SyncResult,
+  ShellResult,
+  RemoteFileInfo,
+  RemoteProcess,
 } from './types';
 import {
   setAuthToken,
@@ -94,6 +97,9 @@ import {
   meshcentralGetEnrollmentInfo,
   meshcentralSyncFleet,
   meshcentralGetFleetStats,
+  meshcentralShellExec,
+  meshcentralListDir,
+  meshcentralGetProcesses,
 } from './fleet-api';
 
 const fetchMock = vi.fn();
@@ -1859,5 +1865,144 @@ describe('meshcentralGetFleetStats', () => {
     expect(err).not.toBeNull();
     expect(err!.status).toBe(404);
     expect(err!.detail).toBe('not found');
+  });
+});
+
+describe('meshcentralShellExec', () => {
+  const result: ShellResult = {
+    device_id: 'QZUw1234',
+    command: 'uptime',
+    exit_code: 0,
+    stdout: 'up 5 days',
+    stderr: '',
+    success: true,
+  };
+
+  it('POSTs /api/fleet/meshcentral/shell_exec with {server_id, command, timeout_secs} and returns the result', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(result));
+    const returned = await meshcentralShellExec('s1', 'uptime', 30);
+    expect(returned).toEqual(result);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/meshcentral/shell_exec');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('POST');
+    expect(init?.body).toContain('"server_id":"s1"');
+    expect(init?.body).toContain('"command":"uptime"');
+    expect(init?.body).toContain('"timeout_secs":30');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(result));
+    await meshcentralShellExec('s1', 'uptime');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(meshcentralShellExec('s1', 'uptime')).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'ssh failed' }, 502));
+    let err: { status: number; detail: string } | null = null;
+    await meshcentralShellExec('s1', 'uptime').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(502);
+    expect(err!.detail).toBe('ssh failed');
+  });
+});
+
+describe('meshcentralListDir', () => {
+  const files: RemoteFileInfo[] = [
+    { path: '/etc/hosts', is_dir: false, size: 123, modified: '2026-11-03 10:00', permissions: '644' },
+    { path: '/etc', is_dir: true, size: 4096, modified: '2026-11-03 09:00', permissions: '755' },
+  ];
+
+  it('GETs /api/fleet/meshcentral/list_dir?server_id=X&path=X and returns files', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(files));
+    const returned = await meshcentralListDir('s1', '/etc');
+    expect(returned).toEqual(files);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/meshcentral/list_dir?server_id=s1&path=%2Fetc',
+    );
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(files));
+    await meshcentralListDir('s1', '/etc');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(meshcentralListDir('s1', '/etc')).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'not found' }, 404));
+    let err: { status: number; detail: string } | null = null;
+    await meshcentralListDir('s1', '/etc').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(404);
+    expect(err!.detail).toBe('not found');
+  });
+});
+
+describe('meshcentralGetProcesses', () => {
+  const processes: RemoteProcess[] = [
+    { pid: 1, name: 'systemd', cpu_percent: 0.1, memory_percent: 0.5, user: 'root', command: 'systemd' },
+    { pid: 42, name: 'sshd', cpu_percent: 0.0, memory_percent: 1.2, user: 'root', command: 'sshd' },
+  ];
+
+  it('GETs /api/fleet/meshcentral/get_processes?server_id=X&limit=X and returns processes', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(processes));
+    const returned = await meshcentralGetProcesses('s1', 10);
+    expect(returned).toEqual(processes);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/meshcentral/get_processes?server_id=s1&limit=10',
+    );
+  });
+
+  it('defaults limit to 50', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(processes));
+    await meshcentralGetProcesses('s1');
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/meshcentral/get_processes?server_id=s1&limit=50',
+    );
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(processes));
+    await meshcentralGetProcesses('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(meshcentralGetProcesses('s1')).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'ps failed' }, 502));
+    let err: { status: number; detail: string } | null = null;
+    await meshcentralGetProcesses('s1').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(502);
+    expect(err!.detail).toBe('ps failed');
   });
 });

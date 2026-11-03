@@ -66,6 +66,9 @@ import type {
   BatchResult,
   EnrollmentInfo,
   SyncResult,
+  ShellResult,
+  RemoteFileInfo,
+  RemoteProcess,
 } from './types';
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/+$/, '');
@@ -853,5 +856,44 @@ export async function meshcentralGetFleetStats(
   return request<Record<string, any>>(
     `/fleet/meshcentral/get_fleet_stats?server_id=${encodeURIComponent(serverId)}`,
     { token },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Remote shell / file listing / process list (ported from tauri-commands.ts)
+// ---------------------------------------------------------------------------
+
+/** POST /api/fleet/meshcentral/shell_exec — run a shell command on a device. */
+export async function meshcentralShellExec(
+  serverId: string,
+  command: string,
+  timeoutSecs?: number,
+): Promise<ShellResult> {
+  return request<ShellResult>('/fleet/meshcentral/shell_exec', {
+    method: 'POST',
+    body: { server_id: serverId, command, timeout_secs: timeoutSecs ?? 60 },
+    token: undefined,
+  });
+}
+
+/** GET /api/fleet/meshcentral/list_dir?server_id=X&path=X — list a remote dir. */
+export async function meshcentralListDir(
+  serverId: string,
+  path: string,
+): Promise<RemoteFileInfo[]> {
+  return request<RemoteFileInfo[]>(
+    `/fleet/meshcentral/list_dir?server_id=${encodeURIComponent(serverId)}&path=${encodeURIComponent(path)}`,
+    { token: undefined },
+  );
+}
+
+/** GET /api/fleet/meshcentral/get_processes?server_id=X&limit=X — list procs. */
+export async function meshcentralGetProcesses(
+  serverId: string,
+  limit?: number,
+): Promise<RemoteProcess[]> {
+  return request<RemoteProcess[]>(
+    `/fleet/meshcentral/get_processes?server_id=${encodeURIComponent(serverId)}&limit=${limit ?? 50}`,
+    { token: undefined },
   );
 }

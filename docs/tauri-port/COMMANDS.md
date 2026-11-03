@@ -213,14 +213,14 @@ set changes.
 | `meshcentral_get_enrollment_info` | src-tauri/src/commands/mod.rs:2729 | src/pages/MeshCentralPage.test.tsx, src/pages/MeshCentralPage.tsx | /api/fleet/meshcentral/get_enrollment_info | ported |
 | `meshcentral_sync_fleet` | src-tauri/src/commands/mod.rs:2738 | src/pages/MeshCentralPage.test.tsx, src/pages/MeshCentralPage.tsx, src/pages/SettingsPage.test.tsx, src/pages/SettingsPage.tsx | /api/fleet/meshcentral/sync_fleet | ported |
 | `meshcentral_get_fleet_stats` | src-tauri/src/commands/mod.rs:2766 | src/App.test.tsx, src/hooks/index.ts, src/lib/tauri-commands.test.ts, src/pages/SettingsPage.test.tsx, src/pages/SettingsPage.tsx | /api/fleet/meshcentral/get_fleet_stats | ported |
-| `meshcentral_shell_exec` | src-tauri/src/commands/mod.rs:2815 | — | /api/fleet/meshcentral/shell_exec | not ported |
+| `meshcentral_shell_exec` | src-tauri/src/commands/mod.rs:2815 | — | /api/fleet/meshcentral/shell_exec | ported |
 | `meshcentral_shell_batch` | src-tauri/src/commands/mod.rs:2828 | — | /api/fleet/meshcentral/shell_batch | not ported |
 | `meshcentral_shell_fleet` | src-tauri/src/commands/mod.rs:2842 | src/pages/CompliancePage.test.tsx, src/pages/CompliancePage.tsx, src/pages/DashboardPage.test.tsx, src/pages/DashboardPage.tsx, src/pages/FleetCommandPage.test.tsx, src/pages/FleetCommandPage.tsx, src/pages/ServicePage.test.tsx | /api/fleet/meshcentral/shell_fleet | not ported |
 | `meshcentral_read_file` | src-tauri/src/commands/mod.rs:2861 | — | /api/fleet/meshcentral/read_file | not ported |
 | `meshcentral_write_file` | src-tauri/src/commands/mod.rs:2873 | — | /api/fleet/meshcentral/write_file | not ported |
-| `meshcentral_list_dir` | src-tauri/src/commands/mod.rs:2887 | — | /api/fleet/meshcentral/list_dir | not ported |
+| `meshcentral_list_dir` | src-tauri/src/commands/mod.rs:2887 | — | /api/fleet/meshcentral/list_dir | ported |
 | `meshcentral_get_system_stats` | src-tauri/src/commands/mod.rs:2899 | src/App.test.tsx, src/hooks/index.ts, src/lib/tauri-commands.test.ts, src/pages/DevicePage.test.tsx, src/pages/DevicePage.tsx | /api/fleet/meshcentral/get_system_stats | not ported |
-| `meshcentral_get_processes` | src-tauri/src/commands/mod.rs:2910 | src/pages/DevicePage.test.tsx, src/pages/DevicePage.tsx | /api/fleet/meshcentral/get_processes | not ported |
+| `meshcentral_get_processes` | src-tauri/src/commands/mod.rs:2910 | src/pages/DevicePage.test.tsx, src/pages/DevicePage.tsx | /api/fleet/meshcentral/get_processes | ported |
 | `meshcentral_reboot` | src-tauri/src/commands/mod.rs:2922 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx, src/components/layout/CommandPalette.tsx, src/pages/DevicePage.test.tsx, src/pages/DevicePage.tsx | /api/fleet/meshcentral/reboot | not ported |
 | `meshcentral_shutdown` | src-tauri/src/commands/mod.rs:2936 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx, src/components/layout/CommandPalette.tsx, src/pages/DevicePage.test.tsx, src/pages/DevicePage.tsx | /api/fleet/meshcentral/shutdown | not ported |
 | `meshcentral_docker_containers` | src-tauri/src/commands/mod.rs:2950 | — | /api/fleet/meshcentral/docker_containers | not ported |

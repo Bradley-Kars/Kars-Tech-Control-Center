@@ -3,7 +3,7 @@ import type {
   RestServiceHealth, PlexIdentity, PlexLibrary,
   MeshDevice, DeviceStatus, BatchCommand, BatchResult,
   EnrollmentInfo, SyncResult,
-  ShellResult, RemoteFileInfo, RemoteProcess, MeshSystemStats,
+  ShellResult, MeshSystemStats,
   Alert, AlertFilter, AlertSeverity, MetricPoint, MetricSeries,
   OpencodeStatus, ChatMessage,
 } from './types';
@@ -66,6 +66,9 @@ export {
   getMySpeedSummary,
   getMySpeedTests,
   getMySpeedServers,
+  meshcentralShellExec,
+  meshcentralListDir,
+  meshcentralGetProcesses,
 } from './fleet-api';
 
 import * as fleetApi from './fleet-api';
@@ -452,15 +455,9 @@ export async function meshcentralGetFleetStats(
   return fleetApi.meshcentralGetFleetStats(serverId);
 }
 
-// MeshCentral Transport Commands (2026-10-08) — PRIMARY transport
-export async function meshcentralShellExec(
-  serverId: string,
-  command: string,
-  timeoutSecs?: number,
-): Promise<ShellResult> {
-  return invoke('meshcentral_shell_exec', { serverId, command, timeoutSecs });
-}
-
+// MeshCentral Transport Commands (2026-10-08) — PRIMARY transport.
+// shell_exec, list_dir and get_processes are ported to fleet-api (P12) and
+// re-exported below; the rest stay Tauri-based until a later port task.
 export async function meshcentralShellBatch(
   serverId: string,
   commands: string[],
@@ -493,24 +490,10 @@ export async function meshcentralWriteFile(
   return invoke('meshcentral_write_file', { serverId, path, content, mode });
 }
 
-export async function meshcentralListDir(
-  serverId: string,
-  path: string,
-): Promise<RemoteFileInfo[]> {
-  return invoke('meshcentral_list_dir', { serverId, path });
-}
-
 export async function meshcentralGetSystemStats(
   serverId: string,
 ): Promise<MeshSystemStats> {
   return invoke('meshcentral_get_system_stats', { serverId });
-}
-
-export async function meshcentralGetProcesses(
-  serverId: string,
-  limit?: number,
-): Promise<RemoteProcess[]> {
-  return invoke('meshcentral_get_processes', { serverId, limit });
 }
 
 export async function meshcentralReboot(
