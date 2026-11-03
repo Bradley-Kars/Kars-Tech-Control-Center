@@ -37,9 +37,9 @@ set changes.
 | `get_system_stats` | src-tauri/src/commands/mod.rs:255 | src/App.test.tsx, src/hooks/index.ts | /api/fleet/system/stats | ported |
 | `get_docker_containers` | src-tauri/src/commands/mod.rs:584 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx, src/components/docker/DockerPage.test.tsx, src/components/docker/DockerPage.tsx | /api/fleet/unraid/get_docker_containers | ported |
 | `get_gpu_info` | src-tauri/src/commands/mod.rs:896 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx | /api/fleet/unraid/get_gpu_info | ported |
-| `get_disks` | src-tauri/src/commands/mod.rs:767 | src/components/storage/StoragePage.test.tsx, src/components/storage/StoragePage.tsx | /api/fleet/unraid/get_disks | not ported |
+| `get_disks` | src-tauri/src/commands/mod.rs:767 | src/components/storage/StoragePage.test.tsx, src/components/storage/StoragePage.tsx | /api/fleet/unraid/get_disks | ported |
 | `get_smart_data` | src-tauri/src/commands/mod.rs:753 | src/components/storage/StoragePage.test.tsx, src/components/storage/StoragePage.tsx | /api/fleet/unraid/get_smart_data | ported |
-| `get_shares` | src-tauri/src/commands/mod.rs:848 | src/components/storage/StoragePage.test.tsx, src/components/storage/StoragePage.tsx | /api/fleet/unraid/get_shares | not ported |
+| `get_shares` | src-tauri/src/commands/mod.rs:848 | src/components/storage/StoragePage.test.tsx, src/components/storage/StoragePage.tsx | /api/fleet/unraid/get_shares | ported |
 | `get_processes` | src-tauri/src/commands/mod.rs:907 | src/components/system/SystemPage.test.tsx, src/components/system/SystemPage.tsx | /api/fleet/unraid/get_processes | not ported |
 | `get_syslog` | src-tauri/src/commands/mod.rs:918 | src/components/system/SystemPage.test.tsx, src/components/system/SystemPage.tsx | /api/fleet/unraid/get_syslog | not ported |
 | `get_user_scripts` | src-tauri/src/commands/mod.rs:933 | src/components/system/SystemPage.test.tsx, src/components/system/SystemPage.tsx | /api/fleet/unraid/get_user_scripts | not ported |
@@ -49,7 +49,7 @@ set changes.
 | `get_tailscale_peers` | src-tauri/src/commands/mod.rs:973 | src/components/network/NetworkPage.test.tsx, src/components/network/NetworkPage.tsx | /api/fleet/unraid/get_tailscale_peers | not ported |
 | `reboot_server` | src-tauri/src/commands/mod.rs:983 | — | /api/fleet/unraid/reboot_server | not ported |
 | `shutdown_server` | src-tauri/src/commands/mod.rs:997 | — | /api/fleet/unraid/shutdown_server | not ported |
-| `get_array_info` | src-tauri/src/commands/mod.rs:1026 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx | /api/fleet/unraid/get_array_info | not ported |
+| `get_array_info` | src-tauri/src/commands/mod.rs:1026 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx | /api/fleet/unraid/get_array_info | ported |
 
 ## Nextcloud
 

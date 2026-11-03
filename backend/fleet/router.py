@@ -12,6 +12,7 @@ passes through fleet.config.redact_server.
 from __future__ import annotations
 
 import asyncio
+import httpx
 from typing import Any
 
 from fastapi import APIRouter, Request
@@ -25,6 +26,7 @@ from .config import (
     save_servers,
 )
 from .docker import DockerClient
+from .emhttp import EmhttpError, RealEmhttpClient
 from .parsers.nvidia import parse_nvidia_smi
 from .parsers.smart import parse_smartctl
 from .transport import SshCommandError, SshHelper, TransportError
@@ -574,3 +576,89 @@ async def docker_logs(request: Request, body: dict) -> Any:
     except (SshCommandError, TransportError) as exc:
         return _probe_error(exc, server)
     return JSONResponse(content=output)
+
+
+# ---------------------------------------------------------------------------
+# P4: Unraid emhttp — array, parity, shares, disks over HTTP
+# ---------------------------------------------------------------------------
+
+
+def _emhttp_client(server: ServerConfig) -> RealEmhttpClient:
+    """Build a RealEmhttpClient from a server config (hostname + api_key)."""
+    return RealEmhttpClient(
+        base_url=f"https://{server.hostname}:443",
+        api_key=server.api_key,
+    )
+
+
+@router.get("/unraid/get_array_info")
+async def unraid_array_info(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/unraid/get_array_info?server_id=X — array info over emhttp.
+
+    Mirrors the Tauri ``get_array_info`` command but speaks Unraid's emhttp
+    HTTP API directly instead of SSH. A failed probe returns a redacted 502.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _emhttp_client(server)
+        return await client.get_array_info()
+    except (EmhttpError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+
+
+@router.get("/unraid/get_array_check_status")
+async def unraid_array_check_status(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/unraid/get_array_check_status?server_id=X — parity status.
+
+    Mirrors the Tauri ``get_array_check_status`` command over emhttp.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _emhttp_client(server)
+        return await client.get_array_check_status()
+    except (EmhttpError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+
+
+@router.get("/unraid/get_shares")
+async def unraid_get_shares(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/unraid/get_shares?server_id=X — shares over emhttp.
+
+    Mirrors the Tauri ``get_shares`` command over emhttp.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _emhttp_client(server)
+        return await client.get_shares()
+    except (EmhttpError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+
+
+@router.get("/unraid/get_disks")
+async def unraid_get_disks(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/unraid/get_disks?server_id=X — disks over emhttp.
+
+    Mirrors the Tauri ``get_disks`` command over emhttp.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _emhttp_client(server)
+        return await client.get_disks()
+    except (EmhttpError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
