@@ -57,6 +57,9 @@ import type {
   LidarrWantedMissing,
   LidarrQueue,
   LidarrDiskSpace,
+  MySpeedTest,
+  MySpeedServer,
+  MySpeedSummary,
 } from './types';
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/+$/, '');
@@ -703,5 +706,44 @@ export async function lidarrSearchMissing(
       serverId,
     )}&artist_id=${encodeURIComponent(String(artistId))}`,
     { method: 'POST', token },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// MySpeed (ported from tauri-commands.ts)
+// ---------------------------------------------------------------------------
+
+/** GET /api/fleet/myspeed/summary?server_id=X&limit=X — MySpeed summary. */
+export async function getMySpeedSummary(
+  serverId: string,
+  limit?: number,
+  token?: string,
+): Promise<MySpeedSummary> {
+  const url = `/fleet/myspeed/summary?server_id=${encodeURIComponent(
+    serverId,
+  )}${limit !== undefined ? `&limit=${encodeURIComponent(String(limit))}` : ""}`;
+  return request<MySpeedSummary>(url, { token });
+}
+
+/** GET /api/fleet/myspeed/tests?server_id=X&limit=X — recent speedtest results. */
+export async function getMySpeedTests(
+  serverId: string,
+  limit: number,
+  token?: string,
+): Promise<MySpeedTest[]> {
+  return request<MySpeedTest[]>(
+    `/fleet/myspeed/tests?server_id=${encodeURIComponent(serverId)}&limit=${encodeURIComponent(String(limit))}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/myspeed/servers?server_id=X — MySpeed test servers. */
+export async function getMySpeedServers(
+  serverId: string,
+  token?: string,
+): Promise<MySpeedServer[]> {
+  return request<MySpeedServer[]>(
+    `/fleet/myspeed/servers?server_id=${encodeURIComponent(serverId)}`,
+    { token },
   );
 }

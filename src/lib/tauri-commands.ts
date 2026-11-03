@@ -63,6 +63,9 @@ export {
   getLidarrDiskspace,
   lidarrRefreshArtist,
   lidarrSearchMissing,
+  getMySpeedSummary,
+  getMySpeedTests,
+  getMySpeedServers,
 } from './fleet-api';
 
 export async function dockerRemove(serverId: string, container: string): Promise<string> {
@@ -119,18 +122,7 @@ export async function getArrayInfo(serverId: string): Promise<any> {
 
 // Home Assistant — ported to fleet-api.ts (re-exported above)
 
-// MySpeed
-export async function getMySpeedSummary(serverId: string, limit?: number): Promise<any> {
-  return invoke('get_myspeed_summary', { serverId, limit });
-}
-
-export async function getMySpeedTests(serverId: string, limit: number): Promise<any> {
-  return invoke('get_myspeed_tests', { serverId, limit });
-}
-
-export async function getMySpeedServers(serverId: string): Promise<any> {
-  return invoke('get_myspeed_servers', { serverId });
-}
+// MySpeed — ported to fleet-api.ts (re-exported above)
 
 // AdGuard Home — ported to fleet-api.ts (re-exported above)
 

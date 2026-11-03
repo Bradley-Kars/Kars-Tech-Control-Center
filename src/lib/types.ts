@@ -535,6 +535,47 @@ export interface LidarrIndexer {
   tags: number[];
 }
 
+// ---------------------------------------------------------------------------
+// MySpeed (ported from src-tauri/src/services/myspeed.rs in P10)
+// ---------------------------------------------------------------------------
+
+export interface MySpeedTest {
+  id: number;
+  timestamp: string;
+  download: number;
+  upload: number;
+  ping: number;
+  jitter?: number;
+  server_id?: number;
+  result_id?: string;
+}
+
+export interface MySpeedServer {
+  id: number;
+  name: string;
+  host: string;
+  location: string;
+  country: string;
+  port: number;
+  secure: boolean;
+}
+
+export interface MySpeedStats {
+  total_tests: number;
+  avg_download: number;
+  avg_upload: number;
+  avg_ping: number;
+  max_download: number;
+  max_upload: number;
+  min_ping: number;
+  latest_test?: MySpeedTest;
+}
+
+export interface MySpeedSummary {
+  stats: MySpeedStats;
+  recent_tests: MySpeedTest[];
+}
+
 export interface ServiceTestResults {
   graphql: boolean;
   nextcloud: boolean;
