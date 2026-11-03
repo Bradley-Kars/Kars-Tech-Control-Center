@@ -62,6 +62,9 @@ import {
   getSmartData,
   getLocalSystemStats,
   getDockerContainers,
+  getArrayInfo,
+  getDisks,
+  getShares,
   dockerStart,
   dockerStop,
   dockerRestart,
@@ -480,6 +483,71 @@ describe('getDockerContainers', () => {
     setAuthToken('fleet-secret');
     fetchMock.mockResolvedValue(jsonResponse([]));
     await getDockerContainers('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getArrayInfo', () => {
+  it('GETs /fleet/unraid/get_array_info?server_id=X and returns the parsed array info', async () => {
+    const info = { name: 'unraid', state: 'Started', protected: false };
+    fetchMock.mockResolvedValue(jsonResponse(info));
+    const result = await getArrayInfo('s1');
+    expect(result).toEqual(info);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/unraid/get_array_info?server_id=s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('GET');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse({}));
+    await getArrayInfo('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getDisks', () => {
+  it('GETs /fleet/unraid/get_disks?server_id=X and returns the parsed disk list', async () => {
+    const disks = [
+      { device: '/dev/sda', name: 'disk1', size: '10 TB', type: 'rotational' },
+      { device: '/dev/sdb', name: 'disk2', size: '10 TB', type: 'rotational' },
+    ];
+    fetchMock.mockResolvedValue(jsonResponse(disks));
+    const result = await getDisks('s1');
+    expect(result).toEqual(disks);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/unraid/get_disks?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse([]));
+    await getDisks('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getShares', () => {
+  it('GETs /fleet/unraid/get_shares?server_id=X and returns the parsed share list', async () => {
+    const shares = [
+      { name: 'media', device: '/dev/md1', size: '50 TB', used: '40 TB' },
+      { name: 'backups', device: '/dev/md1', size: '50 TB', used: '5 TB' },
+    ];
+    fetchMock.mockResolvedValue(jsonResponse(shares));
+    const result = await getShares('s1');
+    expect(result).toEqual(shares);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/unraid/get_shares?server_id=s1');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse([]));
+    await getShares('s1');
     const [, init] = fetchMock.mock.calls[0];
     expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
   });

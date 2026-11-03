@@ -310,6 +310,43 @@ export async function dockerLogs(
 }
 
 // ---------------------------------------------------------------------------
+// Unraid emhttp (ported from tauri-commands.ts)
+// ---------------------------------------------------------------------------
+
+/** GET /api/fleet/unraid/get_array_info?server_id=X — array info over emhttp. */
+export async function getArrayInfo(
+  serverId: string,
+  token?: string,
+): Promise<any> {
+  return request<any>(
+    `/fleet/unraid/get_array_info?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/unraid/get_disks?server_id=X — disks over emhttp. */
+export async function getDisks(
+  serverId: string,
+  token?: string,
+): Promise<any[]> {
+  return request<any[]>(
+    `/fleet/unraid/get_disks?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/unraid/get_shares?server_id=X — shares over emhttp. */
+export async function getShares(
+  serverId: string,
+  token?: string,
+): Promise<any[]> {
+  return request<any[]>(
+    `/fleet/unraid/get_shares?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+// ---------------------------------------------------------------------------
 // REST health (ported from tauri-commands.ts)
 // ---------------------------------------------------------------------------
 

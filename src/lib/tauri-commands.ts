@@ -87,20 +87,15 @@ export {
   metricQuery,
   metricQueryMulti,
   metricCollectAll,
+  getArrayInfo,
+  getDisks,
+  getShares,
 } from './fleet-api';
 
 import * as fleetApi from './fleet-api';
 
 export async function dockerRemove(serverId: string, container: string): Promise<string> {
   return invoke('docker_remove', { serverId, container });
-}
-
-export async function getDisks(serverId: string): Promise<any[]> {
-  return invoke('get_disks', { serverId });
-}
-
-export async function getShares(serverId: string): Promise<any[]> {
-  return invoke('get_shares', { serverId });
 }
 
 export async function getProcesses(serverId: string): Promise<string> {
@@ -137,10 +132,6 @@ export async function rebootServer(serverId: string): Promise<string> {
 
 export async function shutdownServer(serverId: string): Promise<string> {
   return invoke('shutdown_server', { serverId });
-}
-
-export async function getArrayInfo(serverId: string): Promise<any> {
-  return invoke('get_array_info', { serverId });
 }
 
 // Home Assistant — ported to fleet-api.ts (re-exported above)
