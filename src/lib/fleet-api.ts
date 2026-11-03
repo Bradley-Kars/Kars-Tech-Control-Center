@@ -69,6 +69,11 @@ import type {
   ShellResult,
   RemoteFileInfo,
   RemoteProcess,
+  Alert,
+  AlertFilter,
+  AlertSeverity,
+  MetricPoint,
+  MetricSeries,
 } from './types';
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/+$/, '');
@@ -896,4 +901,151 @@ export async function meshcentralGetProcesses(
     `/fleet/meshcentral/get_processes?server_id=${encodeURIComponent(serverId)}&limit=${limit ?? 50}`,
     { token: undefined },
   );
+}
+
+// ---------------------------------------------------------------------------
+// Alerts (ported from tauri-commands.ts)
+// ---------------------------------------------------------------------------
+
+/** POST /api/fleet/alerts/create — create a new alert. */
+export async function alertCreate(
+  severity: AlertSeverity,
+  title: string,
+  message: string,
+  deviceId?: string,
+  source?: string,
+  autoAckRule?: string,
+  token?: string,
+): Promise<Alert> {
+  return request<Alert>('/fleet/alerts/create', {
+    method: 'POST',
+    body: { severity, title, message, device_id: deviceId, source, auto_ack_rule: autoAckRule },
+    token,
+  });
+}
+
+/** GET /api/fleet/alerts/list?severity=&device_id=&acknowledged=&since=&limit=&offset= — list alerts. */
+export async function alertList(
+  filter: AlertFilter = {},
+  token?: string,
+): Promise<Alert[]> {
+  const params = new URLSearchParams();
+  if (filter.severity) params.set('severity', filter.severity);
+  if (filter.device_id) params.set('device_id', filter.device_id);
+  if (filter.acknowledged !== undefined)
+    params.set('acknowledged', String(filter.acknowledged));
+  if (filter.since) params.set('since', filter.since);
+  if (filter.limit !== undefined) params.set('limit', String(filter.limit));
+  if (filter.offset !== undefined) params.set('offset', String(filter.offset));
+  return request<Alert[]>(`/fleet/alerts/list?${params.toString()}`, { token });
+}
+
+/** GET /api/fleet/alerts/get?id=X — return one alert by id. */
+export async function alertGet(id: number, token?: string): Promise<Alert> {
+  return request<Alert>(`/fleet/alerts/get?id=${encodeURIComponent(String(id))}`, { token });
+}
+
+/** POST /api/fleet/alerts/acknowledge — acknowledge one alert. */
+export async function alertAcknowledge(
+  id: number,
+  acknowledgedBy: string,
+  token?: string,
+): Promise<Alert> {
+  return request<Alert>('/fleet/alerts/acknowledge', {
+    method: 'POST',
+    body: { id, acknowledged_by: acknowledgedBy },
+    token,
+  });
+}
+
+/** POST /api/fleet/alerts/acknowledge_all — acknowledge all unacknowledged alerts. */
+export async function alertAcknowledgeAll(
+  deviceId?: string,
+  acknowledgedBy: string = 'user',
+  token?: string,
+): Promise<number> {
+  return request<number>('/fleet/alerts/acknowledge_all', {
+    method: 'POST',
+    body: { device_id: deviceId, acknowledged_by: acknowledgedBy },
+    token,
+  });
+}
+
+/** POST /api/fleet/alerts/delete — delete one alert by id. */
+export async function alertDelete(id: number, token?: string): Promise<void> {
+  return request<void>('/fleet/alerts/delete', {
+    method: 'POST',
+    body: { id },
+    token,
+  });
+}
+
+/** POST /api/fleet/alerts/auto_ack_run — run auto-acknowledgment rules. */
+export async function alertEvaluateAutoAck(token?: string): Promise<number> {
+  return request<number>('/fleet/alerts/auto_ack_run', {
+    method: 'POST',
+    body: {},
+    token,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Historical metrics (ported from tauri-commands.ts)
+// ---------------------------------------------------------------------------
+
+/** POST /api/fleet/metrics/record — record one metric sample. */
+export async function metricRecord(
+  deviceId: string,
+  metric: string,
+  value: number,
+  token?: string,
+): Promise<void> {
+  return request<void>('/fleet/metrics/record', {
+    method: 'POST',
+    body: { device_id: deviceId, metric, value },
+    token,
+  });
+}
+
+/** GET /api/fleet/metrics/query?device_id=&metric=&from=&to=&limit= — query metric points. */
+export async function metricQuery(
+  deviceId: string,
+  metric: string,
+  from: string,
+  to?: string,
+  limit?: number,
+  token?: string,
+): Promise<MetricPoint[]> {
+  const params = new URLSearchParams({
+    device_id: deviceId,
+    metric,
+    from,
+  });
+  if (to) params.set('to', to);
+  if (limit !== undefined) params.set('limit', String(limit));
+  return request<MetricPoint[]>(`/fleet/metrics/query?${params.toString()}`, { token });
+}
+
+/** GET /api/fleet/metrics/query_multi — multiple device/metric series. */
+export async function metricQueryMulti(
+  deviceIds: string[],
+  metrics: string[],
+  from: string,
+  to?: string,
+  token?: string,
+): Promise<MetricSeries[]> {
+  const params = new URLSearchParams({ from });
+  for (const deviceId of deviceIds) params.append('device_ids', deviceId);
+  for (const m of metrics) params.append('metrics', m);
+  if (to) params.set('to', to);
+  return request<MetricSeries[]>(`/fleet/metrics/query_multi?${params.toString()}`, { token });
+}
+
+/** POST /api/fleet/metrics/collect_all — run all metric collectors. */
+export async function metricCollectAll(token?: string): Promise<number> {
+  return request<number>('/fleet/metrics/collect_all', {
+    method: 'POST',
+    body: {},
+    token,
+  });
 }

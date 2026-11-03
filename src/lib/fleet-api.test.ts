@@ -38,6 +38,10 @@ import type {
   ShellResult,
   RemoteFileInfo,
   RemoteProcess,
+  Alert,
+  AlertSeverity,
+  MetricPoint,
+  MetricSeries,
 } from './types';
 import {
   setAuthToken,
@@ -100,6 +104,17 @@ import {
   meshcentralShellExec,
   meshcentralListDir,
   meshcentralGetProcesses,
+  alertCreate,
+  alertList,
+  alertGet,
+  alertAcknowledge,
+  alertAcknowledgeAll,
+  alertDelete,
+  alertEvaluateAutoAck,
+  metricRecord,
+  metricQuery,
+  metricQueryMulti,
+  metricCollectAll,
 } from './fleet-api';
 
 const fetchMock = vi.fn();
@@ -2004,5 +2019,249 @@ describe('meshcentralGetProcesses', () => {
     expect(err).not.toBeNull();
     expect(err!.status).toBe(502);
     expect(err!.detail).toBe('ps failed');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Alerts
+// ---------------------------------------------------------------------------
+
+describe('alertCreate', () => {
+  it('POSTs /api/fleet/alerts/create with the alert body and returns the created alert', async () => {
+    const created: Alert = {
+      id: 1,
+      severity: 'critical',
+      title: 'Disk full',
+      message: 'root at 98%',
+      device_id: 'unraid-main',
+      source: 'smart',
+      acknowledged: false,
+      acknowledged_by: undefined,
+      acknowledged_at: undefined,
+      created_at: '2026-11-03T10:00:00Z',
+      updated_at: '2026-11-03T10:00:00Z',
+      auto_ack_rule: 'disk>90',
+    };
+    fetchMock.mockResolvedValue(jsonResponse(created));
+    const returned = await alertCreate(
+      'critical',
+      'Disk full',
+      'root at 98%',
+      'unraid-main',
+      'smart',
+      'disk>90',
+    );
+    expect(returned).toEqual(created);
+    const [input, init] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/alerts/create');
+    expect(init?.method).toBe('POST');
+    expect(JSON.parse(String(init?.body))).toEqual({
+      severity: 'critical',
+      title: 'Disk full',
+      message: 'root at 98%',
+      device_id: 'unraid-main',
+      source: 'smart',
+      auto_ack_rule: 'disk>90',
+    });
+  });
+
+  it('omits optional fields when not provided', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ id: 2, severity: 'info', title: 't', message: 'm' }));
+    await alertCreate('info', 't', 'm');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(String(init?.body))).toEqual({
+      severity: 'info',
+      title: 't',
+      message: 'm',
+      device_id: undefined,
+      source: undefined,
+      auto_ack_rule: undefined,
+    });
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse({ id: 1 }));
+    await alertCreate('warning', 't', 'm');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(alertCreate('info', 't', 'm')).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'bad severity' }, 422));
+    let err: { status: number; detail: string } | null = null;
+    await alertCreate('bogus' as AlertSeverity, 't', 'm').catch(
+      (e: { status: number; detail: string }) => { err = e; },
+    );
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(422);
+    expect(err!.detail).toBe('bad severity');
+  });
+});
+
+describe('alertList', () => {
+  it('GETs /api/fleet/alerts/list with the filter serialized and returns alerts', async () => {
+    const alerts: Alert[] = [
+      { id: 1, severity: 'critical', title: 'c', message: 'm', source: 'manual', acknowledged: false, created_at: 'a', updated_at: 'a' },
+      { id: 2, severity: 'warning', title: 'w', message: 'm', source: 'manual', acknowledged: true, created_at: 'b', updated_at: 'b' },
+    ];
+    fetchMock.mockResolvedValue(jsonResponse(alerts));
+    const returned = await alertList({ severity: 'critical', acknowledged: false, limit: 10, offset: 0 });
+    expect(returned).toEqual(alerts);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/alerts/list?severity=critical&acknowledged=false&limit=10&offset=0',
+    );
+  });
+
+  it('defaults to an empty filter', async () => {
+    fetchMock.mockResolvedValue(jsonResponse([]));
+    await alertList();
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/alerts/list?');
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(alertList()).rejects.toMatchObject({ status: 0 });
+  });
+});
+
+describe('alertGet', () => {
+  it('GETs /api/fleet/alerts/get?id=X and returns the alert', async () => {
+    const alert: Alert = { id: 7, severity: 'info', title: 't', message: 'm', source: 'manual', acknowledged: false, created_at: 'a', updated_at: 'a' };
+    fetchMock.mockResolvedValue(jsonResponse(alert));
+    const returned = await alertGet(7);
+    expect(returned).toEqual(alert);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/alerts/get?id=7');
+  });
+});
+
+describe('alertAcknowledge', () => {
+  it('POSTs /api/fleet/alerts/acknowledge and returns the updated alert', async () => {
+    const updated: Alert = { id: 3, severity: 'warning', title: 't', message: 'm', source: 'manual', acknowledged: true, acknowledged_by: 'ops', acknowledged_at: 'x', created_at: 'a', updated_at: 'x' };
+    fetchMock.mockResolvedValue(jsonResponse(updated));
+    const returned = await alertAcknowledge(3, 'ops');
+    expect(returned).toEqual(updated);
+    const [input, init] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/alerts/acknowledge');
+    expect(init?.method).toBe('POST');
+    expect(JSON.parse(String(init?.body))).toEqual({ id: 3, acknowledged_by: 'ops' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(alertAcknowledge(3, 'ops')).rejects.toMatchObject({ status: 0 });
+  });
+});
+
+describe('alertAcknowledgeAll', () => {
+  it('POSTs /api/fleet/alerts/acknowledge_all and returns the count', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(4));
+    const returned = await alertAcknowledgeAll('unraid-main', 'auto');
+    expect(returned).toBe(4);
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(String(init?.body))).toEqual({ device_id: 'unraid-main', acknowledged_by: 'auto' });
+  });
+
+  it('defaults acknowledged_by to "user" and omits device_id when unset', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(0));
+    await alertAcknowledgeAll();
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(String(init?.body))).toEqual({ device_id: undefined, acknowledged_by: 'user' });
+  });
+});
+
+describe('alertDelete', () => {
+  it('POSTs /api/fleet/alerts/delete with the alert id', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ deleted: true }, 200));
+    await alertDelete(9);
+    const [input, init] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/alerts/delete');
+    expect(init?.method).toBe('POST');
+    expect(JSON.parse(String(init?.body))).toEqual({ id: 9 });
+  });
+});
+
+describe('alertEvaluateAutoAck', () => {
+  it('POSTs /api/fleet/alerts/auto_ack_run with an empty body and returns the count', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(3));
+    const returned = await alertEvaluateAutoAck();
+    expect(returned).toBe(3);
+    const [input, init] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/alerts/auto_ack_run');
+    expect(init?.method).toBe('POST');
+    expect(JSON.parse(String(init?.body))).toEqual({});
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Historical metrics
+// ---------------------------------------------------------------------------
+
+describe('metricRecord', () => {
+  it('POSTs /api/fleet/metrics/record with the sample', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
+    await metricRecord('unraid-main', 'cpu_usage', 42.5);
+    const [input, init] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/metrics/record');
+    expect(init?.method).toBe('POST');
+    expect(JSON.parse(String(init?.body))).toEqual({ device_id: 'unraid-main', metric: 'cpu_usage', value: 42.5 });
+  });
+});
+
+describe('metricQuery', () => {
+  it('GETs /api/fleet/metrics/query and returns points', async () => {
+    const points: MetricPoint[] = [
+      { timestamp: '2026-11-03T10:00:00Z', value: 1.0 },
+      { timestamp: '2026-11-03T10:01:00Z', value: 2.0 },
+    ];
+    fetchMock.mockResolvedValue(jsonResponse(points));
+    const returned = await metricQuery('d1', 'cpu', '2026-11-03T10:00:00Z', undefined, 5);
+    expect(returned).toEqual(points);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/metrics/query?device_id=d1&metric=cpu&from=2026-11-03T10%3A00%3A00Z&limit=5',
+    );
+  });
+
+  it('omits optional to and limit when not provided', async () => {
+    fetchMock.mockResolvedValue(jsonResponse([]));
+    await metricQuery('d1', 'cpu', '2020-01-01T00:00:00Z');
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/metrics/query?device_id=d1&metric=cpu&from=2020-01-01T00%3A00%3A00Z');
+  });
+});
+
+describe('metricQueryMulti', () => {
+  it('GETs /api/fleet/metrics/query_multi with repeated device_ids and metrics', async () => {
+    const series: MetricSeries[] = [
+      { metric: 'cpu', device_id: 'd1', points: [{ timestamp: 'a', value: 1 }] },
+    ];
+    fetchMock.mockResolvedValue(jsonResponse(series));
+    const returned = await metricQueryMulti(['d1', 'd2'], ['cpu', 'mem'], '2020-01-01T00:00:00Z');
+    expect(returned).toEqual(series);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/metrics/query_multi?from=2020-01-01T00%3A00%3A00Z&device_ids=d1&device_ids=d2&metrics=cpu&metrics=mem',
+    );
+  });
+});
+
+describe('metricCollectAll', () => {
+  it('POSTs /api/fleet/metrics/collect_all with an empty body and returns 0', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(0));
+    const returned = await metricCollectAll();
+    expect(returned).toBe(0);
+    const [input, init] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/metrics/collect_all');
+    expect(init?.method).toBe('POST');
+    expect(JSON.parse(String(init?.body))).toEqual({});
   });
 });

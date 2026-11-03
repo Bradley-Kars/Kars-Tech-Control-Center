@@ -232,22 +232,22 @@ set changes.
 
 | Command | Rust handler | UI files | Target route | Status |
 |---|---|---|---|---|
-| `alert_create` | src-tauri/src/commands/mod.rs:3075 | src/pages/DashboardPage.test.tsx, src/pages/DashboardPage.tsx | /api/fleet/alerts/create | not ported |
-| `alert_list` | src-tauri/src/commands/mod.rs:3108 | src/components/alerts/AlertCenter.test.tsx, src/components/alerts/AlertCenter.tsx, src/components/layout/TopBar.test.tsx, src/components/layout/TopBar.tsx, src/pages/DashboardPage.test.tsx, src/pages/DashboardPage.tsx | /api/fleet/alerts/list | not ported |
-| `alert_acknowledge` | src-tauri/src/commands/mod.rs:3166 | src/components/alerts/AlertCenter.test.tsx, src/components/alerts/AlertCenter.tsx, src/components/layout/TopBar.test.tsx, src/components/layout/TopBar.tsx | /api/fleet/alerts/acknowledge | not ported |
-| `alert_acknowledge_all` | src-tauri/src/commands/mod.rs:3177 | src/components/alerts/AlertCenter.test.tsx, src/components/alerts/AlertCenter.tsx, src/components/layout/TopBar.test.tsx, src/components/layout/TopBar.tsx | /api/fleet/alerts/acknowledge_all | not ported |
-| `alert_get` | src-tauri/src/commands/mod.rs:3191 | — | /api/fleet/alerts/get | not ported |
-| `alert_delete` | src-tauri/src/commands/mod.rs:3216 | src/components/alerts/AlertCenter.test.tsx, src/components/alerts/AlertCenter.tsx | /api/fleet/alerts/delete | not ported |
-| `alert_auto_ack_run` | src-tauri/src/commands/mod.rs:3224 | — | /api/fleet/alerts/auto_ack_run | not ported |
+| `alert_create` | src-tauri/src/commands/mod.rs:3075 | src/pages/DashboardPage.test.tsx, src/pages/DashboardPage.tsx | /api/fleet/alerts/create | ported |
+| `alert_list` | src-tauri/src/commands/mod.rs:3108 | src/components/alerts/AlertCenter.test.tsx, src/components/alerts/AlertCenter.tsx, src/components/layout/TopBar.test.tsx, src/components/layout/TopBar.tsx, src/pages/DashboardPage.test.tsx, src/pages/DashboardPage.tsx | /api/fleet/alerts/list | ported |
+| `alert_acknowledge` | src-tauri/src/commands/mod.rs:3166 | src/components/alerts/AlertCenter.test.tsx, src/components/alerts/AlertCenter.tsx, src/components/layout/TopBar.test.tsx, src/components/layout/TopBar.tsx | /api/fleet/alerts/acknowledge | ported |
+| `alert_acknowledge_all` | src-tauri/src/commands/mod.rs:3177 | src/components/alerts/AlertCenter.test.tsx, src/components/alerts/AlertCenter.tsx, src/components/layout/TopBar.test.tsx, src/components/layout/TopBar.tsx | /api/fleet/alerts/acknowledge_all | ported |
+| `alert_get` | src-tauri/src/commands/mod.rs:3191 | — | /api/fleet/alerts/get | ported |
+| `alert_delete` | src-tauri/src/commands/mod.rs:3216 | src/components/alerts/AlertCenter.test.tsx, src/components/alerts/AlertCenter.tsx | /api/fleet/alerts/delete | ported |
+| `alert_auto_ack_run` | src-tauri/src/commands/mod.rs:3224 | — | /api/fleet/alerts/auto_ack_run | ported |
 
 ## Historical metrics
 
 | Command | Rust handler | UI files | Target route | Status |
 |---|---|---|---|---|
-| `metric_record` | src-tauri/src/commands/mod.rs:3311 | — | /api/fleet/metrics/record | not ported |
-| `metric_query` | src-tauri/src/commands/mod.rs:3321 | — | /api/fleet/metrics/query | not ported |
-| `metric_query_multi` | src-tauri/src/commands/mod.rs:3340 | src/components/charts/HistoricalCharts.tsx | /api/fleet/metrics/query_multi | not ported |
-| `metric_collect_all` | src-tauri/src/commands/mod.rs:3367 | src/App.test.tsx, src/App.tsx | /api/fleet/metrics/collect_all | not ported |
+| `metric_record` | src-tauri/src/commands/mod.rs:3311 | — | /api/fleet/metrics/record | ported |
+| `metric_query` | src-tauri/src/commands/mod.rs:3321 | — | /api/fleet/metrics/query | ported |
+| `metric_query_multi` | src-tauri/src/commands/mod.rs:3340 | src/components/charts/HistoricalCharts.tsx | /api/fleet/metrics/query_multi | ported |
+| `metric_collect_all` | src-tauri/src/commands/mod.rs:3367 | src/App.test.tsx, src/App.tsx | /api/fleet/metrics/collect_all | ported |
 
 ## Prometheus polling
 

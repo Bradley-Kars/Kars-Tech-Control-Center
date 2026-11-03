@@ -112,6 +112,13 @@ from .remote_service import (  # noqa: E402 - P12
     RemoteFileInfo,
     RemoteProcess,
 )
+from .alerts_service import (  # noqa: E402 - P13
+    Alert,
+    AlertFilter,
+    AlertsMetricsStore,
+    MetricPoint,
+    MetricSeries,
+)
 
 router = APIRouter()
 
@@ -2279,3 +2286,331 @@ async def meshcentral_get_processes(
         return _probe_error(exc, server)
     except Exception as exc:  # pragma: no cover — secrets must never leak
         return _probe_error(exc, server)
+
+
+# ---------------------------------------------------------------------------
+# P13: alerts and metrics series — sqlite-backed store on the backend host.
+# Host-local routes (no server_id): the store lives on the machine running
+# the backend, like /api/fleet/local/stats. Identity enforcement (401 without
+# a token, scope=write for POST) comes from create_app's middleware.
+# ---------------------------------------------------------------------------
+
+def _alerts_store() -> AlertsMetricsStore:
+    """Build the alert/metric store (db path from KTS_ALERTS_DB or default)."""
+    return AlertsMetricsStore()
+
+
+def _alert_to_dict(alert: Alert) -> dict:
+    return {
+        "id": alert.id,
+        "severity": alert.severity,
+        "title": alert.title,
+        "message": alert.message,
+        "device_id": alert.device_id,
+        "source": alert.source,
+        "acknowledged": alert.acknowledged,
+        "acknowledged_by": alert.acknowledged_by,
+        "acknowledged_at": alert.acknowledged_at,
+        "created_at": alert.created_at,
+        "updated_at": alert.updated_at,
+        "auto_ack_rule": alert.auto_ack_rule,
+    }
+
+
+def _alert_create_payload(body: Any) -> tuple[str, str, str, dict] | JSONResponse:
+    """Validate an alert_create body: {severity, title, message, source?, device_id?, auto_ack_rule?}."""
+    if not isinstance(body, dict) or not body:
+        return JSONResponse(
+            {"detail": "body must be a non-empty object"}, status_code=422
+        )
+    severity = body.get("severity")
+    title = body.get("title")
+    message = body.get("message")
+    if severity not in ("critical", "warning", "info"):
+        return JSONResponse(
+            {"detail": "field 'severity' must be critical, warning or info"}, status_code=422
+        )
+    if not isinstance(title, str) or not title.strip():
+        return JSONResponse(
+            {"detail": "field 'title' is required"}, status_code=422
+        )
+    if not isinstance(message, str):
+        return JSONResponse(
+            {"detail": "field 'message' is required"}, status_code=422
+        )
+    return severity, title, message, body
+
+
+@router.post("/alerts/create")
+def alerts_create(request: Request, body: dict) -> Any:
+    """POST /api/fleet/alerts/create — create a new alert.
+
+    Mirrors the Tauri ``alert_create`` command. Requires scope=write
+    (enforced by the create_app middleware).
+    """
+    validated = _alert_create_payload(body)
+    if isinstance(validated, JSONResponse):
+        return validated
+    severity, title, message, raw = validated
+    store = _alerts_store()
+    alert = store.create(
+        severity=severity,
+        title=title,
+        message=message,
+        source=raw.get("source", "manual"),
+        device_id=raw.get("device_id"),
+        auto_ack_rule=raw.get("auto_ack_rule"),
+    )
+    return _alert_to_dict(alert)
+
+
+@router.get("/alerts/list")
+def alerts_list(request: Request) -> Any:
+    """GET /api/fleet/alerts/list?severity=&device_id=&acknowledged=&since=&limit=&offset=.
+
+    Mirrors the Tauri ``alert_list`` command. Returns alerts newest first.
+    """
+    f = AlertFilter(
+        severity=request.query_params.get("severity") or None,
+        device_id=request.query_params.get("device_id") or None,
+        acknowledged=(
+            request.query_params.get("acknowledged") == "true"
+            if request.query_params.get("acknowledged") is not None
+            else None
+        ),
+        since=request.query_params.get("since") or None,
+        limit=_positive_int(request.query_params.get("limit"), "limit"),
+        offset=_positive_int(request.query_params.get("offset"), "offset"),
+    )
+    if isinstance(f.limit, JSONResponse) or isinstance(f.offset, JSONResponse):
+        return f.limit if isinstance(f.limit, JSONResponse) else f.offset
+    store = _alerts_store()
+    return [_alert_to_dict(a) for a in store.list(f)]
+
+
+@router.get("/alerts/get")
+def alerts_get(request: Request) -> Any:
+    """GET /api/fleet/alerts/get?id=X — return one alert by id, or 404."""
+    alert_id = request.query_params.get("id")
+    if not alert_id or not alert_id.isdigit():
+        return JSONResponse(
+            {"detail": "field 'id' is required"}, status_code=422
+        )
+    store = _alerts_store()
+    alert = store.get(int(alert_id))
+    if alert is None:
+        return JSONResponse(
+            {"detail": f"alert {alert_id} not found"}, status_code=404
+        )
+    return _alert_to_dict(alert)
+
+
+def _alert_ack_payload(body: Any) -> tuple[int, str] | JSONResponse:
+    """Validate an acknowledge body: {id, acknowledged_by}."""
+    if not isinstance(body, dict) or not body:
+        return JSONResponse(
+            {"detail": "body must be a non-empty object"}, status_code=422
+        )
+    alert_id = body.get("id")
+    acknowledged_by = body.get("acknowledged_by")
+    if not isinstance(alert_id, int) or isinstance(alert_id, bool) or alert_id < 1:
+        return JSONResponse(
+            {"detail": "field 'id' must be a positive integer"}, status_code=422
+        )
+    if not isinstance(acknowledged_by, str) or not acknowledged_by.strip():
+        return JSONResponse(
+            {"detail": "field 'acknowledged_by' is required"}, status_code=422
+        )
+    return alert_id, acknowledged_by
+
+
+@router.post("/alerts/acknowledge")
+def alerts_acknowledge(request: Request, body: dict) -> Any:
+    """POST /api/fleet/alerts/acknowledge — acknowledge one alert."""
+    validated = _alert_ack_payload(body)
+    if isinstance(validated, JSONResponse):
+        return validated
+    alert_id, acknowledged_by = validated
+    store = _alerts_store()
+    alert = store.acknowledge(alert_id, acknowledged_by)
+    if alert is None:
+        return JSONResponse(
+            {"detail": f"alert {alert_id} not found"}, status_code=404
+        )
+    return _alert_to_dict(alert)
+
+
+@router.post("/alerts/acknowledge_all")
+def alerts_acknowledge_all(request: Request, body: dict) -> Any:
+    """POST /api/fleet/alerts/acknowledge_all — acknowledge all unacknowledged alerts.
+
+    Body: {device_id?, acknowledged_by}. Returns the number acknowledged.
+    """
+    if not isinstance(body, dict) or not body:
+        return JSONResponse(
+            {"detail": "body must be a non-empty object"}, status_code=422
+        )
+    device_id = body.get("device_id")
+    acknowledged_by = body.get("acknowledged_by", "user")
+    if device_id is not None and not isinstance(device_id, str):
+        return JSONResponse(
+            {"detail": "field 'device_id' must be a string"}, status_code=422
+        )
+    if not isinstance(acknowledged_by, str) or not acknowledged_by.strip():
+        return JSONResponse(
+            {"detail": "field 'acknowledged_by' is required"}, status_code=422
+        )
+    store = _alerts_store()
+    count = store.acknowledge_all(
+        device_id=device_id or None, acknowledged_by=acknowledged_by
+    )
+    return {"acknowledged": count}
+
+
+@router.post("/alerts/delete")
+def alerts_delete(request: Request, body: dict) -> Any:
+    """POST /api/fleet/alerts/delete — delete one alert by id. Body: {id}."""
+    if not isinstance(body, dict) or not body:
+        return JSONResponse(
+            {"detail": "body must be a non-empty object"}, status_code=422
+        )
+    alert_id = body.get("id")
+    if not isinstance(alert_id, int) or isinstance(alert_id, bool) or alert_id < 1:
+        return JSONResponse(
+            {"detail": "field 'id' must be a positive integer"}, status_code=422
+        )
+    store = _alerts_store()
+    if not store.delete(alert_id):
+        return JSONResponse(
+            {"detail": f"alert {alert_id} not found"}, status_code=404
+        )
+    return {"deleted": True}
+
+
+@router.post("/alerts/auto_ack_run")
+def alerts_auto_ack_run(request: Request, body: dict) -> Any:
+    """POST /api/fleet/alerts/auto_ack_run — run auto-acknowledgment rules.
+
+    Current rule: acknowledge unacknowledged info alerts older than one hour.
+    Returns the number acknowledged. Takes an empty body {}.
+    """
+    if not isinstance(body, dict):
+        return JSONResponse(
+            {"detail": "body must be a JSON object"}, status_code=422
+        )
+    store = _alerts_store()
+    return {"acknowledged": store.auto_ack_run()}
+
+
+def _positive_int(value: str | None, field: str) -> int | JSONResponse:
+    """Parse a positive integer query param; None when absent."""
+    if value is None:
+        return None
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return JSONResponse(
+            {"detail": f"field '{field}' must be an integer"}, status_code=422
+        )
+    if parsed < 1:
+        return JSONResponse(
+            {"detail": f"field '{field}' must be a positive integer"}, status_code=422
+        )
+    return parsed
+
+
+@router.post("/metrics/record")
+def metrics_record(request: Request, body: dict) -> Any:
+    """POST /api/fleet/metrics/record — record one metric sample.
+
+    Mirrors the Tauri ``metric_record`` command. Body: {device_id, metric, value}.
+    """
+    if not isinstance(body, dict) or not body:
+        return JSONResponse(
+            {"detail": "body must be a non-empty object"}, status_code=422
+        )
+    device_id = body.get("device_id")
+    metric = body.get("metric")
+    value = body.get("value")
+    if not isinstance(device_id, str) or not device_id.strip():
+        return JSONResponse(
+            {"detail": "field 'device_id' is required"}, status_code=422
+        )
+    if not isinstance(metric, str) or not metric.strip():
+        return JSONResponse(
+            {"detail": "field 'metric' is required"}, status_code=422
+        )
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return JSONResponse(
+            {"detail": "field 'value' must be a number"}, status_code=422
+        )
+    store = _alerts_store()
+    store.record(device_id=device_id, metric=metric, value=value)
+    return {"ok": True}
+
+
+@router.get("/metrics/query")
+def metrics_query(request: Request) -> Any:
+    """GET /api/fleet/metrics/query?device_id=&metric=&from=&to=&limit=.
+
+    Mirrors the Tauri ``metric_query`` command.
+    """
+    device_id = request.query_params.get("device_id")
+    metric = request.query_params.get("metric")
+    from_ = request.query_params.get("from")
+    if not device_id or not metric or not from_:
+        return JSONResponse(
+            {"detail": "fields 'device_id', 'metric' and 'from' are required"},
+            status_code=422,
+        )
+    limit = _positive_int(request.query_params.get("limit"), "limit")
+    if isinstance(limit, JSONResponse):
+        return limit
+    store = _alerts_store()
+    points = store.query(
+        device_id=device_id, metric=metric, from_=from_,
+        to=request.query_params.get("to") or None, limit=limit or 1000,
+    )
+    return [{"timestamp": p.timestamp, "value": p.value} for p in points]
+
+
+@router.get("/metrics/query_multi")
+def metrics_query_multi(request: Request) -> Any:
+    """GET /api/fleet/metrics/query_multi — multiple device/metric series.
+
+    Query params (repeatable): device_ids, metrics. Plus from and optional to.
+    Mirrors the Tauri ``metric_query_multi`` command.
+    """
+    device_ids = request.query_params.getlist("device_ids")
+    metrics = request.query_params.getlist("metrics")
+    from_ = request.query_params.get("from")
+    if not device_ids or not metrics or not from_:
+        return JSONResponse(
+            {"detail": "fields 'device_ids', 'metrics' and 'from' are required"},
+            status_code=422,
+        )
+    store = _alerts_store()
+    series = store.query_multi(
+        device_ids=device_ids, metrics=metrics, from_=from_,
+        to=request.query_params.get("to") or None,
+    )
+    return [
+        {"metric": s.metric, "device_id": s.device_id,
+         "points": [{"timestamp": p.timestamp, "value": p.value} for p in s.points]}
+        for s in series
+    ]
+
+
+@router.post("/metrics/collect_all")
+def metrics_collect_all(request: Request, body: dict) -> Any:
+    """POST /api/fleet/metrics/collect_all — run all metric collectors.
+
+    Mirrors the Tauri ``metric_collect_all`` command. No collectors are
+    registered yet, so this returns 0 recorded. Takes an empty body {}.
+    """
+    if not isinstance(body, dict):
+        return JSONResponse(
+            {"detail": "body must be a JSON object"}, status_code=422
+        )
+    store = _alerts_store()
+    return {"recorded": store.collect_all()}

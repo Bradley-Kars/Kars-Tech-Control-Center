@@ -69,6 +69,17 @@ export {
   meshcentralShellExec,
   meshcentralListDir,
   meshcentralGetProcesses,
+  alertCreate,
+  alertList,
+  alertGet,
+  alertAcknowledge,
+  alertAcknowledgeAll,
+  alertDelete,
+  alertEvaluateAutoAck,
+  metricRecord,
+  metricQuery,
+  metricQueryMulti,
+  metricCollectAll,
 } from './fleet-api';
 
 import * as fleetApi from './fleet-api';
@@ -535,69 +546,10 @@ export async function meshcentralDockerRestart(
   return invoke('meshcentral_docker_restart', { serverId, container });
 }
 
-// Alert Center Commands (2026-10-08)
-export async function alertCreate(
-  severity: string,
-  title: string,
-  message: string,
-  deviceId?: string,
-  source: string = 'manual',
-  autoAckRule?: string,
-): Promise<Alert> {
-  return invoke('alert_create', { severity, title, message, deviceId, source, autoAckRule });
-}
-
-export async function alertList(filter?: AlertFilter): Promise<Alert[]> {
-  return invoke('alert_list', { filter });
-}
-
-export async function alertAcknowledge(id: number, acknowledgedBy: string): Promise<Alert> {
-  return invoke('alert_acknowledge', { id, acknowledgedBy });
-}
-
-export async function alertAcknowledgeAll(deviceId?: string, acknowledgedBy: string = 'user'): Promise<number> {
-  return invoke('alert_acknowledge_all', { deviceId, acknowledgedBy });
-}
-
-export async function alertGet(id: number): Promise<Alert> {
-  return invoke('alert_get', { id });
-}
-
-export async function alertDelete(id: number): Promise<void> {
-  return invoke('alert_delete', { id });
-}
-
-export async function alertEvaluateAutoAck(): Promise<number> {
-  return invoke('alert_auto_ack_run');
-}
-
-// Historical Metrics Commands (2026-10-08)
-export async function metricRecord(deviceId: string, metric: string, value: number): Promise<void> {
-  return invoke('metric_record', { deviceId, metric, value });
-}
-
-export async function metricQuery(
-  deviceId: string,
-  metric: string,
-  from: string,
-  to?: string,
-  limit?: number,
-): Promise<MetricPoint[]> {
-  return invoke('metric_query', { deviceId, metric, from, to, limit });
-}
-
-export async function metricQueryMulti(
-  deviceIds: string[],
-  metrics: string[],
-  from: string,
-  to?: string,
-): Promise<MetricSeries[]> {
-  return invoke('metric_query_multi', { deviceIds, metrics, from, to });
-}
-
-export async function metricCollectAll(): Promise<number> {
-  return invoke('metric_collect_all');
-}
+// Alert Center and Historical Metrics commands are now ported to
+// fleet-api.ts (re-exported above) and talk to /api/fleet/alerts/* and
+// /api/fleet/metrics/* instead of Tauri IPC. The poll_* functions below
+// remain Tauri-based until their sources are ported in a later phase.
 
 /** One Prometheus range-query series (instance label + points). */
 export interface PromSeries {
