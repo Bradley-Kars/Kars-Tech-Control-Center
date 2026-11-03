@@ -262,16 +262,13 @@ export function Table<T = any>({
                           style={{
                             padding: compact ? 'var(--kts-space-2) var(--kts-space-3)' : 'var(--kts-space-3) var(--kts-space-4)',
                             borderRight: bordered && i < columns.length - 1 ? '1px solid var(--kts-border-default)' : 'none',
-                          width: col.width,
+                            width: col.width,
                             minWidth: col.minWidth,
                             maxWidth: col.maxWidth,
                           }}
-                          >
-                          {typeof cellContent === 'string' ? (
-                            <span title={String(cellContent)}>{cellContent}</span>
-                          ) : (
-                            <span>{cellContent}</span>
-                          )}
+                          title={typeof cellContent === 'string' ? cellContent : undefined}
+>
+                          <span>{cellContent}</span>
                         </td>
                       );
                     })}
