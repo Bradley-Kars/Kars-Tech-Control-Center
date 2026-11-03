@@ -1287,66 +1287,62 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
     # --- Unraid monitoring (H2c slice 2) ---
     # GET-only endpoints for Unraid array/docker status. Auth via
     # KTS_UNRAID_TOKEN env var (bearer token, read scope required).
-    # No secrets in code; token read from env at request time.
+    # The caller's Authorization header is NEVER forwarded to Unraid —
+    # only KTS_UNRAID_TOKEN is used, preventing token leakage to another
+    # service.
+    _UNRAID_TOKEN = os.environ.get("KTS_UNRAID_TOKEN", "")
+
+
+    def _unraid_client() -> RealUnraidClient | None:
+        """Build a RealUnraidClient from KTS_UNRAID_TOKEN, or None if not configured."""
+        if not _UNRAID_TOKEN:
+            return None
+        return RealUnraidClient(token=_UNRAID_TOKEN)
+
+
     @app.get("/api/unraid/array")
-    def unraid_array(request: Request):
-        from .services.unraid_service import RealUnraidClient
-        token = request.headers.get("authorization", "").replace("Bearer ", "", 1)
-        if not token:
-            token = os.environ.get("KTS_UNRAID_TOKEN", "")
-        if not token:
+    async def unraid_array():
+        client = _unraid_client()
+        if client is None:
             return JSONResponse({"detail": "KTS_UNRAID_TOKEN not configured"}, status_code=503)
-        client = RealUnraidClient(token=token)
         try:
-            return client.get_array()
+            return await client.get_array()
         except PermissionError as e:
             return JSONResponse({"detail": str(e)}, status_code=403)
         except Exception as e:
             return JSONResponse({"detail": str(e)}, status_code=502)
 
     @app.get("/api/unraid/shares")
-    def unraid_shares(request: Request):
-        from .services.unraid_service import RealUnraidClient
-        token = request.headers.get("authorization", "").replace("Bearer ", "", 1)
-        if not token:
-            token = os.environ.get("KTS_UNRAID_TOKEN", "")
-        if not token:
+    async def unraid_shares():
+        client = _unraid_client()
+        if client is None:
             return JSONResponse({"detail": "KTS_UNRAID_TOKEN not configured"}, status_code=503)
-        client = RealUnraidClient(token=token)
         try:
-            return client.get_shares()
+            return await client.get_shares()
         except PermissionError as e:
             return JSONResponse({"detail": str(e)}, status_code=403)
         except Exception as e:
             return JSONResponse({"detail": str(e)}, status_code=502)
 
     @app.get("/api/unraid/docker")
-    def unraid_docker(request: Request):
-        from .services.unraid_service import RealUnraidClient
-        token = request.headers.get("authorization", "").replace("Bearer ", "", 1)
-        if not token:
-            token = os.environ.get("KTS_UNRAID_TOKEN", "")
-        if not token:
+    async def unraid_docker():
+        client = _unraid_client()
+        if client is None:
             return JSONResponse({"detail": "KTS_UNRAID_TOKEN not configured"}, status_code=503)
-        client = RealUnraidClient(token=token)
         try:
-            return client.get_docker()
+            return await client.get_docker()
         except PermissionError as e:
             return JSONResponse({"detail": str(e)}, status_code=403)
         except Exception as e:
             return JSONResponse({"detail": str(e)}, status_code=502)
 
     @app.get("/api/unraid/summary")
-    def unraid_summary(request: Request):
-        from .services.unraid_service import RealUnraidClient
-        token = request.headers.get("authorization", "").replace("Bearer ", "", 1)
-        if not token:
-            token = os.environ.get("KTS_UNRAID_TOKEN", "")
-        if not token:
+    async def unraid_summary():
+        client = _unraid_client()
+        if client is None:
             return JSONResponse({"detail": "KTS_UNRAID_TOKEN not configured"}, status_code=503)
-        client = RealUnraidClient(token=token)
         try:
-            return client.get_summary()
+            return await client.get_summary()
         except PermissionError as e:
             return JSONResponse({"detail": str(e)}, status_code=403)
         except Exception as e:

@@ -25,6 +25,7 @@ config.private.*.json
 *.secret.json
 *.secrets.json
 connections.local.toml
+backend/config/local.yaml
 
 # Environment files
 .env
