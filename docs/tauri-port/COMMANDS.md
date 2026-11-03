@@ -5,7 +5,7 @@ gate for Phase 4 (delete Tauri). One row per `invoke('...')` command found in
 `src/lib/tauri-commands.ts`. Generated automatically; regenerate when the command 
 set changes.
 
-- **Total invoke commands**: 173
+- **Total invoke commands**: 172
 - **Status**: `not ported` — no FastAPI route / `src/lib/fleet-api.ts` function exists yet (Phase 2 work).
 - **Rust handler**: `src-tauri/src/...:<line>` where the `#[tauri::command]` is defined.
 - **UI files**: files under `src/` that import the matching camelCase TS wrapper.
@@ -15,10 +15,10 @@ set changes.
 
 | Command | Rust handler | UI files | Target route | Status |
 |---|---|---|---|---|
-| `test_connection` | src-tauri/src/commands/mod.rs:66 | src/components/shared/ConnectionScreen.tsx | POST /api/fleet/test_connection | not ported |
-| `save_server` | src-tauri/src/commands/mod.rs:229 | src/App.test.tsx, src/hooks/index.ts | POST /api/fleet/servers | not ported |
-| `remove_server` | src-tauri/src/commands/mod.rs:241 | src/App.test.tsx, src/hooks/index.ts | DELETE /api/fleet/servers/{id} | not ported |
-| `get_servers` | src-tauri/src/commands/mod.rs:249 | src/App.test.tsx, src/hooks/index.ts, src/pages/ServicePage.test.tsx | GET /api/fleet/servers | not ported |
+| `test_connection` | src-tauri/src/commands/mod.rs:66 | src/components/shared/ConnectionScreen.tsx | POST /api/fleet/test_connection | ported |
+| `save_server` | src-tauri/src/commands/mod.rs:229 | src/App.test.tsx, src/hooks/index.ts | POST /api/fleet/servers | ported |
+| `remove_server` | src-tauri/src/commands/mod.rs:241 | src/App.test.tsx, src/hooks/index.ts | DELETE /api/fleet/servers/{id} | ported |
+| `get_servers` | src-tauri/src/commands/mod.rs:249 | src/App.test.tsx, src/hooks/index.ts, src/pages/ServicePage.test.tsx | GET /api/fleet/servers | ported |
 
 ## Docker
 

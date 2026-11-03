@@ -19,11 +19,32 @@ from fastapi.responses import JSONResponse
 from .config import (
     ServerConfig,
     load_servers,
+    redact_error,
     redact_server,
     save_servers,
 )
+from .transport import SshCommandError, SshHelper, TransportError
 
 router = APIRouter()
+
+# Service probes (nextcloud, lidarr, …) are stubbed until those clients are
+# ported in P2-P10: test_connection reports every service as untested.
+DEFAULT_SERVICES: dict[str, bool] = {
+    "graphql": False,
+    "nextcloud": False,
+    "lidarr": False,
+    "homeassistant": False,
+    "myspeed": False,
+    "adguard": False,
+    "phone": False,
+    "plex": False,
+    "scrutiny": False,
+    "uptimekuma": False,
+    "invoiceninja": False,
+    "aurral": False,
+    "your_spotify": False,
+    "dozzle": False,
+}
 
 
 def _server_list() -> list[ServerConfig]:
@@ -96,3 +117,63 @@ def remove_server(request: Request, server_id: str) -> Any:
 
     save_servers(remaining)
     return {"removed": server_id}
+
+
+@router.post("/test_connection")
+async def test_connection(body: dict) -> Any:
+    """POST /api/fleet/test_connection — probe connectivity to a server config.
+
+    The config is validated but NOT persisted: this is a pre-save probe used
+    by the connection screen. Connectivity is tested over SSH
+    (``hostname`` then ``uname -r``). Per-service probes (nextcloud, lidarr,
+    …) are stubbed until those clients are ported in P2-P10.
+
+    Scope=write is enforced by create_app's middleware (POST). Secrets in the
+    config are never echoed: any transport/auth/timeout failure is redacted
+    before it reaches the client, and a failed probe returns success=false
+    with HTTP 200, mirroring the Tauri ``test_connection`` handler.
+    """
+    if not isinstance(body, dict) or not body:
+        return JSONResponse(
+            {"detail": "body must be a non-empty object"}, status_code=422
+        )
+
+    try:
+        config = ServerConfig(**body)
+    except Exception as exc:  # pydantic ValidationError -> 422
+        return JSONResponse(
+            {"detail": f"invalid server config: {exc}"}, status_code=422
+        )
+
+    auth = config.auth
+    if isinstance(auth, dict):
+        password = auth.get("password")
+    else:
+        password = auth.password
+    secrets: list[str] = [password] if isinstance(password, str) and password else []
+
+    try:
+        helper = SshHelper.from_config(config)
+        hostname_result = await helper.run("hostname")
+        hostname = hostname_result.stdout.strip() or config.hostname
+        os_result = await helper.run("uname -r")
+        os_ = os_result.stdout.strip() or "unknown"
+    except Exception as exc:  # any connect/auth/timeout failure -> failed probe
+        message = f"SSH connection failed: {exc}"
+        if secrets:
+            message = redact_error(message, secrets)
+        return {
+            "success": False,
+            "message": message,
+            "hostname": "unknown",
+            "os": "unknown",
+            "services": dict(DEFAULT_SERVICES),
+        }
+
+    return {
+        "success": True,
+        "message": f"Connected to {hostname}",
+        "hostname": hostname,
+        "os": os_,
+        "services": dict(DEFAULT_SERVICES),
+    }

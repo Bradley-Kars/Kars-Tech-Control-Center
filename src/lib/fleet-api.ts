@@ -9,14 +9,15 @@
  *   - FleetApiError (with .status and .detail) on non-ok responses
  *
  * Ported from src/lib/tauri-commands.ts:
- *   getServers   -> GET  /api/fleet/servers
- *   saveServer   -> POST /api/fleet/servers
- *   removeServer -> DELETE /api/fleet/servers/{id}
+ *   getServers      -> GET    /api/fleet/servers
+ *   saveServer      -> POST   /api/fleet/servers
+ *   removeServer    -> DELETE /api/fleet/servers/{id}
+ *   testConnection  -> POST   /api/fleet/test_connection
  *
  * Everything else in tauri-commands.ts stays a "not ported yet" stub there.
  */
 
-import type { ServerConfig } from './types';
+import type { ServerConfig, TestConnectionResult } from './types';
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/+$/, '');
 
@@ -125,6 +126,26 @@ export async function saveServer(config: ServerConfig, token?: string): Promise<
 export async function removeServer(id: string, token?: string): Promise<void> {
   return request<void>(`/fleet/servers/${encodeURIComponent(id)}`, {
     method: 'DELETE',
+    token,
+  });
+}
+
+/**
+ * POST /api/fleet/test_connection — probe connectivity to a server config.
+ *
+ * Mirrors the Tauri `test_connection` command: SSH-based connectivity in
+ * this phase (per-service probes are stubbed until P2-P10). The config is
+ * NOT persisted — this is a pre-save probe used by the connection screen.
+ * A failed probe resolves with success=false rather than rejecting; only
+ * transport-level failures (network, non-JSON) reject.
+ */
+export async function testConnection(
+  config: ServerConfig,
+  token?: string,
+): Promise<TestConnectionResult> {
+  return request<TestConnectionResult>('/fleet/test_connection', {
+    method: 'POST',
+    body: config,
     token,
   });
 }

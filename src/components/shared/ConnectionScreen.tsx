@@ -139,9 +139,14 @@ export function ConnectionScreen({ onConnect }: Props) {
             </div>
           </div>
           <div>
-            <label className="block text-xs text-muted mb-1.5 font-mono">SSH Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-              className="w-full bg-ink border border-line rounded-lg px-3 py-2.5 text-sm text-off focus:border-teal focus:outline-none" />
+            <label htmlFor="kts-connect-password" className="block text-xs text-muted mb-1.5 font-mono">SSH Password</label>
+            <input
+              id="kts-connect-password"
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              className="w-full bg-ink border border-line rounded-lg px-3 py-2.5 text-sm text-off focus:border-teal focus:outline-none"
+            />
           </div>
 
           {deviceType === 'unraid' && (

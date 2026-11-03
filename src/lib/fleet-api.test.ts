@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { ServerConfig } from './types';
+import type { ServerConfig, TestConnectionResult } from './types';
 import {
   setAuthToken,
   clearAuthToken,
@@ -7,6 +7,7 @@ import {
   getServers,
   saveServer,
   removeServer,
+  testConnection,
 } from './fleet-api';
 
 const fetchMock = vi.fn();
@@ -31,6 +32,31 @@ function jsonResponse(body: unknown, status = 200): Response {
 function textResponse(body: string, status = 200): Response {
   return new Response(body, { status, headers: { 'content-type': 'text/html' } });
 }
+
+const EMPTY_SERVICES: TestConnectionResult['services'] = {
+  graphql: false,
+  nextcloud: false,
+  lidarr: false,
+  homeassistant: false,
+  myspeed: false,
+  adguard: false,
+  phone: false,
+  plex: false,
+  scrutiny: false,
+  uptimekuma: false,
+  invoiceninja: false,
+  aurral: false,
+  your_spotify: false,
+  dozzle: false,
+};
+
+const connectedResult: TestConnectionResult = {
+  success: true,
+  message: 'Connected to home-server',
+  hostname: 'home-server',
+  os: '6.1.15-unraid',
+  services: EMPTY_SERVICES,
+};
 
 const serverFixture: ServerConfig = {
   id: 's1',
@@ -138,5 +164,55 @@ describe('removeServer', () => {
     expect(err).not.toBeNull();
     expect(err!.status).toBe(500);
     expect(err!.message).toBe('The server returned a web page instead of data. The API address may be wrong.');
+  });
+});
+
+describe('testConnection', () => {
+  const config: ServerConfig = {
+    ...serverFixture,
+    id: 'temp',
+    name: 'test',
+    hostname: '<device>.<tailnet>.ts.net',
+  };
+
+  it('POSTs /api/fleet/test_connection with the config as JSON body', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(connectedResult));
+    const result = await testConnection(config);
+    expect(result).toEqual(connectedResult);
+    const [input, init] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/test_connection');
+    expect(init?.method).toBe('POST');
+    expect(init?.headers).toMatchObject({ 'Content-Type': 'application/json' });
+    expect(init?.body).toBe(JSON.stringify(config));
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse({ ...connectedResult, success: false }));
+    await testConnection(config).catch(() => {});
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+
+  it('prefers a per-call token over the stored one', async () => {
+    setAuthToken('stored');
+    fetchMock.mockResolvedValue(jsonResponse(connectedResult));
+    await testConnection(config, 'per-call');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'per-call' });
+  });
+
+  it('rejects with status 0 on a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(testConnection(config)).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('rejects with the server status and detail on a non-ok response', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'bad config' }, 422));
+    let err: { status: number; detail: string } | null = null;
+    await testConnection(config).catch((e: { status: number; detail: string }) => { err = e; });
+    expect(err).not.toBeNull();
+    expect(err!.status).toBe(422);
+    expect(err!.detail).toBe('bad config');
   });
 });

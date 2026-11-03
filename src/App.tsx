@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useCallback, useState, useEffect, useMemo } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useMediaQuery, useServers, useLocalStats, useFleetStats } from './hooks';
 import { Sidebar } from './components/layout/Sidebar';
@@ -18,7 +18,9 @@ import { AlertCenter } from './components/alerts/AlertCenter';
 import { ChatPage } from './pages/ChatPage';
 import { TicketingPage } from './pages/TicketingPage';
 import { useKiosk } from './hooks/useKiosk';
-import { metricCollectAll, pollAllAlertSources } from './lib/tauri-commands';
+import { ConnectionScreen } from './components/shared/ConnectionScreen';
+import { metricCollectAll, pollAllAlertSources, saveServer } from './lib/tauri-commands';
+import type { ServerConfig } from './lib/types';
 import './styles/globals.css';
 
 function AppLayout() {
@@ -230,12 +232,24 @@ function AppLayout() {
   );
 }
 
-export default function App() {
+// Routes live in their own component so `useNavigate` runs inside the router
+// that App itself provides.
+function AppRoutes() {
+  const navigate = useNavigate();
+
+  // Connection screen flow: test the connection (POST /api/fleet/test_connection
+  // via ConnectionScreen), then save the server and open the dashboard.
+  const handleConnectServer = useCallback(
+    async (config: ServerConfig) => {
+      await saveServer(config);
+      navigate('/dashboard');
+    },
+    [navigate],
+  );
+
   return (
-    <AppProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<AppLayout />}>
+    <Routes>
+      <Route path="/" element={<AppLayout />}>
             {/* Fleet Overview */}
             <Route index element={<Navigate to="/ticketing" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
@@ -257,7 +271,21 @@ export default function App() {
             {/* Settings */}
             <Route path="settings/*" element={<SettingsPage />} />
           </Route>
+
+          {/* Connection screen: add a new server (unlinked from the sidebar). */}
+          <Route
+            path="connect"
+            element={<ConnectionScreen onConnect={handleConnectServer} />}
+          />
         </Routes>
+      );
+}
+
+export default function App() {
+  return (
+    <AppProvider>
+      <BrowserRouter>
+        <AppRoutes />
       </BrowserRouter>
     </AppProvider>
   );

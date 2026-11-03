@@ -1,6 +1,6 @@
 import { invoke as rawInvoke, Channel, isTauri as isTauriCheck } from '@tauri-apps/api/core';
 import type {
-  ServerConfig, GpuInfo, SmartInfo, TestConnectionResult,
+  GpuInfo, SmartInfo,
   RestServiceHealth, PlexIdentity, PlexLibrary,
   MeshDevice, DeviceStatus, BatchCommand, BatchResult,
   EnrollmentInfo, SyncResult,
@@ -20,11 +20,7 @@ async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T
   return rawInvoke(cmd, args) as T;
 }
 
-export async function testConnection(config: ServerConfig): Promise<TestConnectionResult> {
-  return invoke('test_connection', { config });
-}
-
-export { getServers, saveServer, removeServer } from './fleet-api';
+export { getServers, saveServer, removeServer, testConnection } from './fleet-api';
 
 export async function getSystemStats(serverId: string): Promise<any> {
   return invoke('get_system_stats', { serverId });
