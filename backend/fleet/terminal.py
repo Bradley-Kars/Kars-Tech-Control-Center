@@ -44,6 +44,7 @@ from dataclasses import dataclass, field
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect, status
 from starlette.websockets import WebSocketState
 
+from core.admin import is_admin
 from core.auth import TokenTable
 from fleet.config import ServerConfig, load_servers
 
@@ -240,13 +241,6 @@ class PtySession:
 
 # -- router ------------------------------------------------------------------
 
-def _verify_token(token: str | None, table: TokenTable) -> bool:
-    """Return True if the presented token verifies against the table."""
-    if not token:
-        return False
-    return table.verify(token) is not None
-
-
 def create_router(
     token_table: TokenTable, terminal_config: TerminalConfig | None = None
 ) -> APIRouter:
@@ -268,8 +262,13 @@ def create_router(
         4403.
         """
         # Authenticate before accepting: an unauthenticated connection must
-        # never be upgraded to an open websocket.
-        if not _verify_token(token, token_table):
+        # never be upgraded to an open websocket.  Then enforce admin:
+        # every /ws/pty route requires an admin identity (T2).
+        rec = token_table.verify(token)
+        if rec is None:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+        if not is_admin(rec["label"]):
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
 

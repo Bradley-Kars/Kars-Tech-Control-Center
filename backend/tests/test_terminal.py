@@ -7,6 +7,8 @@ exercises genuine pty input/output.
 Placeholder values only — no real hostnames, emails, or tokens.
 """
 
+import json
+import os
 import sys
 from pathlib import Path
 
@@ -131,3 +133,55 @@ class TestPtySession:
             msg = ws2.receive_json()
             assert msg["type"] == "output"
             assert "again" in msg["data"]
+
+
+# ---------------------------------------------------------------------------
+# Admin enforcement on /ws/pty (T2)
+# ---------------------------------------------------------------------------
+
+
+class TestAdmin:
+    def _make_client(self, tmp_path, monkeypatch, admin_identities, token_label):
+        """App with the stub terminal router; KTS_ADMINS_FILE points at a
+        temp admins.json listing `admin_identities`. Mints a token with
+        `token_label`. Returns (client, secret)."""
+        table_dir = tmp_path / "auth"
+        table = TokenTable(table_dir / "token-table.json")
+        _, secret = table.mint(token_label, actor_id="term-actor", scope="read")
+        admins_file = tmp_path / "admins.json"
+        admins_file.write_text(json.dumps(admin_identities))
+        monkeypatch.setenv("KTS_ADMINS_FILE", str(admins_file))
+        app = FastAPI()
+        app.include_router(create_router(table, StubConfig()))
+        return TestClient(app, base_url="http://127.0.0.1"), secret
+
+    def test_admin_token_accepted(self, tmp_path, monkeypatch):
+        """Token whose label is in the admin list connects normally."""
+        client, secret = self._make_client(
+            tmp_path, monkeypatch, ["term-client"], "term-client"
+        )
+        with client.websocket_connect(f"/ws/pty/stub?token={secret}") as ws:
+            ws.send_json({"type": "input", "data": "hello"})
+            msg = ws.receive_json()
+            assert msg["type"] == "output"
+            assert "hello" in msg["data"]
+
+    def test_non_admin_token_rejected(self, tmp_path, monkeypatch):
+        """Token whose label is NOT in the admin list is refused the
+        websocket (close 4403) before the pty is ever started."""
+        client, secret = self._make_client(
+            tmp_path, monkeypatch, ["someone-else"], "term-client"
+        )
+        with pytest.raises(WebSocketDisconnect):
+            with client.websocket_connect(f"/ws/pty/stub?token={secret}"):
+                pass  # pragma: no cover - should not accept
+
+    def test_empty_admins_admits_all(self, tmp_path, monkeypatch):
+        """Default (empty admins list): every authenticated token connects."""
+        client, secret = self._make_client(tmp_path, monkeypatch, [], "term-client")
+        with client.websocket_connect(f"/ws/pty/stub?token={secret}") as ws:
+            ws.send_json({"type": "input", "data": "hello"})
+            msg = ws.receive_json()
+            assert msg["type"] == "output"
+            assert "hello" in msg["data"]
+

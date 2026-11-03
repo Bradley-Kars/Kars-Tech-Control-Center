@@ -16,9 +16,10 @@ import httpx
 from typing import Any
 from dataclasses import asdict
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
+from core.admin import require_admin
 from .config import (
     ServerConfig,
     load_servers,
@@ -2213,12 +2214,17 @@ def _remote_shell_payload(body: Any) -> tuple[str, str, int] | JSONResponse:
 
 
 @router.post("/meshcentral/shell_exec")
-async def meshcentral_shell_exec(request: Request, body: dict) -> Any:
+async def meshcentral_shell_exec(
+    request: Request,
+    body: dict,
+    _admin: str = Depends(require_admin),
+) -> Any:
     """POST /api/fleet/meshcentral/shell_exec — run a shell command on a device.
 
     Body: {server_id, command, timeout_secs?}. Requires scope=write (enforced
-    by the create_app middleware). Mirrors the Tauri ``meshcentral_shell_exec``
-    command. A failed probe returns a redacted 502.
+    by the create_app middleware) and admin identity (require_admin, T2).
+    Mirrors the Tauri ``meshcentral_shell_exec`` command. A failed probe
+    returns a redacted 502.
     """
     validated = _remote_shell_payload(body)
     if isinstance(validated, JSONResponse):
@@ -2248,12 +2254,15 @@ async def meshcentral_shell_exec(request: Request, body: dict) -> Any:
 
 @router.get("/meshcentral/list_dir")
 async def meshcentral_list_dir(
-    request: Request, server_id: str, path: str
+    request: Request,
+    server_id: str,
+    path: str,
+    _admin: str = Depends(require_admin),
 ) -> Any:
     """GET /api/fleet/meshcentral/list_dir?server_id=X&path=X — list a remote dir.
 
     Mirrors the Tauri ``meshcentral_list_dir`` command. A failed probe returns
-    a redacted 502.
+    a redacted 502. Requires admin identity (require_admin, T2).
     """
     server = _find_server(server_id)
     if server is None:
@@ -2285,12 +2294,15 @@ async def meshcentral_list_dir(
 
 @router.get("/meshcentral/get_processes")
 async def meshcentral_get_processes(
-    request: Request, server_id: str, limit: str = "50"
+    request: Request,
+    server_id: str,
+    limit: str = "50",
+    _admin: str = Depends(require_admin),
 ) -> Any:
     """GET /api/fleet/meshcentral/get_processes?server_id=X&limit=X — list procs.
 
     Mirrors the Tauri ``meshcentral_get_processes`` command. A failed probe
-    returns a redacted 502.
+    returns a redacted 502. Requires admin identity (require_admin, T2).
     """
     server = _find_server(server_id)
     if server is None:

@@ -9,6 +9,7 @@ Placeholder values only — no real hostnames, emails, or tokens.
 
 from __future__ import annotations
 
+import json
 import sys
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -243,4 +244,83 @@ def test_get_processes_invalid_limit(app_client, monkeypatch):
             headers={"X-API-Token": read_secret},
         )
     assert r.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# Admin enforcement on shell routes (T2)
+# ---------------------------------------------------------------------------
+
+
+def _admin_app_client(tmp_path, monkeypatch, admin_identities, token_label):
+    """App + token with `token_label`; KTS_ADMINS_FILE lists
+    `admin_identities`. Returns (client, secret, servers_file)."""
+    servers_file = tmp_path / "servers.json"
+    monkeypatch.setenv("KTS_SERVERS_FILE", str(servers_file))
+    table_dir = tmp_path / "auth"
+    table = TokenTable(table_dir / "token-table.json")
+    _, secret = table.mint(token_label, actor_id="fleet-actor", scope="write")
+    admins_file = tmp_path / "admins.json"
+    admins_file.write_text(json.dumps(admin_identities))
+    monkeypatch.setenv("KTS_ADMINS_FILE", str(admins_file))
+    app = create_app(table)
+    return TestClient(app, base_url="http://127.0.0.1"), secret, servers_file
+
+
+def test_shell_exec_requires_admin(tmp_path, monkeypatch):
+    """Token whose label is NOT in the admin list -> 403 on shell_exec."""
+    client, secret, servers_file = _admin_app_client(
+        tmp_path, monkeypatch, ["someone-else"], "fleet-client"
+    )
+    _seed(servers_file, FIXTURE_SERVER)
+    with _mock_client(monkeypatch):
+        r = client.post(
+            "/api/fleet/meshcentral/shell_exec",
+            json={"server_id": "unraid-main", "command": "uptime"},
+            headers={"X-API-Token": secret},
+        )
+    assert r.status_code == 403
+
+
+def test_shell_exec_allows_admin(tmp_path, monkeypatch):
+    """Token whose label IS in the admin list -> shell_exec proceeds."""
+    client, secret, servers_file = _admin_app_client(
+        tmp_path, monkeypatch, ["fleet-client"], "fleet-client"
+    )
+    _seed(servers_file, FIXTURE_SERVER)
+    with _mock_client(monkeypatch):
+        r = client.post(
+            "/api/fleet/meshcentral/shell_exec",
+            json={"server_id": "unraid-main", "command": "uptime"},
+            headers={"X-API-Token": secret},
+        )
+    assert r.status_code == 200
+
+
+def test_list_dir_requires_admin(tmp_path, monkeypatch):
+    """Non-admin identity -> 403 on list_dir."""
+    client, secret, servers_file = _admin_app_client(
+        tmp_path, monkeypatch, ["someone-else"], "fleet-client"
+    )
+    _seed(servers_file, FIXTURE_SERVER)
+    with _mock_client(monkeypatch):
+        r = client.get(
+            "/api/fleet/meshcentral/list_dir?server_id=unraid-main&path=/etc",
+            headers={"X-API-Token": secret},
+        )
+    assert r.status_code == 403
+
+
+def test_get_processes_requires_admin(tmp_path, monkeypatch):
+    """Non-admin identity -> 403 on get_processes."""
+    client, secret, servers_file = _admin_app_client(
+        tmp_path, monkeypatch, ["someone-else"], "fleet-client"
+    )
+    _seed(servers_file, FIXTURE_SERVER)
+    with _mock_client(monkeypatch):
+        r = client.get(
+            "/api/fleet/meshcentral/get_processes?server_id=unraid-main&limit=10",
+            headers={"X-API-Token": secret},
+        )
+    assert r.status_code == 403
+
 
