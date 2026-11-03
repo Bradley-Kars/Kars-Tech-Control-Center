@@ -1,0 +1,10 @@
+{
+  "capabilities": {
+    "core": {
+      "pollinterval": 3600
+    },
+    "dav": {
+      "version": "1.0"
+    }
+  }
+}

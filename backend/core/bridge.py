@@ -1291,6 +1291,8 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
     # only KTS_UNRAID_TOKEN is used, preventing token leakage to another
     # service.
     _UNRAID_TOKEN = os.environ.get("KTS_UNRAID_TOKEN", "")
+    _ADGUARD_TOKEN = os.environ.get("KTS_ADGUARD_TOKEN", "")
+    _NEXTCLOUD_TOKEN = os.environ.get("KTS_NEXTCLOUD_TOKEN", "")
 
 
     def _unraid_client() -> RealUnraidClient | None:
@@ -1298,6 +1300,22 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
         if not _UNRAID_TOKEN:
             return None
         return RealUnraidClient(token=_UNRAID_TOKEN)
+
+
+    def _adguard_client() -> RealAdGuardClient | None:
+        """Build a RealAdGuardClient from KTS_ADGUARD_TOKEN, or None if not configured."""
+        if not _ADGUARD_TOKEN:
+            return None
+        from .services.adguard_service import RealAdGuardClient
+        return RealAdGuardClient(token=_ADGUARD_TOKEN)
+
+
+    def _nextcloud_client() -> RealNextcloudClient | None:
+        """Build a RealNextcloudClient from KTS_NEXTCLOUD_TOKEN, or None if not configured."""
+        if not _NEXTCLOUD_TOKEN:
+            return None
+        from .services.nextcloud_service import RealNextcloudClient
+        return RealNextcloudClient(token=_NEXTCLOUD_TOKEN)
 
 
     @app.get("/api/unraid/array")
@@ -1341,6 +1359,88 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
         client = _unraid_client()
         if client is None:
             return JSONResponse({"detail": "KTS_UNRAID_TOKEN not configured"}, status_code=503)
+        try:
+            return await client.get_summary()
+        except PermissionError as e:
+            return JSONResponse({"detail": str(e)}, status_code=403)
+        except Exception as e:
+            return JSONResponse({"detail": str(e)}, status_code=502)
+
+    # --- AdGuard monitoring (H2c slice 3) ---
+    # GET-only endpoints for AdGuard Home status/protection. Auth via
+    # KTS_ADGUARD_TOKEN env var (bearer token, read scope required).
+    # The caller's Authorization header is NEVER forwarded to AdGuard —
+    # only KTS_ADGUARD_TOKEN is used, preventing token leakage.
+    @app.get("/api/adguard/status")
+    async def adguard_status():
+        client = _adguard_client()
+        if client is None:
+            return JSONResponse({"detail": "KTS_ADGUARD_TOKEN not configured"}, status_code=503)
+        try:
+            return await client.get_status()
+        except PermissionError as e:
+            return JSONResponse({"detail": str(e)}, status_code=403)
+        except Exception as e:
+            return JSONResponse({"detail": str(e)}, status_code=502)
+
+    @app.get("/api/adguard/protection")
+    async def adguard_protection():
+        client = _adguard_client()
+        if client is None:
+            return JSONResponse({"detail": "KTS_ADGUARD_TOKEN not configured"}, status_code=503)
+        try:
+            return await client.get_protection()
+        except PermissionError as e:
+            return JSONResponse({"detail": str(e)}, status_code=403)
+        except Exception as e:
+            return JSONResponse({"detail": str(e)}, status_code=502)
+
+    @app.get("/api/adguard/summary")
+    async def adguard_summary():
+        client = _adguard_client()
+        if client is None:
+            return JSONResponse({"detail": "KTS_ADGUARD_TOKEN not configured"}, status_code=503)
+        try:
+            return await client.get_summary()
+        except PermissionError as e:
+            return JSONResponse({"detail": str(e)}, status_code=403)
+        except Exception as e:
+            return JSONResponse({"detail": str(e)}, status_code=502)
+
+    # --- Nextcloud monitoring (H2c slice 4) ---
+    # GET-only endpoints for Nextcloud status/capabilities. Auth via
+    # KTS_NEXTCLOUD_TOKEN env var (bearer token, read scope required).
+    # The caller's Authorization header is NEVER forwarded to Nextcloud —
+    # only KTS_NEXTCLOUD_TOKEN is used, preventing token leakage.
+    @app.get("/api/nextcloud/status")
+    async def nextcloud_status():
+        client = _nextcloud_client()
+        if client is None:
+            return JSONResponse({"detail": "KTS_NEXTCLOUD_TOKEN not configured"}, status_code=503)
+        try:
+            return await client.get_status()
+        except PermissionError as e:
+            return JSONResponse({"detail": str(e)}, status_code=403)
+        except Exception as e:
+            return JSONResponse({"detail": str(e)}, status_code=502)
+
+    @app.get("/api/nextcloud/capabilities")
+    async def nextcloud_capabilities():
+        client = _nextcloud_client()
+        if client is None:
+            return JSONResponse({"detail": "KTS_NEXTCLOUD_TOKEN not configured"}, status_code=503)
+        try:
+            return await client.get_capabilities()
+        except PermissionError as e:
+            return JSONResponse({"detail": str(e)}, status_code=403)
+        except Exception as e:
+            return JSONResponse({"detail": str(e)}, status_code=502)
+
+    @app.get("/api/nextcloud/summary")
+    async def nextcloud_summary():
+        client = _nextcloud_client()
+        if client is None:
+            return JSONResponse({"detail": "KTS_NEXTCLOUD_TOKEN not configured"}, status_code=503)
         try:
             return await client.get_summary()
         except PermissionError as e:
