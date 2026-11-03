@@ -24,6 +24,7 @@ from .config import (
     redact_server,
     save_servers,
 )
+from .docker import DockerClient
 from .parsers.nvidia import parse_nvidia_smi
 from .parsers.smart import parse_smartctl
 from .transport import SshCommandError, SshHelper, TransportError
@@ -416,3 +417,160 @@ def local_stats(request: Request) -> Any:
         "load_avg": _parse_loadavg(loadavg),
         "array_state": "UNKNOWN",
     }
+
+
+# ---------------------------------------------------------------------------
+# P3: Docker containers over SSH
+# ---------------------------------------------------------------------------
+
+def _docker_payload(body: Any) -> tuple[str, str] | JSONResponse:
+    """Validate a docker action body: {server_id, container}.
+
+    Returns (server_id, container) or a 422 JSONResponse.
+    """
+    if not isinstance(body, dict) or not body:
+        return JSONResponse(
+            {"detail": "body must be a non-empty object"}, status_code=422
+        )
+    server_id = body.get("server_id")
+    container = body.get("container")
+    if not isinstance(server_id, str) or not server_id.strip():
+        return JSONResponse(
+            {"detail": "field 'server_id' is required"}, status_code=422
+        )
+    if not isinstance(container, str) or not container.strip():
+        return JSONResponse(
+            {"detail": "field 'container' is required"}, status_code=422
+        )
+    return server_id, container
+
+
+def _docker_logs_payload(body: Any) -> tuple[str, str, int] | JSONResponse:
+    """Validate a docker logs body: {server_id, container, lines?}."""
+    result = _docker_payload(body)
+    if isinstance(result, JSONResponse):
+        return result
+    server_id, container = result
+    lines = body.get("lines", 100) if isinstance(body, dict) else 100
+    if not isinstance(lines, int) or isinstance(lines, bool) or lines < 1:
+        return JSONResponse(
+            {"detail": "field 'lines' must be a positive integer"}, status_code=422
+        )
+    return server_id, container, lines
+
+
+@router.get("/unraid/get_docker_containers")
+async def get_docker_containers(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/unraid/get_docker_containers?server_id=X — containers over SSH.
+
+    Mirrors the Tauri ``get_docker_containers`` command. Returns a list of
+    {id, name, image, status, state, auto_start}. A failed probe returns a
+    redacted 502.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = DockerClient(SshHelper.from_config(server))
+        containers = await client.list_containers()
+        return [
+            {
+                "id": c.id,
+                "name": c.name,
+                "image": c.image,
+                "status": c.status,
+                "state": c.state,
+                "auto_start": c.auto_start,
+            }
+            for c in containers
+        ]
+    except (SshCommandError, TransportError) as exc:
+        return _probe_error(exc, server)
+
+
+@router.post("/docker/start")
+async def docker_start(request: Request, body: dict) -> Any:
+    """POST /api/fleet/docker/start — start a container over SSH.
+
+    Body: {server_id, container}. Returns a status message string.
+    """
+    validated = _docker_payload(body)
+    if isinstance(validated, JSONResponse):
+        return validated
+    server_id, container = validated
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = DockerClient(SshHelper.from_config(server))
+        message = await client.start_container(container)
+    except (SshCommandError, TransportError) as exc:
+        return _probe_error(exc, server)
+    return JSONResponse(content=message)
+
+
+@router.post("/docker/stop")
+async def docker_stop(request: Request, body: dict) -> Any:
+    """POST /api/fleet/docker/stop — stop a container over SSH."""
+    validated = _docker_payload(body)
+    if isinstance(validated, JSONResponse):
+        return validated
+    server_id, container = validated
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = DockerClient(SshHelper.from_config(server))
+        message = await client.stop_container(container)
+    except (SshCommandError, TransportError) as exc:
+        return _probe_error(exc, server)
+    return JSONResponse(content=message)
+
+
+@router.post("/docker/restart")
+async def docker_restart(request: Request, body: dict) -> Any:
+    """POST /api/fleet/docker/restart — restart a container over SSH."""
+    validated = _docker_payload(body)
+    if isinstance(validated, JSONResponse):
+        return validated
+    server_id, container = validated
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = DockerClient(SshHelper.from_config(server))
+        message = await client.restart_container(container)
+    except (SshCommandError, TransportError) as exc:
+        return _probe_error(exc, server)
+    return JSONResponse(content=message)
+
+
+@router.post("/docker/logs")
+async def docker_logs(request: Request, body: dict) -> Any:
+    """POST /api/fleet/docker/logs — fetch container logs over SSH.
+
+    Body: {server_id, container, lines?}. Returns the log output string.
+    """
+    validated = _docker_logs_payload(body)
+    if isinstance(validated, JSONResponse):
+        return validated
+    server_id, container, lines = validated
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = DockerClient(SshHelper.from_config(server))
+        output = await client.container_logs(container, lines)
+    except (SshCommandError, TransportError) as exc:
+        return _probe_error(exc, server)
+    return JSONResponse(content=output)

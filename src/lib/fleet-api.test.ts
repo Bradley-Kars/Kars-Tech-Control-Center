@@ -5,6 +5,7 @@ import type {
   GpuInfo,
   SmartInfo,
   TestConnectionResult,
+  ContainerInfo,
 } from './types';
 import {
   setAuthToken,
@@ -18,6 +19,11 @@ import {
   getGpuInfo,
   getSmartData,
   getLocalSystemStats,
+  getDockerContainers,
+  dockerStart,
+  dockerStop,
+  dockerRestart,
+  dockerLogs,
 } from './fleet-api';
 
 const fetchMock = vi.fn();
@@ -330,5 +336,131 @@ describe('getLocalSystemStats', () => {
     expect(String(input)).toBe('/api/fleet/local/stats');
     const [, init] = fetchMock.mock.calls[0];
     expect(init?.method).toBe('GET');
+  });
+});
+
+describe('getDockerContainers', () => {
+  const containers: ContainerInfo[] = [
+    {
+      id: '7f1a2b3c4d5e',
+      name: 'nextcloud',
+      image: 'linuxserver/nextcloud:latest',
+      status: 'Up 2 hours',
+      state: 'running',
+      autoStart: false,
+    },
+    {
+      id: '8e9d0c1b2a3f',
+      name: 'plex',
+      image: 'plexinc/pms-docker:latest',
+      status: 'Exited (0) 3 days ago',
+      state: 'exited',
+      autoStart: false,
+    },
+  ];
+
+  it('GETs /fleet/unraid/get_docker_containers?server_id=X and returns the parsed list', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(containers));
+    const result = await getDockerContainers('s1');
+    expect(result).toEqual(containers);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/unraid/get_docker_containers?server_id=s1'
+    );
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('GET');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse([]));
+    await getDockerContainers('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+function dockerActionTests(
+  name: 'dockerStart' | 'dockerStop' | 'dockerRestart',
+  fn: (serverId: string, container: string) => Promise<string>,
+  method: string,
+  verb: string,
+) {
+  describe(name, () => {
+    it(`POSTs /api/fleet/${method} with {server_id, container} and returns the status message`, async () => {
+      const message = `${verb}ed nextcloud`;
+      fetchMock.mockResolvedValue(jsonResponse(message));
+      const result = await fn('s1', 'nextcloud');
+      expect(result).toBe(message);
+      const [input, init] = fetchMock.mock.calls[0];
+      expect(String(input)).toBe(`/api/fleet/${method}`);
+      expect(init?.method).toBe('POST');
+      expect(init?.headers).toMatchObject({
+        'Content-Type': 'application/json',
+      });
+      expect(init?.body).toBe(
+        JSON.stringify({ server_id: 's1', container: 'nextcloud' })
+      );
+    });
+
+    it('sends X-API-Token when one is set', async () => {
+      setAuthToken('fleet-secret');
+      fetchMock.mockResolvedValue(jsonResponse(`${verb}ed nextcloud`));
+      await fn('s1', 'nextcloud').catch(() => {});
+      const [, init] = fetchMock.mock.calls[0];
+      expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+    });
+
+    it('rejects with status 0 on a network failure', async () => {
+      fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+      await expect(fn('s1', 'nextcloud')).rejects.toMatchObject({ status: 0 });
+    });
+
+    it('rejects with the server status and detail on a non-ok response', async () => {
+      fetchMock.mockResolvedValue(jsonResponse({ detail: 'container not found' }, 500));
+      let err: { status: number; detail: string } | null = null;
+      await fn('s1', 'nextcloud').catch((e: { status: number; detail: string }) => { err = e; });
+      expect(err).not.toBeNull();
+      expect(err!.status).toBe(500);
+      expect(err!.detail).toBe('container not found');
+    });
+  });
+}
+
+dockerActionTests('dockerStart', dockerStart, 'docker/start', 'Start');
+dockerActionTests('dockerStop', dockerStop, 'docker/stop', 'Stop');
+dockerActionTests('dockerRestart', dockerRestart, 'docker/restart', 'Restart');
+
+describe('dockerLogs', () => {
+  it('POSTs /api/fleet/docker/logs with {server_id, container, lines} and returns the log output', async () => {
+    const logs = "[2026-11-03] request started\n[2026-11-03] request finished\n";
+    fetchMock.mockResolvedValue(jsonResponse(logs));
+    const result = await dockerLogs('s1', 'nextcloud', 50);
+    expect(result).toBe(logs);
+    const [input, init] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/docker/logs');
+    expect(init?.method).toBe('POST');
+    expect(init?.body).toBe(
+      JSON.stringify({ server_id: 's1', container: 'nextcloud', lines: 50 })
+    );
+  });
+
+  it('defaults lines to 100 when omitted', async () => {
+    fetchMock.mockResolvedValue(jsonResponse('logs'));
+    await dockerLogs('s1', 'nextcloud');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(String(init?.body))).toMatchObject({
+      server_id: 's1',
+      container: 'nextcloud',
+      lines: 100,
+    });
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse('logs'));
+    await dockerLogs('s1', 'nextcloud').catch(() => {});
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
   });
 });

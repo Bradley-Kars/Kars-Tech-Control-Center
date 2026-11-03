@@ -24,10 +24,10 @@ set changes.
 
 | Command | Rust handler | UI files | Target route | Status |
 |---|---|---|---|---|
-| `docker_start` | src-tauri/src/commands/mod.rs:636 | src/components/docker/DockerPage.test.tsx, src/components/docker/DockerPage.tsx | /api/fleet/docker/start | not ported |
-| `docker_stop` | src-tauri/src/commands/mod.rs:653 | src/components/docker/DockerPage.test.tsx, src/components/docker/DockerPage.tsx | /api/fleet/docker/stop | not ported |
-| `docker_restart` | src-tauri/src/commands/mod.rs:670 | src/components/docker/DockerPage.test.tsx, src/components/docker/DockerPage.tsx | /api/fleet/docker/restart | not ported |
-| `docker_logs` | src-tauri/src/commands/mod.rs:687 | src/components/docker/DockerPage.test.tsx, src/components/docker/DockerPage.tsx | /api/fleet/docker/logs | not ported |
+| `docker_start` | src-tauri/src/commands/mod.rs:636 | src/components/docker/DockerPage.test.tsx, src/components/docker/DockerPage.tsx | /api/fleet/docker/start | ported |
+| `docker_stop` | src-tauri/src/commands/mod.rs:653 | src/components/docker/DockerPage.test.tsx, src/components/docker/DockerPage.tsx | /api/fleet/docker/stop | ported |
+| `docker_restart` | src-tauri/src/commands/mod.rs:670 | src/components/docker/DockerPage.test.tsx, src/components/docker/DockerPage.tsx | /api/fleet/docker/restart | ported |
+| `docker_logs` | src-tauri/src/commands/mod.rs:687 | src/components/docker/DockerPage.test.tsx, src/components/docker/DockerPage.tsx | /api/fleet/docker/logs | ported |
 | `docker_remove` | src-tauri/src/commands/mod.rs:724 | src/components/docker/DockerPage.test.tsx, src/components/docker/DockerPage.tsx | /api/fleet/docker/remove | not ported |
 
 ## Unraid emhttp
@@ -35,7 +35,7 @@ set changes.
 | Command | Rust handler | UI files | Target route | Status |
 |---|---|---|---|---|
 | `get_system_stats` | src-tauri/src/commands/mod.rs:255 | src/App.test.tsx, src/hooks/index.ts | /api/fleet/system/stats | ported |
-| `get_docker_containers` | src-tauri/src/commands/mod.rs:584 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx, src/components/docker/DockerPage.test.tsx, src/components/docker/DockerPage.tsx | /api/fleet/unraid/get_docker_containers | not ported |
+| `get_docker_containers` | src-tauri/src/commands/mod.rs:584 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx, src/components/docker/DockerPage.test.tsx, src/components/docker/DockerPage.tsx | /api/fleet/unraid/get_docker_containers | ported |
 | `get_gpu_info` | src-tauri/src/commands/mod.rs:896 | src/components/dashboard/Dashboard.test.tsx, src/components/dashboard/Dashboard.tsx | /api/fleet/unraid/get_gpu_info | ported |
 | `get_disks` | src-tauri/src/commands/mod.rs:767 | src/components/storage/StoragePage.test.tsx, src/components/storage/StoragePage.tsx | /api/fleet/unraid/get_disks | not ported |
 | `get_smart_data` | src-tauri/src/commands/mod.rs:753 | src/components/storage/StoragePage.test.tsx, src/components/storage/StoragePage.tsx | /api/fleet/unraid/get_smart_data | ported |

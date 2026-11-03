@@ -28,27 +28,12 @@ export {
   getGpuInfo,
   getSmartData,
   getLocalSystemStats,
+  getDockerContainers,
+  dockerStart,
+  dockerStop,
+  dockerRestart,
+  dockerLogs,
 } from './fleet-api';
-
-export async function getDockerContainers(serverId: string): Promise<any[]> {
-  return invoke('get_docker_containers', { serverId });
-}
-
-export async function dockerStart(serverId: string, container: string): Promise<string> {
-  return invoke('docker_start', { serverId, container });
-}
-
-export async function dockerStop(serverId: string, container: string): Promise<string> {
-  return invoke('docker_stop', { serverId, container });
-}
-
-export async function dockerRestart(serverId: string, container: string): Promise<string> {
-  return invoke('docker_restart', { serverId, container });
-}
-
-export async function dockerLogs(serverId: string, container: string, lines: number): Promise<string> {
-  return invoke('docker_logs', { serverId, container, lines });
-}
 
 export async function dockerRemove(serverId: string, container: string): Promise<string> {
   return invoke('docker_remove', { serverId, container });

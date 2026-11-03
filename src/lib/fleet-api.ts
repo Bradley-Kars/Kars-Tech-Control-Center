@@ -17,11 +17,23 @@
  *   getGpuInfo         -> GET    /api/fleet/unraid/get_gpu_info?server_id=X
  *   getSmartData       -> GET    /api/fleet/unraid/get_smart_data?server_id=X&device=X
  *   getLocalSystemStats-> GET    /api/fleet/local/stats (host-local, no SSH)
+ *   getDockerContainers-> GET    /api/fleet/unraid/get_docker_containers?server_id=X
+ *   dockerStart        -> POST   /api/fleet/docker/start      {server_id, container}
+ *   dockerStop         -> POST   /api/fleet/docker/stop       {server_id, container}
+ *   dockerRestart      -> POST   /api/fleet/docker/restart    {server_id, container}
+ *   dockerLogs         -> POST   /api/fleet/docker/logs       {server_id, container, lines}
  *
  * Everything else in tauri-commands.ts stays a "not ported yet" stub there.
  */
 
-import type { ServerConfig, SystemStats, GpuInfo, SmartInfo, TestConnectionResult } from './types';
+import type {
+  ServerConfig,
+  SystemStats,
+  GpuInfo,
+  SmartInfo,
+  TestConnectionResult,
+  ContainerInfo,
+} from './types';
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/+$/, '');
 
@@ -184,4 +196,68 @@ export async function getSmartData(
 /** GET /api/fleet/local/stats — host-local system stats (no SSH, no server). */
 export async function getLocalSystemStats(token?: string): Promise<any> {
   return request<any>('/fleet/local/stats', { token });
+}
+
+/** GET /api/fleet/unraid/get_docker_containers?server_id=X — containers over SSH. */
+export async function getDockerContainers(
+  serverId: string,
+  token?: string,
+): Promise<ContainerInfo[]> {
+  return request<ContainerInfo[]>(
+    `/fleet/unraid/get_docker_containers?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** POST /api/fleet/docker/start — start a container. Resolves with the status message. */
+export async function dockerStart(
+  serverId: string,
+  container: string,
+  token?: string,
+): Promise<string> {
+  return request<string>('/fleet/docker/start', {
+    method: 'POST',
+    body: { server_id: serverId, container },
+    token,
+  });
+}
+
+/** POST /api/fleet/docker/stop — stop a container. Resolves with the status message. */
+export async function dockerStop(
+  serverId: string,
+  container: string,
+  token?: string,
+): Promise<string> {
+  return request<string>('/fleet/docker/stop', {
+    method: 'POST',
+    body: { server_id: serverId, container },
+    token,
+  });
+}
+
+/** POST /api/fleet/docker/restart — restart a container. Resolves with the status message. */
+export async function dockerRestart(
+  serverId: string,
+  container: string,
+  token?: string,
+): Promise<string> {
+  return request<string>('/fleet/docker/restart', {
+    method: 'POST',
+    body: { server_id: serverId, container },
+    token,
+  });
+}
+
+/** POST /api/fleet/docker/logs — fetch container logs. Resolves with the log output. */
+export async function dockerLogs(
+  serverId: string,
+  container: string,
+  lines = 100,
+  token?: string,
+): Promise<string> {
+  return request<string>('/fleet/docker/logs', {
+    method: 'POST',
+    body: { server_id: serverId, container, lines },
+    token,
+  });
 }
