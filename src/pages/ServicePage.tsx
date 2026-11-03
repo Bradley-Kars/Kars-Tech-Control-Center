@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useServers } from '../hooks';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
+import { Button } from '../components/ui/Button';
 import { DockerPage } from '../components/docker/DockerPage';
 import { StoragePage } from '../components/storage/StoragePage';
 import { SystemPage } from '../components/system/SystemPage';
@@ -69,6 +70,9 @@ export function ServicePage() {
             <p className="text-[var(--kts-text-secondary)]" style={{ fontSize: 'var(--kts-font-size-sm)' }}>
               {meta.label} runs on the Unraid server, and no server is configured yet.
             </p>
+            <Link to="/settings">
+              <Button variant="primary" size="sm">Configure server</Button>
+            </Link>
           </div>
         </Card>
       </div>

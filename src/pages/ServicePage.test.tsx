@@ -27,4 +27,12 @@ describe('ServicePage', () => {
     await waitFor(() => expect(screen.getByText('Server required')).toBeInTheDocument());
     expect(screen.getByText('Docker runs on the Unraid server, and no server is configured yet.')).toBeInTheDocument();
   });
+
+  it('renders a "Configure server" CTA linking to /settings when no server is configured', async () => {
+    render(wrap('docker'));
+    await waitFor(() => expect(screen.getByText('Server required')).toBeInTheDocument());
+    const cta = screen.getByRole('button', { name: /configure server/i });
+    expect(cta).toBeInTheDocument();
+    expect(cta.closest('a')?.getAttribute('href')).toBe('/settings');
+  });
 });
