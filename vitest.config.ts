@@ -22,11 +22,6 @@ export default defineConfig({
         '**/*.config.*',
         'dist/',
         'e2e/',
-        // Rust side: `src-tauri/target/` contains build-script artifacts
-        // (generated .js, `out/`, `codegen-assets/`). Coverage defaults to
-        // instrumenting every non-excluded file, so without this a `cargo
-        // build` drags JS coverage to near zero and fails the threshold.
-        'src-tauri/',
         'coverage/',
       ],
       thresholds: {

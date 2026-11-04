@@ -33,11 +33,6 @@ backend/config/local.yaml
 .env.*.local
 .env.private
 
-# Rust
-target/
-**/target/
-Cargo.lock
-
 # Build / test artifacts
 playwright-report/
 ui-audit-screenshots/

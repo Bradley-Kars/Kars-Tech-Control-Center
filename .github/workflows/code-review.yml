@@ -6,78 +6,7 @@ on:
   pull_request:
   workflow_dispatch:
 
-env:
-  CARGO_TERM_COLOR: always
-  RUST_BACKTRACE: 1
-
 jobs:
-  static-analysis:
-    name: Static Analysis
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
-
-      - name: Rust format check
-        run: cargo fmt --check --all
-
-      - name: Rust clippy
-        run: cargo clippy --all-targets -- -D warnings
-
-      - name: Rust type check
-        run: cargo check --all-targets
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install npm dependencies
-        run: npm ci
-
-      - name: TypeScript type check
-        run: npx tsc --noEmit
-
-      - name: Lint
-        run: npm run lint
-
-  rust-tests:
-    name: Rust Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
-
-      - name: Run Rust tests
-        run: cargo test --all --locked
-
   frontend-tests:
     name: Frontend Tests
     runs-on: ubuntu-latest
@@ -92,6 +21,12 @@ jobs:
 
       - name: Install npm dependencies
         run: npm ci
+
+      - name: Lint (oxlint)
+        run: npm run lint
+
+      - name: TypeScript type check
+        run: npx tsc -b
 
       - name: Run frontend tests with coverage
         run: npm run test:coverage
@@ -151,9 +86,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -178,19 +110,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -202,14 +121,3 @@ jobs:
 
       - name: Build frontend
         run: npm run build
-
-      - name: Build Rust release
-        run: cargo build --release --locked
-        working-directory: src-tauri
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: master-control-linux
-          path: src-tauri/target/release/master-control
-          retention-days: 7
