@@ -92,9 +92,9 @@ set changes.
 
 | Command | Rust handler | UI files | Target route | Status |
 |---|---|---|---|---|
-| `get_myspeed_summary` | src-tauri/src/commands/mod.rs:1468 | — | /api/fleet/myspeed/summary | ported |
-| `get_myspeed_tests` | src-tauri/src/commands/mod.rs:1479 | — | /api/fleet/myspeed/tests | ported |
-| `get_myspeed_servers` | src-tauri/src/commands/mod.rs:1493 | — | /api/fleet/myspeed/servers | ported |
+| `get_myspeed_summary` | src-tauri/src/commands/mod.rs:1468 | — | /api/fleet/myspeed/summary | dropped: removed product |
+| `get_myspeed_tests` | src-tauri/src/commands/mod.rs:1479 | — | /api/fleet/myspeed/tests | dropped: removed product |
+| `get_myspeed_servers` | src-tauri/src/commands/mod.rs:1493 | — | /api/fleet/myspeed/servers | dropped: removed product |
 
 ## AdGuard Home
 

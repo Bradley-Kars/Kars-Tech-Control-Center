@@ -48,8 +48,6 @@ export function ConnectionScreen({ onConnect }: Props) {
           adguard_url: undefined,
           lidarr_api_key: undefined,
           homeassistant_token: undefined,
-          myspeed_db_path: undefined,
-          myspeed_url: undefined,
           nextcloud_user: undefined,
           nextcloud_pass: undefined,
         },

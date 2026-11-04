@@ -233,7 +233,7 @@ Total logged: 13 (1 P0, 6 P1, 5 P2, 3 P3)
 - Evidence: `ui-audit-shots/desktop-1440-_service_nonexistent.png`
 
 **SVC-003 — Service subpages not individually verified in screenshot sweep (P3, Coverage)**
-- Route: `/service/lidarr`, `/service/homeassistant`, `/service/nextcloud`, `/service/adguard`, `/service/myspeed`, `/service/storage`, `/service/system`, `/service/network`; state: default; viewports: all
+- Route: `/service/lidarr`, `/service/homeassistant`, `/service/nextcloud`, `/service/adguard`, `/service/storage`, `/service/system`, `/service/network`; state: default; viewports: all
 - What's wrong: These routes exist in the route tree and `DockerPage.tsx` `SERVICE_MAP` references them, but they were captured in screenshots at low detail and not individually audited for empty/loading/error states.
 - Evidence: route tree in `src/App.tsx`; screenshots exist but were not individually reviewed in depth
 - Expected: each service page audited against the full state matrix
@@ -425,7 +425,6 @@ States: D=default/populated, E=empty, L=loading/skeleton, R=error, I=interaction
 | /service/homeassistant | ✓(a) | – | – | – | ✓(a) | – | SVC-003 |
 | /service/nextcloud | ✓(a) | – | – | – | ✓(a) | – | SVC-003 |
 | /service/adguard | ✓(a) | – | – | – | ✓(a) | – | SVC-003 |
-| /service/myspeed | ✓(a) | – | – | – | ✓(a) | – | SVC-003 |
 | /service/nonexistent | – | ✓ | – | ✓ | – | – | (PASS — good 404) |
 | /meshcentral | ✓ | ✓ | – | ✓ | ✓ | – | MESH-001, MESH-002, MESH-003, SIDEBAR-001 |
 | /fleet-command | ✓(a) | – | – | – | ✓(a) | – | FLEET-001 |
@@ -472,7 +471,7 @@ Loading/skeleton state: partially audited — Skeleton components exist and are 
 | Modal open/closed states | all routes | No route in the tree visibly opens a modal in default view; Modal component verified by code inspection only | P3 |
 | Settings subpages deep audit | /settings/notifications, /settings/shortcuts, /settings/meshcentral, /settings/about | Captured in screenshots but not deep-reviewed against full state matrix | P3 |
 | Fleet Command deep audit | /fleet-command | Captured in screenshot; not deep-reviewed | P3 |
-| Service subpages deep audit | /service/lidarr, /homeassistant, /nextcloud, /adguard, /myspeed, /storage, /system, /network | Captured in screenshot; not deep-reviewed | P3 |
+| Service subpages deep audit | /service/lidarr, /homeassistant, /nextcloud, /adguard, /storage, /system, /network | Captured in screenshot; not deep-reviewed | P3 |
 | Right-to-left (RTL) layout | all routes | English only; no RTL support | P3 |
 | Dark/light mode toggle | /settings/appearance | Only Dark mode captured; Light/System not toggled in screenshots | P3 |
 | 110%/125% zoom levels | all routes | Not tested (beyond the 6 viewports) | P3 |

@@ -73,14 +73,6 @@ from .lidarr_service import (
     LidarrWantedMissing,
     RealLidarrClient,
 )
-from .myspeed_service import (
-    MySpeedError,
-    MySpeedServer,
-    MySpeedStats,
-    MySpeedSummary,
-    MySpeedTest,
-    RealMySpeedClient,
-)
 from .meshcentral_service import (  # noqa: E402 - P11
     MeshCentralClient,
     MeshCentralConfig,
@@ -134,7 +126,6 @@ DEFAULT_SERVICES: dict[str, bool] = {
     "nextcloud": False,
     "lidarr": False,
     "homeassistant": False,
-    "myspeed": False,
     "adguard": False,
     "phone": False,
     "plex": False,
@@ -1599,83 +1590,6 @@ async def lidarr_search_missing(request: Request, server_id: str, artist_id: str
     except Exception as exc:  # pragma: no cover — secrets must never leak
         return _probe_error(exc, server)
     return {"status": "searching", "artist_id": artist_id}
-
-
-# ---------------------------------------------------------------------------
-# P10: MySpeed — speedtest summary, recent tests, and test servers over SSH
-# against a local sqlite3 database
-# ---------------------------------------------------------------------------
-
-
-def _myspeed_client(server: ServerConfig) -> RealMySpeedClient:
-    """Build a RealMySpeedClient from a server's service_keys."""
-    keys = server.service_keys
-    db_path = keys.myspeed_db_path if keys else None
-    if not db_path or not db_path.strip():
-        raise ValueError("myspeed_db_path not configured")
-    return RealMySpeedClient(db_path=db_path, helper=SshHelper.from_config(server))
-
-
-@router.get("/myspeed/summary")
-async def myspeed_summary(request: Request, server_id: str, limit: int = 50) -> Any:
-    """GET /api/fleet/myspeed/summary?server_id=X&limit=X — MySpeed summary.
-
-    Mirrors the ``get_myspeed_summary`` command: aggregate stats,
-    recent tests, and configured test servers from the MySpeed sqlite3
-    database over SSH. A failed probe returns a redacted 502.
-    """
-    server = _find_server(server_id)
-    if server is None:
-        return JSONResponse(
-            {"detail": f"server {server_id!r} not found"}, status_code=404
-        )
-    try:
-        client = _myspeed_client(server)
-        return await client.get_summary(limit=limit)
-    except (ValueError, MySpeedError, SshCommandError, TransportError) as exc:
-        return _probe_error(exc, server)
-    except Exception as exc:  # pragma: no cover — secrets must never leak
-        return _probe_error(exc, server)
-
-
-@router.get("/myspeed/tests")
-async def myspeed_tests(request: Request, server_id: str, limit: int = 50) -> Any:
-    """GET /api/fleet/myspeed/tests?server_id=X&limit=X — recent speedtest results.
-
-    Mirrors the ``get_myspeed_tests`` command.
-    """
-    server = _find_server(server_id)
-    if server is None:
-        return JSONResponse(
-            {"detail": f"server {server_id!r} not found"}, status_code=404
-        )
-    try:
-        client = _myspeed_client(server)
-        return await client.get_recent_tests(limit=limit)
-    except (ValueError, MySpeedError, SshCommandError, TransportError) as exc:
-        return _probe_error(exc, server)
-    except Exception as exc:  # pragma: no cover — secrets must never leak
-        return _probe_error(exc, server)
-
-
-@router.get("/myspeed/servers")
-async def myspeed_servers(request: Request, server_id: str) -> Any:
-    """GET /api/fleet/myspeed/servers?server_id=X — MySpeed test servers.
-
-    Mirrors the ``get_myspeed_servers`` command.
-    """
-    server = _find_server(server_id)
-    if server is None:
-        return JSONResponse(
-            {"detail": f"server {server_id!r} not found"}, status_code=404
-        )
-    try:
-        client = _myspeed_client(server)
-        return await client.get_servers()
-    except (ValueError, MySpeedError, SshCommandError, TransportError) as exc:
-        return _probe_error(exc, server)
-    except Exception as exc:  # pragma: no cover — secrets must never leak
-        return _probe_error(exc, server)
 
 
 # ---------------------------------------------------------------------------

@@ -12,8 +12,6 @@ export const mockServerConfig = {
     nextcloud_pass: 'test-nc-pass',
     lidarr_api_key: 'test-lidarr-key',
     homeassistant_token: 'test-ha-token',
-    myspeed_db_path: '/mnt/user/appdata/myspeed/storage.db',
-    myspeed_url: 'http://localhost:5216',
     adguard_user: '<user>',
     adguard_pass: 'test-adguard-pass',
     adguard_url: 'https://adguard.<tailnet>.ts.net:8443',
@@ -70,14 +68,6 @@ export const mockDockerContainers = [
     id: 'ghi345jkl678',
     name: 'homeassistant',
     image: 'ghcr.io/home-assistant/home-assistant:stable',
-    state: 'running',
-    status: 'Up 2 weeks',
-    autoStart: true,
-  },
-  {
-    id: 'jkl901mno234',
-    name: 'myspeed',
-    image: 'germanetto/myspeed:latest',
     state: 'running',
     status: 'Up 2 weeks',
     autoStart: true,
@@ -344,36 +334,6 @@ export const mockHomeAssistantStates = [
   { entity_id: 'binary_sensor.motion', state: 'on', attributes: { friendly_name: 'Motion Sensor' }, last_changed: '2026-08-26T10:05:00Z', last_updated: '2026-08-26T10:05:00Z' },
 ];
 
-export const mockMySpeedSummary = {
-  stats: {
-    total_tests: 935,
-    avg_download: 201.2,
-    avg_upload: 95.8,
-    avg_ping: 12.3,
-    max_download: 450.0,
-    max_upload: 120.0,
-    min_ping: 5.0,
-    latest_test: {
-      id: 1,
-      timestamp: Math.floor(Date.now() / 1000) - 3600,
-      download: 215.3,
-      upload: 98.2,
-      ping: 11.5,
-      server_name: 'Chicago',
-      server_location: 'IL',
-      server_country: 'US',
-    },
-  },
-  recent_tests: [
-    { id: 1, timestamp: Math.floor(Date.now() / 1000) - 3600, download: 215.3, upload: 98.2, ping: 11.5, jitter: 2.1, server_name: 'Chicago', server_location: 'IL', server_country: 'US' },
-    { id: 2, timestamp: Math.floor(Date.now() / 1000) - 7200, download: 198.7, upload: 94.5, ping: 13.1, jitter: 3.0, server_name: 'Chicago', server_location: 'IL', server_country: 'US' },
-  ],
-  servers: [
-    { id: 1, name: 'Chicago', location: 'IL', country: 'US', host: 'chicago.speedtest.net', port: 8080, secure: true },
-    { id: 2, name: 'Dallas', location: 'TX', country: 'US', host: 'dallas.speedtest.net', port: 8080, secure: true },
-  ],
-};
-
 export function mockInvoke(command: string, _args?: Record<string, unknown>): Promise<unknown> {
   const mockResponses: Record<string, () => Promise<unknown>> = {
     get_servers: async () => [mockServerConfig],
@@ -409,10 +369,7 @@ export function mockInvoke(command: string, _args?: Record<string, unknown>): Pr
     homeassistant_toggle: async () => {},
     homeassistant_turn_on: async () => {},
     homeassistant_turn_off: async () => {},
-    get_myspeed_summary: async () => mockMySpeedSummary,
-    get_myspeed_tests: async () => mockMySpeedSummary.recent_tests,
-    get_myspeed_servers: async () => mockMySpeedSummary.servers,
-    test_connection: async () => ({ success: true, message: 'Connected', hostname: 'home-server', os: 'Unraid', services: { graphql: true, nextcloud: true, lidarr: true, homeassistant: true, myspeed: true, adguard: true } }),
+    test_connection: async () => ({ success: true, message: 'Connected', hostname: 'home-server', os: 'Unraid', services: { graphql: true, nextcloud: true, lidarr: true, homeassistant: true, adguard: true } }),
     save_server: async () => {},
     remove_server: async () => {},
     docker_start: async () => 'Started',

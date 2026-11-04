@@ -51,8 +51,6 @@ class ServiceKeys(BaseModel):
     adguard_user: str | None = None
     adguard_pass: str | None = None
     adguard_url: str | None = None
-    myspeed_db_path: str | None = None
-    myspeed_url: str | None = None
     plex_url: str | None = None
     plex_token: str | None = None
     scrutiny_url: str | None = None
@@ -129,8 +127,8 @@ class ServiceKeys(BaseModel):
 
     # Service key fields that are secrets and must be redacted.
     SECRET_FIELDS: ClassVar[frozenset[str]] = frozenset({
-        "nextcloud_pass", "homeassistant_token", "adguard_pass", "adguard_user",
-        "myspeed_db_path", "plex_token", "uptimekuma_slug", "invoiceninja_token",
+        "nextcloud_pass", "homeassistant_token",         "adguard_pass", "adguard_user",
+        "plex_token", "uptimekuma_slug", "invoiceninja_token",
         "aurral_pass", "your_spotify_api_key", "phone_rustdesk_password",
         "steamdeck_rustdesk_password", "radarr_api_key", "sonarr_api_key",
         "prowlarr_api_key", "qbittorrent_pass", "shoko_api_key", "shoko_pass",
@@ -252,7 +250,7 @@ SECRET_TOP_LEVEL = frozenset({"password", "api_key"})
 SECRET_SERVICE_KEYS = frozenset({
     "nextcloud_pass", "homeassistant_token", "adguard_pass", "adguard_user",
     "meshcentral_admin_pass", "meshcentral_admin_user",
-    "myspeed_db_path", "plex_token", "uptimekuma_slug", "invoiceninja_token",
+    "plex_token", "uptimekuma_slug", "invoiceninja_token",
     "aurral_pass", "your_spotify_api_key", "phone_rustdesk_password",
     "steamdeck_rustdesk_password", "radarr_api_key", "sonarr_api_key",
     "prowlarr_api_key", "qbittorrent_pass", "shoko_api_key", "shoko_pass",

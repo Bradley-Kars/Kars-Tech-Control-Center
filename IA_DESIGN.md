@@ -26,8 +26,7 @@ KTS Master Control (App Root)
 │   │   └── 🔍 Prowlarr
 │   ├── 🏠 Home Assistant
 │   ├── ☁️ Nextcloud
-│   ├── 🛡️ AdGuard Home
-│   └── 📊 MySpeed
+│   └── 🛡️ AdGuard Home
 ├── Settings
 │   ├── 🔗 Connections (Servers)
 │   ├── 🎨 Appearance
@@ -109,7 +108,6 @@ KTS Master Control (App Root)
 | Home Assistant | Areas, Entities, States | Devices, Integrations | Automations, Scripts | HA logs |
 | Nextcloud | Storage, Users, Activity, Apps | Shares, Quota | Settings, Apps | NC logs |
 | AdGuard | Protection, Queries, Blocked, Clients | Filters, DNS rewrites | Settings, Client config | Query log |
-| MySpeed | History chart, Avg speeds, Servers | Test results, Trends | Schedule, Servers | Test logs |
 
 ---
 
@@ -231,7 +229,7 @@ KTS Master Control (App Root)
 1. **Layout System** — App shell, sidebar, top bar, routing
 2. **Dashboard** — Fleet status cards, vitals grid, alerts, quick actions
 3. **Device Pages** — Local, Unraid (core), Phone, Ally, Laptop
-4. **Service Pages** — Docker, Storage, System, Network (core), then *arr, HA, Nextcloud, AdGuard, MySpeed
+4. **Service Pages** — Docker, Storage, System, Network (core), then *arr, HA, Nextcloud, AdGuard
 5. **Settings** — Connections first, then appearance/shortcuts/notifications
 6. **Command Palette** — Global search + actions
 7. **Polish** — Animations, loading states, error boundaries, a11y audit

@@ -4,7 +4,7 @@ export async function mockFleetBackend(page: Page) {
   await page.addInitScript(() => {
     const mockData: Record<string, unknown> = {
       get_servers: [
-        { id: 'test-server-1', name: 'Test Server', hostname: '<device>.<tailnet>.ts.net', username: 'root', auth: { password: 'test' }, api_key: 'test-key', device_type: 'unraid', service_keys: { nextcloud_user: '<user>', nextcloud_pass: 'pass', lidarr_api_key: 'key', homeassistant_token: 'token', myspeed_db_path: '/tmp/test.db', myspeed_url: 'http://localhost:5216', adguard_user: '<user>', adguard_pass: 'pass', adguard_url: 'https://adguard.<tailnet>.ts.net:8443' } },
+        { id: 'test-server-1', name: 'Test Server', hostname: '<device>.<tailnet>.ts.net', username: 'root', auth: { password: 'test' }, api_key: 'test-key', device_type: 'unraid',         service_keys: { nextcloud_user: '<user>', nextcloud_pass: 'pass', lidarr_api_key: 'key', homeassistant_token: 'token', adguard_user: '<user>', adguard_pass: 'pass', adguard_url: 'https://adguard.<tailnet>.ts.net:8443' } },
         { id: 'test-phone-1', name: 'Galaxy S24', hostname: '<device>-ultra.<tailnet>.ts.net', username: 'root', auth: { password: 'test' }, device_type: 'phone', service_keys: { phone_adb_serial: '<device>-ultra.<tailnet>.ts.net:36887', kdeconnect_device_id: '7cc37f37453c42f2b5713a505ec547c1', phone_rustdesk_id: '1321035736' } },
         { id: 'test-steamdeck-1', name: 'ROG Ally', hostname: '<device>.<tailnet>.ts.net', username: '<device>_Ally', auth: { password: 'test-pass' }, device_type: 'steamdeck', service_keys: { steamdeck_rustdesk_id: '2306695', steamdeck_rustdesk_password: 'test-pass', steamdeck_kdeconnect_device_id: 'ally-device-id' } }
       ],
@@ -38,8 +38,7 @@ export async function mockFleetBackend(page: Page) {
       get_nextcloud_activity: { activities: [{ app: 'files', subject: 'You created "test.txt"', timestamp: 1724000000, type: 'file', user: '<user>' }] },
       get_lidarr_status: { version: '3.1.0.4875', instanceName: 'Lidarr' },
       get_homeassistant_states: [{ entity_id: 'light.living_room', state: 'on', attributes: { friendly_name: 'Living Room Light' } }, { entity_id: 'switch.kitchen', state: 'off', attributes: { friendly_name: 'Kitchen Switch' } }],
-      get_myspeed_summary: { stats: { total_tests: 935, avg_download: 201.2, avg_upload: 95.8, avg_ping: 12.3 }, tests: [{ id: 1, download: 215.3, upload: 98.2, ping: 11.5, testServer: 'Chicago, IL', testDate: '2024-08-25T12:00:00Z' }] },
-      test_connection: { success: true, message: 'Connected', hostname: 'home-server', os: 'Unraid', services: { graphql: true, nextcloud: true, lidarr: true, homeassistant: true, myspeed: true, adguard: true } },
+      test_connection: { success: true, message: 'Connected', hostname: 'home-server', os: 'Unraid', services: { graphql: true, nextcloud: true, lidarr: true, homeassistant: true, adguard: true } },
       get_processes: 'root 1234 0.5 1.2 /usr/bin/foo',
       get_syslog: 'Aug 26 00:00:00 server kernel: test',
       get_plugins: ['plugin1', 'plugin2', 'plugin3'],

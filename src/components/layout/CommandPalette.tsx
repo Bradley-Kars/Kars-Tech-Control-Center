@@ -22,7 +22,6 @@ import {
   Home,
   Cloud,
   ShieldCheck,
-  BarChart3,
   RefreshCw,
   RotateCcw,
   Power,
@@ -93,7 +92,6 @@ const STATIC_COMMANDS: Cmd[] = [
   { id: 'svc-ha', label: 'Home Assistant', description: 'Home automation', category: 'Services', icon: Home, shortcut: '', action: () => '/service/homeassistant' },
   { id: 'svc-nextcloud', label: 'Nextcloud', description: 'File sync & share', category: 'Services', icon: Cloud, shortcut: '', action: () => '/service/nextcloud' },
   { id: 'svc-adguard', label: 'AdGuard', description: 'DNS filtering', category: 'Services', icon: ShieldCheck, shortcut: '', action: () => '/service/adguard' },
-  { id: 'svc-myspeed', label: 'MySpeed', description: 'Speed tests', category: 'Services', icon: BarChart3, shortcut: '', action: () => '/service/myspeed' },
 
   // Actions
   {

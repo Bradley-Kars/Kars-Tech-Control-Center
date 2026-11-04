@@ -26,7 +26,6 @@ const ROUTES = [
   '/service/homeassistant',
   '/service/nextcloud',
   '/service/adguard',
-  '/service/myspeed',
   '/service/nonexistent',
   '/meshcentral',
   '/fleet-command',

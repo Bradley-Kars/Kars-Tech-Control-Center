@@ -19,14 +19,13 @@ from __future__ import annotations
 from .adguard import AdGuardStub
 from .homeassistant import HomeAssistantStub
 from .lidarr import LidarrStub
-from .myspeed import MySpeedStub
 from .nextcloud import NextcloudStub
 from .plex import PlexStub
 from .unraid import UnraidStub
 
 
 class StubCluster:
-    """All seven stub servers started together on distinct free ports."""
+    """All six stub servers started together on distinct free ports."""
 
     def __init__(self) -> None:
         self.plex = PlexStub()
@@ -34,7 +33,6 @@ class StubCluster:
         self.homeassistant = HomeAssistantStub()
         self.adguard = AdGuardStub()
         self.lidarr = LidarrStub()
-        self.myspeed = MySpeedStub()
         self.unraid = UnraidStub()
 
     @property
@@ -45,7 +43,6 @@ class StubCluster:
             self.homeassistant,
             self.adguard,
             self.lidarr,
-            self.myspeed,
             self.unraid,
         ]
 

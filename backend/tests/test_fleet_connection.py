@@ -38,7 +38,6 @@ EMPTY_SERVICES = {
     "nextcloud": False,
     "lidarr": False,
     "homeassistant": False,
-    "myspeed": False,
     "adguard": False,
     "phone": False,
     "plex": False,

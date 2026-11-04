@@ -167,10 +167,8 @@ export interface ServiceKeys {
   homeassistant_token?: string;
   adguard_user?: string;
   adguard_pass?: string;
-  adguard_url?: string;
-  myspeed_db_path?: string;
-  myspeed_url?: string;
-  // Auto-discovered 2026-08-30 — same pattern as Home Assistant
+    adguard_url?: string;
+    // Auto-discovered 2026-08-30 — same pattern as Home Assistant
   plex_url?: string;
   plex_token?: string;
   scrutiny_url?: string;
@@ -542,47 +540,6 @@ export interface LidarrIndexer {
 }
 
 // ---------------------------------------------------------------------------
-// MySpeed (ported from the original Rust service in P10)
-// ---------------------------------------------------------------------------
-
-export interface MySpeedTest {
-  id: number;
-  timestamp: string;
-  download: number;
-  upload: number;
-  ping: number;
-  jitter?: number;
-  server_id?: number;
-  result_id?: string;
-}
-
-export interface MySpeedServer {
-  id: number;
-  name: string;
-  host: string;
-  location: string;
-  country: string;
-  port: number;
-  secure: boolean;
-}
-
-export interface MySpeedStats {
-  total_tests: number;
-  avg_download: number;
-  avg_upload: number;
-  avg_ping: number;
-  max_download: number;
-  max_upload: number;
-  min_ping: number;
-  latest_test?: MySpeedTest;
-}
-
-export interface MySpeedSummary {
-  stats: MySpeedStats;
-  recent_tests: MySpeedTest[];
-}
-
-// ---------------------------------------------------------------------------
 // Phone / KDE Connect (ported from the original Rust phone and KDE Connect
 // services in P14). Host-local, feature-flagged:
 // they work only when the backend host has adb / kdeconnect available.
@@ -646,7 +603,6 @@ export interface ServiceTestResults {
   nextcloud: boolean;
   lidarr: boolean;
   homeassistant: boolean;
-  myspeed: boolean;
   adguard: boolean;
   plex: boolean;
   scrutiny: boolean;

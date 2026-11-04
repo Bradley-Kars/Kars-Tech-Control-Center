@@ -6,7 +6,7 @@ import type { ServiceKeys } from './types';
  * Before this existed the page list was duplicated in three places that
  * disagreed: App.tsx's `Page` union listed 12 pages, Sidebar.tsx declared its
  * own copy of the union, and only 7 of them ever appeared in NAV_ITEMS — so the
- * five service pages (nextcloud, lidarr, homeassistant, myspeed, adguard) were
+ * four service pages (nextcloud, lidarr, homeassistant, adguard) were
  * reachable *only* by clicking a dashboard card. Both unions are now derived
  * from the table below.
  *
@@ -26,7 +26,6 @@ export type PageId =
   | 'nextcloud'
   | 'lidarr'
   | 'homeassistant'
-  | 'myspeed'
   | 'adguard'
   | 'meshcentral';
 
@@ -168,17 +167,6 @@ export const PAGES: PageDef[] = [
     requiredKeys: ['homeassistant_token'],
     pollMs: 10000,
     description: 'Home Assistant: states, areas, devices, entity control',
-  },
-  {
-    id: 'myspeed',
-    nav: false,
-    label: 'MySpeed',
-    icon: '↯',
-    group: 'services',
-    deviceRole: 'unraid',
-    requiredKeys: ['myspeed_db_path'],
-    pollMs: 60000,
-    description: 'MySpeed: speedtest history, summary, per-server results',
   },
   {
     id: 'adguard',

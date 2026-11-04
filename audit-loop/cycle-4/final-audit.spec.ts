@@ -10,7 +10,7 @@ const ROUTES = [
   '/device/ally', '/device/laptop', '/device/nonexistent',
   '/service/docker', '/service/storage', '/service/system', '/service/network',
   '/service/lidarr', '/service/homeassistant', '/service/nextcloud', '/service/adguard',
-  '/service/myspeed', '/service/nonexistent',
+  '/service/nonexistent',
   '/meshcentral', '/fleet-command', '/compliance', '/alerts', '/chat', '/ticketing',
   '/settings', '/settings/appearance', '/settings/notifications',
   '/settings/shortcuts', '/settings/meshcentral', '/settings/about',

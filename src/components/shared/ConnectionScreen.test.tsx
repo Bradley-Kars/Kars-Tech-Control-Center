@@ -28,7 +28,6 @@ it('tests the connection over the fleet API and reports success', async () => {
       nextcloud: false,
       lidarr: false,
       homeassistant: false,
-      myspeed: false,
       adguard: false,
       phone: false,
       kdeconnect: false,

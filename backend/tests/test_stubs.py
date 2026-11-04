@@ -16,7 +16,6 @@ from tests.stubs import (
     AdGuardStub,
     HomeAssistantStub,
     LidarrStub,
-    MySpeedStub,
     NextcloudStub,
     PlexStub,
     StubCluster,
@@ -165,20 +164,6 @@ def test_lidarr_stub_system_status():
 
 
 # --------------------------------------------------------------------------- #
-# MySpeed
-# --------------------------------------------------------------------------- #
-def test_myspeed_stub_summary():
-    def fn(client, stub):
-        return client.get(f"{stub.url}/summary")
-
-    resp = _start_stop(MySpeedStub(), fn)
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["stats"]["total_tests"] == 42
-    assert data["stats"]["latest_test"]["result_id"] == "result-abc"
-
-
-# --------------------------------------------------------------------------- #
 # Unraid emhttp
 # --------------------------------------------------------------------------- #
 def test_unraid_stub_docker_and_disks():
@@ -217,7 +202,7 @@ def test_stub_cluster_starts_all():
         cluster = StubCluster()
         await cluster.start()
         try:
-            assert len(cluster.all) == 7
+            assert len(cluster.all) == 6
             # Every stub answers on its own port.
             async with httpx.AsyncClient() as client:
                 r1 = await client.get(f"{cluster.plex.url}/identity")
@@ -236,7 +221,7 @@ def test_start_all_stubs_helper():
     async def main():
         cluster = await start_all_stubs()
         try:
-            assert len(cluster.all) == 7
+            assert len(cluster.all) == 6
         finally:
             await stop_all_stubs(cluster)
 
@@ -273,7 +258,6 @@ def test_stub_records_requests():
         (HomeAssistantStub, "/api/states"),
         (AdGuardStub, "/control/status"),
         (LidarrStub, "/api/v1/system/status"),
-        (MySpeedStub, "/summary"),
         (UnraidStub, "/api/v2/docker"),
     ],
 )

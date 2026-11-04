@@ -82,8 +82,7 @@ The following 53 files exist in both branches but have different content. Each d
 13. `src/components/layout/Sidebar.tsx`
 14. `src/components/layout/TopBar.tsx`
 15. `src/components/lidarr/LidarrPage.tsx`
-16. `src/components/myspeed/MySpeedPage.tsx`
-17. `src/components/network/NetworkPage.tsx`
+16. `src/components/network/NetworkPage.tsx`
 18. `src/components/nextcloud/NextcloudPage.test.tsx`
 19. `src/components/nextcloud/NextcloudPage.tsx`
 20. `src/components/opencode/ChatPanel.tsx`

@@ -50,7 +50,6 @@ This document provides a smoke-test checklist for the KTS Master Control staging
 | 1.3.3 | Home Assistant | Home Assistant card visible | ☐ |
 | 1.3.4 | AdGuard | AdGuard Home card visible | ☐ |
 | 1.3.5 | Lidarr | Lidarr card visible | ☐ |
-| 1.3.5 | MySpeed | MySpeed card visible | ☐ |
 | 1.3.6 | Docker | Docker container count card visible | ☐ |
 
 ### 1.4. Key User Flows

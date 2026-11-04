@@ -65,7 +65,7 @@ describe('DockerPage (D/E/L/R/I/M state matrix)', () => {
 
     await waitForContainers();
     expect(screen.getByText('Docker Containers')).toBeInTheDocument();
-    expect(screen.getByText('7 running · 1 stopped · 8 total')).toBeInTheDocument();
+    expect(screen.getByText('6 running · 1 stopped · 7 total')).toBeInTheDocument();
   });
 
   it('D populated: lists all container names', async () => {
@@ -95,7 +95,7 @@ describe('DockerPage (D/E/L/R/I/M state matrix)', () => {
     render(<DockerPage {...defaultProps} />);
 
     await waitForContainers();
-    expect(screen.getAllByText('Stop').length).toBe(7);
+    expect(screen.getAllByText('Stop').length).toBe(6);
     expect(screen.getAllByText('Start').length).toBe(1);
   });
 

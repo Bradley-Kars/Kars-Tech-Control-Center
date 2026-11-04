@@ -14,7 +14,6 @@ import {
   getKdeConnectNotifications,
   getKdeConnectMpris,
   getAdGuardStats,
-  getMySpeedSummary,
   steamdeckGetBattery,
   steamdeckGetThermal,
   steamdeckGetDeskflowStatus,
@@ -24,7 +23,7 @@ import {
   getLocalSystemStats,
 } from '../../lib/fleet-api';
 
-type Page = 'dashboard' | 'phone' | 'steamdeck' | 'docker' | 'storage' | 'system' | 'network' | 'nextcloud' | 'lidarr' | 'homeassistant' | 'myspeed' | 'adguard';
+type Page = 'dashboard' | 'phone' | 'steamdeck' | 'docker' | 'storage' | 'system' | 'network' | 'nextcloud' | 'lidarr' | 'homeassistant' | 'adguard';
 
 interface Props {
   servers: ServerConfig[];
@@ -119,9 +118,8 @@ export function Dashboard({ servers, stats, onRefresh, onNavigate: _onNavigate }
   const [steamdeckDisk, setSteamdeckDisk] = useState<any>(null);
   const [steamdeckGpu, setSteamdeckGpu] = useState<any>(null);
 
-  // AdGuard & MySpeed data
+  // AdGuard data
   const [adguardStats, setAdguardStats] = useState<any>(null);
-  const [myspeedStats, setMyspeedStats] = useState<any>(null);
 
   const refreshLocal = useCallback(async () => {
     try {
@@ -214,14 +212,6 @@ export function Dashboard({ servers, stats, onRefresh, onNavigate: _onNavigate }
     } catch (e) { console.error(`getAdGuardStats(${unraidServer.id}) failed:`, e); setAdguardStats(null); }
   }, [unraidServer]);
 
-  const refreshMyspeed = useCallback(async () => {
-    if (!unraidServer) return;
-    try {
-      const stats = await getMySpeedSummary(unraidServer.id);
-      setMyspeedStats(stats);
-    } catch (e) { console.error(`getMySpeedSummary(${unraidServer.id}) failed:`, e); setMyspeedStats(null); }
-  }, [unraidServer]);
-
   useEffect(() => {
     refreshLocal();
     refreshGpu();
@@ -230,7 +220,6 @@ export function Dashboard({ servers, stats, onRefresh, onNavigate: _onNavigate }
     refreshPhone();
     refreshSteamdeck();
     refreshAdguard();
-    refreshMyspeed();
     const interval = setInterval(() => {
       refreshLocal();
       refreshGpu();
@@ -239,10 +228,9 @@ export function Dashboard({ servers, stats, onRefresh, onNavigate: _onNavigate }
       refreshPhone();
       refreshSteamdeck();
       refreshAdguard();
-      refreshMyspeed();
     }, 10000);
     return () => clearInterval(interval);
-  }, [refreshLocal, refreshGpu, refreshContainers, refreshArray, refreshPhone, refreshSteamdeck, refreshAdguard, refreshMyspeed]);
+  }, [refreshLocal, refreshGpu, refreshContainers, refreshArray, refreshPhone, refreshSteamdeck, refreshAdguard]);
 
   const memTotalMB = stats?.memory_total_mb || (stats?.memory_total_bytes ? stats.memory_total_bytes / (1024 * 1024) : 0);
   const memUsedMB = stats?.memory_used_mb || (stats?.memory_used_bytes ? stats.memory_used_bytes / (1024 * 1024) : 0);
@@ -546,32 +534,6 @@ export function Dashboard({ servers, stats, onRefresh, onNavigate: _onNavigate }
               )}
             </CardSection>
 
-            {/* MySpeed */}
-            <CardSection title="Internet Speed">
-              {myspeedStats?.stats ? (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <div className="text-muted">↓ Download</div>
-                      <div className="font-mono font-bold text-green">{myspeedStats.stats.avg_download?.toFixed(0) || '—'} Mbps</div>
-                    </div>
-                    <div>
-                      <div className="text-muted">↑ Upload</div>
-                      <div className="font-mono font-bold text-blue">{myspeedStats.stats.avg_upload?.toFixed(0) || '—'} Mbps</div>
-                    </div>
-                    <div>
-                      <div className="text-muted">⏱ Ping</div>
-                      <div className="font-mono">{myspeedStats.stats.avg_ping?.toFixed(1) || '—'} ms</div>
-                    </div>
-                  </div>
-                  <div className="text-xs text-muted">
-                    Based on {myspeedStats.stats.total_tests || 0} tests
-                  </div>
-                </div>
-              ) : (
-                <div className="text-sm text-muted">Loading...</div>
-              )}
-            </CardSection>
           </div>
         </section>
       )}

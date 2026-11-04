@@ -24,7 +24,7 @@ All copy is hardcoded English. Adding i18n is a product decision.
 Suggested owner: product/engineering
 
 ## SVC-003 — Service subpages not deep-audited (P3, coverage)
-Routes /service/lidarr, /homeassistant, /nextcloud, /adguard, /myspeed,
+Routes /service/lidarr, /homeassistant, /nextcloud, /adguard,
 /storage, /system, /network exist but were only screenshot-captured, not
 audited against the full state matrix.
 Suggested: schedule a dedicated audit pass if these pages are high-traffic.

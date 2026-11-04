@@ -9,7 +9,6 @@ Stubs:
 - NextcloudStub    — Nextcloud /ocs/v2.php/* endpoints
 - HomeAssistantStub — Home Assistant /api/* endpoints
 - LidarrStub       — Lidarr /api/v1/* endpoints
-- MySpeedStub      — MySpeed /api/* speed test endpoints
 - UnraidStub       — Unraid emhttp /api/v2/* endpoints
 - PlexStub         — Plex /identity and /library/sections endpoints
 
@@ -27,7 +26,6 @@ from .adguard import AdGuardStub
 from .nextcloud import NextcloudStub
 from .homeassistant import HomeAssistantStub
 from .lidarr import LidarrStub
-from .myspeed import MySpeedStub
 from .unraid import UnraidStub
 from .plex import PlexStub
 from .all import StubCluster, start_all_stubs, stop_all_stubs
@@ -38,7 +36,6 @@ __all__ = [
     "NextcloudStub",
     "HomeAssistantStub",
     "LidarrStub",
-    "MySpeedStub",
     "UnraidStub",
     "PlexStub",
     "StubCluster",

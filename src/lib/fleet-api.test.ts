@@ -161,7 +161,6 @@ const EMPTY_SERVICES: TestConnectionResult['services'] = {
   nextcloud: false,
   lidarr: false,
   homeassistant: false,
-  myspeed: false,
   adguard: false,
   phone: false,
   kdeconnect: false,

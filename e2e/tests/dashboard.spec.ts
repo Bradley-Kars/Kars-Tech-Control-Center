@@ -38,11 +38,6 @@ test.describe('Dashboard', () => {
     await expect(app.mainContent.getByText('Protection Active')).toBeVisible();
   });
 
-  test('displays MySpeed card', async () => {
-    await expect(app.mainContent.getByText('Internet Speed')).toBeVisible();
-    await expect(app.mainContent.getByText('201 Mbps')).toBeVisible();
-  });
-
   test('displays phone summary', async () => {
     await expect(app.mainContent.getByText('Galaxy S24')).toBeVisible();
     await expect(app.mainContent.getByText('85%')).toBeVisible();

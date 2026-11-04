@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # HTTP API integration tests
-# Tests external service APIs (AdGuard, MySpeed, Nextcloud, etc.)
+# Tests external service APIs (AdGuard, Nextcloud, etc.)
 set -uo pipefail
 
 PASS=0
@@ -15,7 +15,6 @@ skip() { echo "  ○ $1 — $2"; SKIP=$((SKIP+1)); }
 ADGUARD_URL="https://adguard.<tailnet>.ts.net:8443"
 ADGUARD_USER="<user>"
 ADGUARD_PASS="${ADGUARD_PASS:?set ADGUARD_PASS in your shell}"
-MYSPEED_URL="http://myspeed.<tailnet>.ts.net:3052"
 NEXTCLOUD_URL="https://nextcloud.<tailnet>.ts.net"
 
 echo "=== HTTP API Integration Tests ==="
@@ -66,36 +65,6 @@ if echo "$AG_FILTERS" | grep -q "user_rules"; then
   pass "AdGuard user rules: $RULES"
 else
   skip "AdGuard user rules" "endpoint not accessible"
-fi
-
-# --- MySpeed ---
-echo ""
-echo "--- MySpeed ---"
-
-# Test 5: MySpeed reachable
-MS_STATUS=$(curl -sk -o /dev/null -w "%{http_code}" --max-time 10 \
-  "$MYSPEED_URL/api/speedtests" 2>/dev/null)
-MS_EXIT=$?
-if [ "$MS_STATUS" = "200" ]; then
-  pass "MySpeed reachable (HTTP $MS_STATUS)"
-elif [ $MS_EXIT -ne 0 ] || [ "$MS_STATUS" = "000" ]; then
-  skip "MySpeed reachable" "service unreachable from this host"
-else
-  fail "MySpeed reachable" "HTTP $MS_STATUS"
-fi
-
-# Test 6: MySpeed speed tests
-if [ "$MS_STATUS" = "200" ]; then
-  MS_TESTS=$(curl -sk --max-time 10 \
-    "$MYSPEED_URL/api/speedtests" 2>/dev/null || echo "")
-  if echo "$MS_TESTS" | grep -q "download"; then
-    COUNT=$(echo "$MS_TESTS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d))" 2>/dev/null || echo "?")
-    pass "MySpeed speed tests: $COUNT records"
-  else
-    fail "MySpeed speed tests" "invalid response"
-  fi
-else
-  skip "MySpeed speed tests" "service unreachable"
 fi
 
 # --- Nextcloud ---

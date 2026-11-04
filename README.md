@@ -122,7 +122,6 @@ The backend reads server configuration from `~/.config/master-control/servers.js
         "homeassistant_token": "<redacted>",
         "lidarr_url": "http://<device>.<tailnet>.ts.net:8888",
         "lidarr_api_key": "<redacted>",
-        "myspeed_url": "http://<device>.<tailnet>.ts.net:8086",
         "plex_url": "http://<device>.<tailnet>.ts.net:32400",
         "plex_token": "<redacted>"
       }
