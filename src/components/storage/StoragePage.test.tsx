@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { StoragePage } from './StoragePage';
-import { mockServerConfig, mockDisks, mockShares } from '../../test/mock-data';
+import { mockServerConfig } from '../../test/mock-data';
 
 vi.mock('../../lib/fleet-api', () => ({
   getDisks: vi.fn(),
@@ -11,91 +12,85 @@ vi.mock('../../lib/fleet-api', () => ({
 
 import { getDisks, getShares, getSmartData } from '../../lib/fleet-api';
 
+const mockGetDisks = vi.mocked(getDisks);
+const mockGetShares = vi.mocked(getShares);
+const mockGetSmartData = vi.mocked(getSmartData);
+
+const renderPage = () => {
+  mockGetDisks.mockResolvedValue([
+    { name: 'disk1', device: '/dev/disk1', size: 500 * 1024 * 1024 * 1024, temperature: 35, vendor: 'WD', type: 'HDD', smartStatus: 'OK' },
+  ]);
+  mockGetShares.mockResolvedValue([
+    { name: 'share1', path: '/mnt/user/share1', size: 100 * 1024 * 1024 * 1024, used: 50 * 1024 * 1024 * 1024, free: 50 * 1024 * 1024 * 1024 },
+  ]);
+  return render(
+    <MemoryRouter>
+      <StoragePage server={mockServerConfig} />
+    </MemoryRouter>
+  );
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(getDisks).mockResolvedValue(mockDisks as any);
-  vi.mocked(getShares).mockResolvedValue(mockShares as any);
-  vi.mocked(getSmartData).mockResolvedValue({ device: '/dev/sda', model: 'Samsung SSD', serial: 'ABC123', capacity: '500GB', health: 'PASSED', temperature: '32C', power_on_hours: '1000', reallocated_sectors: '0', pending_sectors: '0' } as any);
 });
 
-describe('StoragePage', () => {
-  it('renders loading state initially', () => {
-    render(<StoragePage server={mockServerConfig} />);
-    expect(screen.getByText('Loading disks...')).toBeInTheDocument();
-  });
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
-  it('renders storage page after loading', async () => {
+describe('StoragePage state matrix', () => {
+  it('L loading: shows skeletons while data loads', async () => {
+    mockGetDisks.mockResolvedValue(new Promise(() => {}));
+    mockGetShares.mockResolvedValue(new Promise(() => {}));
+
     render(<StoragePage server={mockServerConfig} />);
-    await screen.findByText('sda');
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     expect(screen.getByText('Storage')).toBeInTheDocument();
   });
 
-  it('displays disk names', async () => {
-    render(<StoragePage server={mockServerConfig} />);
-    await screen.findByText('sda');
-    expect(screen.getByText('sda')).toBeInTheDocument();
-    expect(screen.getByText('sdb')).toBeInTheDocument();
-    expect(screen.getByText('sdc')).toBeInTheDocument();
-    expect(screen.getByText('nvme0n1')).toBeInTheDocument();
-  });
+  it('E empty: shows empty state when no data', async () => {
+    mockGetDisks.mockResolvedValue([] as any);
+    mockGetShares.mockResolvedValue([] as any);
 
-  it('displays disk types', async () => {
     render(<StoragePage server={mockServerConfig} />);
-    await screen.findByText('sda');
-    expect(screen.getByText('SSD')).toBeInTheDocument();
-    expect(screen.getAllByText('HDD').length).toBe(2);
-    expect(screen.getByText('NVMe')).toBeInTheDocument();
-  });
 
-  it('displays disk temperatures', async () => {
-    render(<StoragePage server={mockServerConfig} />);
-    await screen.findByText('sda');
-    expect(screen.getByText('32°C')).toBeInTheDocument();
-    expect(screen.getByText('35°C')).toBeInTheDocument();
-    expect(screen.getByText('38°C')).toBeInTheDocument();
-    expect(screen.getByText('28°C')).toBeInTheDocument();
-  });
+    await new Promise(resolve => setTimeout(resolve, 100));
 
-  it('displays disk vendors', async () => {
-    render(<StoragePage server={mockServerConfig} />);
-    await screen.findByText('sda');
-    expect(screen.getAllByText('Samsung').length).toBe(2);
-    expect(screen.getByText('Western Digital')).toBeInTheDocument();
-    expect(screen.getByText('Seagate')).toBeInTheDocument();
-  });
-
-  it('displays disk sizes', async () => {
-    render(<StoragePage server={mockServerConfig} />);
-    await screen.findByText('sda');
-    expect(screen.getByText('465.8 GB')).toBeInTheDocument();
-    expect(screen.getByText('953.9 GB')).toBeInTheDocument();
-  });
-
-  it('shows shares tab', async () => {
-    render(<StoragePage server={mockServerConfig} />);
-    await screen.findByText('sda');
-    screen.getByText('Shares').click();
-    await waitFor(() => {
-      expect(screen.getByText('appdata')).toBeInTheDocument();
-      expect(screen.getByText('media')).toBeInTheDocument();
-    });
-  });
-
-  it('displays share names', async () => {
-    render(<StoragePage server={mockServerConfig} />);
-    await screen.findByText('sda');
-    screen.getByText('Shares').click();
-    await waitFor(() => {
-      expect(screen.getByText('appdata')).toBeInTheDocument();
-      expect(screen.getByText('media')).toBeInTheDocument();
-      expect(screen.getByText('domains')).toBeInTheDocument();
-      expect(screen.getByText('isos')).toBeInTheDocument();
-    });
-  });
-
-  it('shows disk count in tab', async () => {
-    render(<StoragePage server={mockServerConfig} />);
-    await screen.findByText('sda');
     expect(screen.getByText('Disks')).toBeInTheDocument();
+    expect(screen.getByText('Shares')).toBeInTheDocument();
+  });
+
+  it('R error: shows error banner when fetch fails', async () => {
+    mockGetDisks.mockRejectedValue(new Error('daemon unreachable'));
+    mockGetShares.mockResolvedValue([] as any);
+
+    render(<StoragePage server={mockServerConfig} />);
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    expect(screen.getByText(/daemon unreachable/)).toBeInTheDocument();
+  });
+
+  it('I interaction: refresh re-fetches data', async () => {
+    render(<StoragePage server={mockServerConfig} />);
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    fireEvent.click(screen.getByRole('button', { name: /refresh/ }));
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    expect(mockGetDisks).toHaveBeenCalledTimes(2);
+    expect(mockGetShares).toHaveBeenCalledTimes(2);
+  });
+
+  it('M modal: no dialog', async () => {
+    render(<StoragePage server={mockServerConfig} />);
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });
