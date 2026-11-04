@@ -36,10 +36,64 @@ jobs:
       - name: Production build (tsc -b && vite build)
         run: npm run build
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Backend gates
+        run: bash backend/verify-gates.sh
+        working-directory: backend
 
-      - name: E2E smoke (critical routes only)
-        run: npm run e2e -- --project=chromium --config=playwright.config.ts
-        env:
-          CI: true
+      - name: E2E against built web app + backend on random port with stub servers
+        run: |
+          # Pick a free port for the backend
+          export BACKEND_PORT=$(python3 -c "import socket; s=socket.socket(); s.bind(('',0)); print(s.getsockname()[1]); s.close()")
+          echo "Backend port: $BACKEND_PORT"
+
+          # Start backend on random port
+          cd backend
+          nohup python3 -m uvicorn core.bridge:app --host 127.0.0.1 --port $BACKEND_PORT > /tmp/backend.log 2>&1 &
+          BACKEND_PID=$!
+
+          # Wait for backend to be ready
+          for i in $(seq 1 30); do
+            if curl -s http://127.0.0.1:$BACKEND_PORT/api/fleet/servers > /dev/null 2>&1; then
+              echo "Backend ready on port $BACKEND_PORT"
+              break
+            fi
+            sleep 1
+          done
+
+          # Start stub servers on ephemeral ports
+          nohup python3 -c "
+import asyncio
+from tests.stubs.all import StubCluster
+async def main():
+    cluster = StubCluster()
+    await cluster.start()
+    await asyncio.Event().wait()
+asyncio.run(main())
+" > /tmp/stubs.log 2>&1 &
+          STUBS_PID=$!
+          sleep 5
+
+          # Serve built web app with proxy to backend
+          cd ..
+          VITE_API_PROXY=http://127.0.0.1:$BACKEND_PORT nohup npx vite preview --port 5173 > /tmp/preview.log 2>&1 &
+          PREVIEW_PID=$!
+
+          # Wait for preview server to be ready
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:5173 > /dev/null 2>&1; then
+              echo "Frontend ready on port 5173"
+              break
+            fi
+            sleep 1
+          done
+
+          # Run e2e
+          npm run e2e
+          E2E_EXIT=$?
+
+          # Cleanup
+          kill $PREVIEW_PID 2>/dev/null || true
+          kill $BACKEND_PID 2>/dev/null || true
+          kill $STUBS_PID 2>/dev/null || true
+
+          exit $E2E_EXIT
