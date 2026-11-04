@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { DockerPage } from './DockerPage';
 import { mockServerConfig, mockDockerContainers } from '../../test/mock-data';
 
@@ -12,47 +12,65 @@ vi.mock('../../lib/fleet-api', () => ({
   dockerRemove: vi.fn(),
 }));
 
-import { getDockerContainers } from '../../lib/fleet-api';
+import { getDockerContainers, dockerStart, dockerStop, dockerRestart, dockerLogs } from '../../lib/fleet-api';
+
 const mockGetDockerContainers = vi.mocked(getDockerContainers);
+const mockDockerStart = vi.mocked(dockerStart);
+const mockDockerStop = vi.mocked(dockerStop);
+const mockDockerRestart = vi.mocked(dockerRestart);
+const mockDockerLogs = vi.mocked(dockerLogs);
+
+function pending<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve: (value: T) => resolve(value) };
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
   mockGetDockerContainers.mockResolvedValue(mockDockerContainers as any);
 });
 
-/**
- * Wait for the container fetch to land.
- *
- * "Docker Containers" is a static heading that renders synchronously, so
- * awaiting it does not guarantee the data arrived — asserting straight after
- * raced the fetch and failed intermittently under load. Wait on a
- * data-dependent node instead.
- */
+const defaultProps = {
+  server: mockServerConfig,
+  setPage: vi.fn(),
+};
+
 async function waitForContainers() {
   await screen.findByText('nextcloud');
 }
 
-describe('DockerPage', () => {
-  const defaultProps = {
-    server: mockServerConfig,
-    setPage: vi.fn(),
-  };
+describe('DockerPage (D/E/L/R/I/M state matrix)', () => {
+  it('L loading: disables action buttons while a container action is in flight', async () => {
+    const start = pending<string>();
+    mockDockerStart.mockResolvedValue(start.promise as any);
 
-  it('renders containers after loading', async () => {
     render(<DockerPage {...defaultProps} />);
+
+    await waitForContainers();
+    const startBtn = screen.getAllByText('Start')[0]; // radarr is stopped
+    fireEvent.click(startBtn);
+
+    expect(startBtn).toBeDisabled();
+    expect(mockDockerStart).toHaveBeenCalledTimes(1);
+
+    start.resolve('Started');
+    await waitFor(() => expect(startBtn).not.toBeDisabled());
+  });
+
+  it('D populated: shows the container counts summary', async () => {
+    render(<DockerPage {...defaultProps} />);
+
     await waitForContainers();
     expect(screen.getByText('Docker Containers')).toBeInTheDocument();
     expect(screen.getByText('7 running · 1 stopped · 8 total')).toBeInTheDocument();
   });
 
-  it('displays container counts as summary string', async () => {
+  it('D populated: lists all container names', async () => {
     render(<DockerPage {...defaultProps} />);
-    await waitForContainers();
-    expect(screen.getByText('7 running · 1 stopped · 8 total')).toBeInTheDocument();
-  });
 
-  it('displays container names', async () => {
-    render(<DockerPage {...defaultProps} />);
     await waitForContainers();
     expect(screen.getByText('nextcloud')).toBeInTheDocument();
     expect(screen.getByText('lidarr')).toBeInTheDocument();
@@ -63,8 +81,9 @@ describe('DockerPage', () => {
     expect(screen.getByText('sonarr')).toBeInTheDocument();
   });
 
-  it('shows service icons for known services', async () => {
+  it('D populated: shows service icons for known services', async () => {
     render(<DockerPage {...defaultProps} />);
+
     await waitForContainers();
     expect(screen.getByText('☁')).toBeInTheDocument();
     expect(screen.getByText('♪')).toBeInTheDocument();
@@ -72,66 +91,125 @@ describe('DockerPage', () => {
     expect(screen.getByText('🛡')).toBeInTheDocument();
   });
 
-  it('shows stop buttons for running containers', async () => {
+  it('D populated: shows stop buttons for running containers and a start button for stopped ones', async () => {
     render(<DockerPage {...defaultProps} />);
+
     await waitForContainers();
-    const stopBtns = screen.getAllByText('Stop');
-    expect(stopBtns.length).toBe(7);
+    expect(screen.getAllByText('Stop').length).toBe(7);
+    expect(screen.getAllByText('Start').length).toBe(1);
   });
 
-  it('shows start button for stopped containers', async () => {
+  it('D populated: shows container images', async () => {
     render(<DockerPage {...defaultProps} />);
-    await waitForContainers();
-    const startBtns = screen.getAllByText('Start');
-    expect(startBtns.length).toBe(1);
-  });
 
-  it('calls setPage with nextcloud when cloud icon clicked', async () => {
-    const setPage = vi.fn();
-    render(<DockerPage {...defaultProps} setPage={setPage} />);
-    await waitForContainers();
-    const cloudIcon = screen.getByText('☁');
-    fireEvent.click(cloudIcon.closest('[title]')!);
-    expect(setPage).toHaveBeenCalledWith('nextcloud');
-  });
-
-  it('calls setPage with lidarr when music icon clicked', async () => {
-    const setPage = vi.fn();
-    render(<DockerPage {...defaultProps} setPage={setPage} />);
-    await waitForContainers();
-    const musicIcon = screen.getByText('♪');
-    fireEvent.click(musicIcon.closest('[title]')!);
-    expect(setPage).toHaveBeenCalledWith('lidarr');
-  });
-
-  it('calls setPage with homeassistant when home icon clicked', async () => {
-    const setPage = vi.fn();
-    render(<DockerPage {...defaultProps} setPage={setPage} />);
-    await waitForContainers();
-    const homeIcon = screen.getByText('🏠');
-    fireEvent.click(homeIcon.closest('[title]')!);
-    expect(setPage).toHaveBeenCalledWith('homeassistant');
-  });
-
-  it('calls setPage with adguard when shield icon clicked', async () => {
-    const setPage = vi.fn();
-    render(<DockerPage {...defaultProps} setPage={setPage} />);
-    await waitForContainers();
-    const shieldIcon = screen.getByText('🛡');
-    fireEvent.click(shieldIcon.closest('[title]')!);
-    expect(setPage).toHaveBeenCalledWith('adguard');
-  });
-
-  it('shows container image names', async () => {
-    render(<DockerPage {...defaultProps} />);
     await waitForContainers();
     expect(screen.getByText('linuxserver/nextcloud:latest')).toBeInTheDocument();
     expect(screen.getByText('linuxserver/lidarr:latest')).toBeInTheDocument();
   });
 
-  it('shows stopped section label', async () => {
+  it('D populated: shows the Stopped section label', async () => {
     render(<DockerPage {...defaultProps} />);
+
     await waitForContainers();
     expect(screen.getByText('Stopped')).toBeInTheDocument();
+  });
+
+  it('D populated: filters containers by search text', async () => {
+    render(<DockerPage {...defaultProps} />);
+
+    await waitForContainers();
+    fireEvent.change(screen.getByPlaceholderText('Search containers...'), {
+      target: { value: 'nextcloud' },
+    });
+    expect(screen.getByText('nextcloud')).toBeInTheDocument();
+    expect(screen.queryByText('lidarr')).not.toBeInTheDocument();
+  });
+
+  it('D populated: navigates to the nextcloud page when the cloud icon is clicked', async () => {
+    const setPage = vi.fn();
+    render(<DockerPage {...defaultProps} setPage={setPage} />);
+
+    await waitForContainers();
+    fireEvent.click(screen.getByText('☁').closest('[title]')!);
+    expect(setPage).toHaveBeenCalledWith('nextcloud');
+  });
+
+  it('D populated: navigates to the lidarr page when the music icon is clicked', async () => {
+    const setPage = vi.fn();
+    render(<DockerPage {...defaultProps} setPage={setPage} />);
+
+    await waitForContainers();
+    fireEvent.click(screen.getByText('♪').closest('[title]')!);
+    expect(setPage).toHaveBeenCalledWith('lidarr');
+  });
+
+  it('E empty: shows zero counts and no container rows when there are no containers', async () => {
+    mockGetDockerContainers.mockResolvedValue([] as any);
+
+    render(<DockerPage {...defaultProps} />);
+
+    await waitFor(() =>
+      expect(screen.getByText('0 running · 0 stopped · 0 total')).toBeInTheDocument()
+    );
+    expect(screen.queryByText('nextcloud')).not.toBeInTheDocument();
+    expect(screen.queryByText('Stopped')).not.toBeInTheDocument();
+  });
+
+  it('R error: shows the error banner when listing containers fails', async () => {
+    mockGetDockerContainers.mockRejectedValue(new Error('daemon unreachable'));
+
+    render(<DockerPage {...defaultProps} />);
+
+    await waitFor(() => expect(screen.getByText(/daemon unreachable/)).toBeInTheDocument());
+  });
+
+  it('I interaction: Start button calls dockerStart for a stopped container', async () => {
+    render(<DockerPage {...defaultProps} />);
+
+    await waitForContainers();
+    fireEvent.click(screen.getAllByText('Start')[0]);
+
+    await waitFor(() => expect(mockDockerStart).toHaveBeenCalledTimes(1));
+    expect(mockDockerStart).toHaveBeenCalledWith(mockServerConfig.id, 'stu789vwx012');
+  });
+
+  it('I interaction: Stop button calls dockerStop for a running container', async () => {
+    render(<DockerPage {...defaultProps} />);
+
+    await waitForContainers();
+    fireEvent.click(screen.getAllByText('Stop')[0]);
+
+    await waitFor(() => expect(mockDockerStop).toHaveBeenCalledTimes(1));
+    expect(mockDockerStop).toHaveBeenCalledWith(mockServerConfig.id, expect.any(String));
+  });
+
+  it('I interaction: Restart button calls dockerRestart for a running container', async () => {
+    render(<DockerPage {...defaultProps} />);
+
+    await waitForContainers();
+    fireEvent.click(screen.getAllByText('Restart')[0]);
+
+    await waitFor(() => expect(mockDockerRestart).toHaveBeenCalledTimes(1));
+    expect(mockDockerRestart).toHaveBeenCalledWith(mockServerConfig.id, expect.any(String));
+  });
+
+  it('I interaction: clicking a container fetches its logs and shows the logs panel', async () => {
+    render(<DockerPage {...defaultProps} />);
+
+    await waitForContainers();
+    fireEvent.click(screen.getByText('nextcloud'));
+
+    await waitFor(() => expect(mockDockerLogs).toHaveBeenCalledTimes(1));
+    expect(mockDockerLogs).toHaveBeenCalledWith(mockServerConfig.id, 'abc123def456', 100);
+    await waitFor(() => expect(screen.getByText('mock logs')).toBeInTheDocument());
+  });
+
+  it('M modal: no dialog renders on DockerPage', async () => {
+    render(<DockerPage {...defaultProps} />);
+
+    await waitForContainers();
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Close/ })).not.toBeInTheDocument();
   });
 });

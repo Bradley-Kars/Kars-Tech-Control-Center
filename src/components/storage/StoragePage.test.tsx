@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
 import { StoragePage } from './StoragePage';
 import { mockServerConfig } from '../../test/mock-data';
 
@@ -16,20 +15,6 @@ const mockGetDisks = vi.mocked(getDisks);
 const mockGetShares = vi.mocked(getShares);
 const mockGetSmartData = vi.mocked(getSmartData);
 
-const renderPage = () => {
-  mockGetDisks.mockResolvedValue([
-    { name: 'disk1', device: '/dev/disk1', size: 500 * 1024 * 1024 * 1024, temperature: 35, vendor: 'WD', type: 'HDD', smartStatus: 'OK' },
-  ]);
-  mockGetShares.mockResolvedValue([
-    { name: 'share1', path: '/mnt/user/share1', size: 100 * 1024 * 1024 * 1024, used: 50 * 1024 * 1024 * 1024, free: 50 * 1024 * 1024 * 1024 },
-  ]);
-  return render(
-    <MemoryRouter>
-      <StoragePage server={mockServerConfig} />
-    </MemoryRouter>
-  );
-};
-
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -40,8 +25,8 @@ afterEach(() => {
 
 describe('StoragePage state matrix', () => {
   it('L loading: shows skeletons while data loads', async () => {
-    mockGetDisks.mockResolvedValue(new Promise(() => {}));
-    mockGetShares.mockResolvedValue(new Promise(() => {}));
+    mockGetDisks.mockResolvedValue(new Promise(() => {}) as any);
+    mockGetShares.mockResolvedValue(new Promise(() => {}) as any);
 
     render(<StoragePage server={mockServerConfig} />);
 
