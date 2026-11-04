@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
 import { SystemPage } from './SystemPage';
 import { mockServerConfig } from '../../test/mock-data';
 
@@ -23,7 +22,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockGetProcesses.mockResolvedValue('PID USER COMMAND\n1 root init\n');
   mockGetSyslog.mockResolvedValue('Jan 1 00:00:00 kernel boot');
-  mockGetUserScripts.mockResolvedValue(['backup.sh', 'monitor.sh']);
+  mockGetUserScripts.mockResolvedValue('backup.sh\nmonitor.sh');
   mockGetPlugins.mockResolvedValue(['docker', 'nvidia']);
 });
 
@@ -33,10 +32,10 @@ afterEach(() => {
 
 describe('SystemPage state matrix', () => {
   it('L loading: shows skeleton while data loads', async () => {
-    mockGetProcesses.mockResolvedValue(new Promise(() => {}));
-    mockGetSyslog.mockResolvedValue(new Promise(() => {}));
-    mockGetUserScripts.mockResolvedValue(new Promise(() => {}));
-    mockGetPlugins.mockResolvedValue(new Promise(() => {}));
+    mockGetProcesses.mockImplementation(() => new Promise<string>(() => {}));
+    mockGetSyslog.mockImplementation(() => new Promise<string>(() => {}));
+    mockGetUserScripts.mockImplementation(() => new Promise<string>(() => {}));
+    mockGetPlugins.mockImplementation(() => new Promise<string[]>(() => {}));
 
     render(<SystemPage server={mockServerConfig} />);
 

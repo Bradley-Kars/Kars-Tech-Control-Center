@@ -6,14 +6,12 @@ import { mockServerConfig } from '../../test/mock-data';
 vi.mock('../../lib/fleet-api', () => ({
   getDisks: vi.fn(),
   getShares: vi.fn(),
-  getSmartData: vi.fn(),
 }));
 
-import { getDisks, getShares, getSmartData } from '../../lib/fleet-api';
+import { getDisks, getShares } from '../../lib/fleet-api';
 
 const mockGetDisks = vi.mocked(getDisks);
 const mockGetShares = vi.mocked(getShares);
-const mockGetSmartData = vi.mocked(getSmartData);
 
 beforeEach(() => {
   vi.clearAllMocks();
