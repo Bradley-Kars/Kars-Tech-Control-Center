@@ -1,6 +1,6 @@
 """backend/fleet/emhttp.py — Unraid emhttp client (P4).
 
-Port of src-tauri/src/emhttp/mod.rs: array, parity, shares and disks over
+Port of the original Rust emhttp module: array, parity, shares and disks over
 Unraid's emhttp HTTP API (/api/v2/*). Built on httpx (already a project
 dependency); tests replay recorded fixtures via FixtureEmhttpClient — no
 real network, no real Unraid server.

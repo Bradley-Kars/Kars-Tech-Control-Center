@@ -1,6 +1,6 @@
 """backend/fleet/parsers/smart.py — parse smartctl output into a SmartInfo dict.
 
-Mirrors src-tauri/src/parsers/smart.py. Works on captured ``smartctl -a <device>``
+Mirrors the original Rust smart parser. Works on captured ``smartctl -a <device>``
 text; no real disk or smartctl binary required.
 """
 

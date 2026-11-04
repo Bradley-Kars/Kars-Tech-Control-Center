@@ -1,6 +1,6 @@
 """backend/fleet/rest_service.py — Plex + generic REST health port (P5).
 
-Port of src-tauri/src/services/http_service.rs (811 lines): health probing
+Port of the original Rust HTTP service (811 lines): health probing
 for 14 REST services over plain HTTP(S), Plex identity/library endpoints,
 credential resolution from ServiceKeys, and redacted error handling.
 

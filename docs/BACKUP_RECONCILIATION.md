@@ -104,7 +104,7 @@ The following 53 files exist in both branches but have different content. Each d
 35. `src/config/loader.ts`
 36. `src/config/nav.ts`
 37. `src/lib/api.ts`
-38. `src/lib/tauri-commands.ts` — _company_email() helper added
+38. `src/lib/fleet-api.ts` — _company_email() helper added
 39. `src/pages/CompliancePage.tsx`
 40. `src/pages/DashboardPage.tsx`
 41. `src/pages/DevicePage.tsx` — hostname placeholders

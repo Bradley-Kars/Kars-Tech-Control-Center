@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { mockAllTauriCommands } from '../utils/mock-backend';
+import { mockFleetBackend } from '../utils/mock-backend';
 
 const BASE = 'http://localhost:5173';
 const SHOTS = '<cwd>/Work/mc-ui-audit-screenshots';
 
 test.describe('Master Control UI Audit Screenshots', () => {
   test.beforeEach(async ({ page }) => {
-    await mockAllTauriCommands(page);
+    await mockFleetBackend(page);
     await page.goto(BASE);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1500);
@@ -20,7 +20,7 @@ test.describe('Master Control UI Audit Screenshots', () => {
   test('02 - Dashboard - empty state (no servers)', async ({ page }) => {
     await page.addInitScript(() => {
       // @ts-ignore
-      Object.assign(window.__TAURI_MOCK__, {
+      Object.assign(window.__FLEET_MOCK__, {
         get_servers: [], get_system_stats: {},
         get_docker_containers: [], meshcentralGetFleetStats: {},
       });
@@ -34,9 +34,9 @@ test.describe('Master Control UI Audit Screenshots', () => {
   test('03 - Dashboard - loading state', async ({ page }) => {
     await page.addInitScript(() => {
       // @ts-ignore
-      const orig = window.__TAURI_INTERNALS__.invoke;
+      const orig = window.__FLEET_INTERNALS__.invoke;
       // @ts-ignore
-      window.__TAURI_INTERNALS__.invoke = async (cmd, args) => {
+      window.__FLEET_INTERNALS__.invoke = async (cmd, args) => {
         if (['meshcentralGetFleetStats', 'get_servers', 'get_system_stats'].includes(cmd)) {
           await new Promise(r => setTimeout(r, 5000));
         }
@@ -51,7 +51,7 @@ test.describe('Master Control UI Audit Screenshots', () => {
   test('04 - Dashboard - error state', async ({ page }) => {
     await page.addInitScript(() => {
       // @ts-ignore
-      window.__TAURI_INTERNALS__.invoke = async () => { throw new Error('Internal server error'); };
+      window.__FLEET_INTERNALS__.invoke = async () => { throw new Error('Internal server error'); };
     });
     await page.goto(BASE);
     await page.waitForTimeout(3000);
@@ -98,7 +98,7 @@ test.describe('Master Control UI Audit Screenshots', () => {
   test('16 - Error boundary - Dashboard with failing API', async ({ page }) => {
     await page.addInitScript(() => {
       // @ts-ignore
-      window.__TAURI_INTERNALS__.invoke = async () => { throw new Error('Internal server error'); };
+      window.__FLEET_INTERNALS__.invoke = async () => { throw new Error('Internal server error'); };
     });
     await page.goto(BASE);
     await page.waitForTimeout(3000);
@@ -108,7 +108,7 @@ test.describe('Master Control UI Audit Screenshots', () => {
   test('17 - Empty state - no servers enrolled', async ({ page }) => {
     await page.addInitScript(() => {
       // @ts-ignore
-      Object.assign(window.__TAURI_MOCK__, {
+      Object.assign(window.__FLEET_MOCK__, {
         get_servers: [], get_system_stats: {},
         get_docker_containers: [], meshcentralGetFleetStats: {},
       });
@@ -123,7 +123,7 @@ test.describe('Mobile viewport', () => {
   test.use({ viewport: { width: 375, height: 667 } });
 
   test.beforeEach(async ({ page }) => {
-    await mockAllTauriCommands(page);
+    await mockFleetBackend(page);
     await page.goto(BASE);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1500);

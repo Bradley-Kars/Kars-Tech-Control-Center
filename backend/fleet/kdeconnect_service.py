@@ -1,6 +1,6 @@
 """backend/fleet/kdeconnect_service.py — KDE Connect host-local port (P14).
 
-Port of src-tauri/src/services/kdeconnect.rs: battery, connectivity report
+Port of the original Rust KDE Connect service: battery, connectivity report
 and device list over D-Bus/gdbus against a KDE Connect paired device on the
 machine that runs this backend.
 
@@ -55,7 +55,7 @@ class KdeConnectClient(ABC):
 
 
 # ---------------------------------------------------------------------------
-# Response shapes (mirror src-tauri/src/services/kdeconnect.rs)
+# Response shapes (mirror the original Rust KDE Connect service)
 # ---------------------------------------------------------------------------
 
 
@@ -234,7 +234,7 @@ def _as_int(value, default: int = 0) -> int:
 class RealKdeConnectClient(KdeConnectClient):
     """Real KDE Connect client running gdbus directly on the backend host.
 
-    Mirrors the Tauri ``get_kdeconnect_*`` commands. The device id is
+    Mirrors the ``get_kdeconnect_*`` commands. The device id is
     configured per server (``service_keys.kdeconnect_device_id``).
     """
 

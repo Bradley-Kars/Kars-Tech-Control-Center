@@ -1,6 +1,6 @@
 """backend/fleet/nextcloud_service.py — Nextcloud port (P6).
 
-Port of src-tauri/src/services/nextcloud.rs: server info, system status,
+Port of the original Rust Nextcloud service: server info, system status,
 storage stats, users and activity over Nextcloud's OCS API
 (/ocs/v2.php/...), using basic auth (username/password) plus the
 ``OCS-APIRequest`` header. Credentials are resolved from
@@ -171,7 +171,7 @@ def parse_nextcloud_status(raw: Any) -> NextcloudSystemStatus:
     """Build a system status from the serverinfo ``/info`` envelope.
 
     The dedicated status endpoint does not work in Nextcloud 34, so the info
-    endpoint is used instead (mirrors src-tauri/src/services/nextcloud.rs).
+    endpoint is used instead (mirrors the original Rust Nextcloud service).
     """
     system = _nextcloud_system(_ocs_data(raw))
     version = str(system.get("version") or "")

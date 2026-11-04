@@ -54,7 +54,7 @@ FIXTURE_SERVER_KEY = {
 FIXTURE_SERVER_WITH_KEYS = {
     "id": "phone",
     "name": "Galaxy S24 Ultra",
-    "hostname": "phone.tailf6d3b4.ts.net",
+    "hostname": "<device>.<tailnet>.ts.net",
     "port": 22,
     "username": "user",
     "auth": {"type": "password", "password": "pw"},

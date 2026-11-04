@@ -374,7 +374,7 @@ export const mockMySpeedSummary = {
   ],
 };
 
-export function mockTauriInvoke(command: string, _args?: Record<string, unknown>): Promise<unknown> {
+export function mockInvoke(command: string, _args?: Record<string, unknown>): Promise<unknown> {
   const mockResponses: Record<string, () => Promise<unknown>> = {
     get_servers: async () => [mockServerConfig],
     get_system_stats: async () => mockSystemStats,

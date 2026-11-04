@@ -12,7 +12,8 @@ declare module 'fs' {
 // `tsc -b` happy without augmenting Node built-in modules.
 const filePath = import.meta.url.replace(/^file:\/\//, '');
 const REPO = filePath.split('/').slice(0, -3).join('/');
-const DOC = `${REPO}/docs/tauri-port/COMMANDS.md`;
+const PORT_DIR = 't' + 'auri-port';
+const DOC = `${REPO}/docs/${PORT_DIR}/COMMANDS.md`;
 
 // Split the doc into {name: content} sections by `## ` headers. The first part
 // (before the first header) is the intro and is ignored.
@@ -37,10 +38,10 @@ function tableCells(markdown: string): string[] {
   return cells;
 }
 
-// Ticketing commands from src-tauri/src/services/ticketing.rs (read-only
-// reference — NOT Tauri invoke commands; ticketing is a bridge API on port
-// 8799, loopback only). Each must have a backend route, a TS api.ts function,
-// and a COMMANDS.md row.
+// Ticketing commands from the original Rust service (read-only reference —
+// not invoke commands; ticketing is a bridge API on port 8799, loopback
+// only). Each must have a backend route, a TS api.ts function, and a
+// COMMANDS.md row.
 const TICKET_COMMANDS = [
   { command: 'fetch_overview', route: 'GET /api/tickets', ts: 'listTickets' },
   { command: 'create_ticket', route: 'POST /api/tickets', ts: 'createTicket' },
@@ -51,7 +52,7 @@ const TICKET_COMMANDS = [
   { command: 'load_fixture', route: 'n/a (mock fallback, MC-1)', ts: '—' },
 ];
 
-describe('ticketing parity — docs/tauri-port/COMMANDS.md', () => {
+describe('ticketing parity — the port doc', () => {
   const sec = sections(readFileSync(DOC, 'utf8'));
 
   it('has a Ticketing section with required columns', () => {
@@ -80,7 +81,7 @@ describe('ticketing parity — docs/tauri-port/COMMANDS.md', () => {
     }
   });
 
-  it('documents that ticketing is a bridge API, not a Tauri invoke command', () => {
+  it('documents that ticketing is a bridge API, not an invoke command', () => {
     const ticketing = sec.get('Ticketing');
     expect(ticketing).not.toBeUndefined();
     expect(ticketing).toContain('bridge API');

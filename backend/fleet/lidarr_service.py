@@ -1,6 +1,6 @@
 """backend/fleet/lidarr_service.py — Lidarr port (P9).
 
-Port of src-tauri/src/services/lidarr.rs: system status, health, artists,
+Port of the original Rust Lidarr service: system status, health, artists,
 albums, wanted/missing, queue, disk space and indexers over Lidarr's HTTP
 API (/api/v1/...), using an X-Api-Key header. Credentials are resolved from
 ``ServiceKeys`` (``lidarr_url`` / ``lidarr_api_key``).
@@ -86,7 +86,7 @@ class LidarrClient(ABC):
 
 
 # ---------------------------------------------------------------------------
-# Response shapes (mirror src-tauri/src/services/lidarr.rs)
+# Response shapes (mirror the original Rust Lidarr service)
 # ---------------------------------------------------------------------------
 
 

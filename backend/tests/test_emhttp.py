@@ -1,4 +1,4 @@
-"""backend/fleet/emhttp tests — port of src-tauri/src/emhttp/mod.rs.
+"""backend/fleet/emhttp tests — port of the original Rust emhttp module.
 
 Fixture-only: never calls a real Unraid server. HTTP tests mock httpx.
 Placeholder values only — no real hostnames or tokens.

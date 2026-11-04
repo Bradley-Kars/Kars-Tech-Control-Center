@@ -1,6 +1,6 @@
 """backend/fleet/phone_service.py — phone (ADB) host-local port (P14).
 
-Port of src-tauri/src/services/phone.rs: device info, battery, storage and
+Port of the original Rust phone (ADB) service: device info, battery, storage and
 memory read over ADB against an Android phone attached to the machine that
 runs this backend.
 
@@ -60,7 +60,7 @@ class PhoneClient(ABC):
 
 
 # ---------------------------------------------------------------------------
-# Response shapes (mirror src-tauri/src/services/phone.rs)
+# Response shapes (mirror the original Rust phone service)
 # ---------------------------------------------------------------------------
 
 
@@ -282,7 +282,7 @@ def parse_phone_memory(output: str) -> PhoneMemory:
 class RealPhoneClient(PhoneClient):
     """Real phone client running adb directly on the backend host.
 
-    Mirrors the Tauri ``get_phone_*`` commands. The adb serial is configured
+    Mirrors the ``get_phone_*`` commands. The adb serial is configured
     per server (``service_keys.phone_adb_serial``) and each command runs
     ``adb -s <serial> shell <cmd>`` locally.
     """

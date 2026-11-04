@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { AppPage } from '../page-objects/AppPage';
-import { mockAllTauriCommands } from '../utils/mock-backend';
+import { mockFleetBackend } from '../utils/mock-backend';
 
 test.describe('Phone Page', () => {
   let app: AppPage;
 
   test.beforeEach(async ({ page }) => {
-    await mockAllTauriCommands(page);
+    await mockFleetBackend(page);
     app = new AppPage(page);
     await app.goto();
     await app.sidebar.getByText('Phone').click();

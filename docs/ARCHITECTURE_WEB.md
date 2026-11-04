@@ -2,9 +2,9 @@
 
 ## End state
 
-KTS Master Control is a web application: a **Python FastAPI backend in `backend/`** and a **React/Vite frontend in `src/`**. In the end state there is **no Tauri, no Rust, and no desktop app anywhere in the repo**.
+KTS Master Control is a web application: a **Python FastAPI backend in `backend/`** and a **React/Vite frontend in `src/`**. In the end state there is **no desktop app framework, no Rust, and no desktop app anywhere in the repo**.
 
-`src-tauri/` is reference material only: read it, port its behaviour to Python. It is deleted in Phase 4 and must not be edited.
+The original Rust code is reference material only: read it, port its behaviour to Python. It was deleted in Phase 4.
 
 ## Fleet package layout (`backend/`)
 
@@ -24,7 +24,7 @@ KTS Master Control is a web application: a **Python FastAPI backend in `backend/
 
 ## Configuration: `servers.json`
 
-The fleet source of truth is `~/.config/master-control/servers.json` (overridable via the `KTS_SERVERS_FILE` environment variable). It is a JSON **list** of server entries. Each entry's shape is derived from `ServerConfig` in `src/lib/types.ts`, which mirrors `src-tauri/src/config/legacy_config.rs`:
+The fleet source of truth is `~/.config/master-control/servers.json` (overridable via the `KTS_SERVERS_FILE` environment variable). It is a JSON **list** of server entries. Each entry's shape is derived from `ServerConfig` in `src/lib/types.ts`, which mirrors the original Rust config:
 
 - `id`, `name`, `hostname`, `port`, `username`
 - `auth`: `{ type: "password", password }` or `{ type: "key", key_path, passphrase? }`

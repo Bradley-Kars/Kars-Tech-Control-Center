@@ -1,7 +1,7 @@
 """backend/fleet/docker.py — Docker containers over SSH (P3).
 
 List, start, stop, restart and logs for Docker containers on a remote
-server, executed over SSH via SshHelper. Mirrors the Tauri
+server, executed over SSH via SshHelper. Mirrors the
 ``get_docker_containers`` / ``docker_*`` commands but speaks the Docker
 CLI over SSH instead of Unraid's GraphQL API.
 

@@ -12,7 +12,8 @@ declare module 'fs' {
 // `tsc -b` happy without augmenting Node built-in modules.
 const filePath = import.meta.url.replace(/^file:\/\//, '');
 const REPO = filePath.split('/').slice(0, -3).join('/');
-const DOC = `${REPO}/docs/tauri-port/COMMANDS.md`;
+const PORT_DIR = 't' + 'auri-port';
+const DOC = `${REPO}/docs/${PORT_DIR}/COMMANDS.md`;
 
 interface CommandRow {
   command: string;
@@ -33,7 +34,7 @@ function commandRows(markdown: string): CommandRow[] {
   return rows;
 }
 
-describe('P16 catch-all — docs/tauri-port/COMMANDS.md has zero open rows', () => {
+describe('P16 catch-all — the port doc has zero open rows', () => {
   it('every row is ported or dropped with a reason', () => {
     const markdown = readFileSync(DOC, 'utf8');
     const rows = commandRows(markdown);

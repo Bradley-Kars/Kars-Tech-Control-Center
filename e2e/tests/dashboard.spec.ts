@@ -1,14 +1,14 @@
 import { test, expect } from '@playwright/test';
 import { AppPage } from '../page-objects/AppPage';
 import { DashboardPage } from '../page-objects/DashboardPage';
-import { mockAllTauriCommands } from '../utils/mock-backend';
+import { mockFleetBackend } from '../utils/mock-backend';
 
 test.describe('Dashboard', () => {
   let app: AppPage;
   let dashboard: DashboardPage;
 
   test.beforeEach(async ({ page }) => {
-    await mockAllTauriCommands(page);
+    await mockFleetBackend(page);
     app = new AppPage(page);
     dashboard = new DashboardPage(page);
     await app.goto();

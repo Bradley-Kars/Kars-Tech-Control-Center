@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 
-export async function mockAllTauriCommands(page: Page) {
+export async function mockFleetBackend(page: Page) {
   await page.addInitScript(() => {
     const mockData: Record<string, unknown> = {
       get_servers: [
@@ -140,22 +140,21 @@ export async function mockAllTauriCommands(page: Page) {
     };
 
     // @ts-ignore
-    window.__TAURI_MOCK__ = mockData;
+    window.__FLEET_MOCK__ = mockData;
 
-    // @tauri-apps/api/core uses window.__TAURI_INTERNALS__.invoke (NOT __TAURI__.core.invoke)
+    // Mock invoke for any compatibility shims that still reference it
     // @ts-ignore
-    window.__TAURI_INTERNALS__ = {
+    window.__FLEET_INTERNALS__ = {
       invoke: async (cmd: string, args?: Record<string, unknown>) => {
         return mockData[cmd] ?? null;
       },
       transformCallback: (cb: any) => 0,
     };
 
-    // Also define __TAURI__ for compatibility
     // @ts-ignore
-    window.__TAURI__ = window.__TAURI__ || {};
+    window.__FLEET__ = window.__FLEET__ || {};
     // @ts-ignore
-    window.__TAURI__.core = {
+    window.__FLEET__.core = {
       invoke: async (cmd: string, args?: Record<string, unknown>) => {
         return mockData[cmd] ?? null;
       },

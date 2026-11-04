@@ -194,7 +194,7 @@ export interface ServiceKeys {
   steamdeck_kdeconnect_device_id?: string;
 
   // --- Verified-live fleet services (2026-09-29) --------------------------
-  // Mirrors the Rust `ServiceKeys` struct in src-tauri/src/config.rs. Both
+  // Mirrors the Rust `ServiceKeys` struct in the original Rust config. Both
   // halves must stay in sync: a key present on only one side is silently
   // dropped by serde, which is how the services lost their credentials
   // without any error surfacing. Only add keys that probe green.
@@ -346,7 +346,7 @@ export interface SmartInfo {
 }
 
 // ---------------------------------------------------------------------------
-// Home Assistant (ported from src-tauri/src/services/homeassistant.rs in P8)
+// Home Assistant (ported from the original Rust service in P8)
 // ---------------------------------------------------------------------------
 
 export interface HomeAssistantState {
@@ -434,7 +434,7 @@ export interface HomeAssistantEntity {
 }
 
 // ---------------------------------------------------------------------------
-// Lidarr (ported from src-tauri/src/services/lidarr.rs in P9)
+// Lidarr (ported from the original Rust service in P9)
 // ---------------------------------------------------------------------------
 
 export interface LidarrStatus {
@@ -542,7 +542,7 @@ export interface LidarrIndexer {
 }
 
 // ---------------------------------------------------------------------------
-// MySpeed (ported from src-tauri/src/services/myspeed.rs in P10)
+// MySpeed (ported from the original Rust service in P10)
 // ---------------------------------------------------------------------------
 
 export interface MySpeedTest {
@@ -583,8 +583,8 @@ export interface MySpeedSummary {
 }
 
 // ---------------------------------------------------------------------------
-// Phone / KDE Connect (ported from src-tauri/src/services/phone.rs and
-// src-tauri/src/services/kdeconnect.rs in P14). Host-local, feature-flagged:
+// Phone / KDE Connect (ported from the original Rust phone and KDE Connect
+// services in P14). Host-local, feature-flagged:
 // they work only when the backend host has adb / kdeconnect available.
 // ---------------------------------------------------------------------------
 
@@ -807,7 +807,7 @@ export interface PlexLibrary {
 
 // --- Nextcloud (ported in P6) -----------------------------------------------
 // Mirrors the local interfaces in src/components/nextcloud/NextcloudPage.tsx
-// and the Rust structs in src-tauri/src/services/nextcloud.rs.
+// and the Rust structs in the original Rust Nextcloud service.
 export interface NextcloudInfo {
   version: string;
   versionstring: string;
@@ -861,7 +861,7 @@ export interface NextcloudActivity {
 
 // --- AdGuard Home (ported in P7) ---------------------------------------------
 // Mirrors the local interfaces in src/components/adguard/AdGuardPage.tsx
-// and the Rust structs in src-tauri/src/services/adguard.rs.
+// and the Rust structs in the original Rust AdGuard service.
 export interface AdGuardDnsQueries {
   total: number;
   blocked: number;

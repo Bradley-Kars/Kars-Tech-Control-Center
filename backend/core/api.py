@@ -35,7 +35,7 @@ class KTSAPI:
     
     This is the single authoritative interface for:
     - CLI (kts command)
-    - GUI (Obsidian plugin / Tauri app)
+    - GUI (Obsidian plugin / desktop app)
     - AI agents (OpenCode, etc.)
     - Automation engine
     

@@ -14,14 +14,7 @@ Object.defineProperty(window, 'localStorage', {
   writable: true,
 });
 
-// Mock tauri API so hooks don't throw in jsdom
-vi.mock('@tauri-apps/api/core', () => ({
-  invoke: vi.fn().mockResolvedValue(undefined),
-  isTauri: vi.fn().mockReturnValue(false),
-  Channel: class {},
-}));
-
-// Mock tauri-commands so hooks don't throw in jsdom
+// Mock fleet-api so hooks don't throw in jsdom
 vi.mock('../lib/fleet-api', () => ({
   getServers: vi.fn().mockResolvedValue([]),
   saveServer: vi.fn().mockResolvedValue(undefined),

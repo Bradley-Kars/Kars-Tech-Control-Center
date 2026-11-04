@@ -1,6 +1,6 @@
 """backend/fleet/homeassistant_service.py — Home Assistant port (P8).
 
-Port of src-tauri/src/services/homeassistant.rs: entity states, server config,
+Port of the original Rust Home Assistant service: entity states, server config,
 areas, devices, entity registry, and service calls (toggle / turn on / turn
 off) over Home Assistant's HTTP API (/api/...), using a Bearer token.
 Credentials are resolved from ``ServiceKeys`` (``homeassistant_url`` /
@@ -71,7 +71,7 @@ class HomeAssistantClient(ABC):
 
 
 # ---------------------------------------------------------------------------
-# Response shapes (mirror src-tauri/src/services/homeassistant.rs)
+# Response shapes (mirror the original Rust Home Assistant service)
 # ---------------------------------------------------------------------------
 
 

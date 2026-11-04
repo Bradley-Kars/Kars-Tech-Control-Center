@@ -210,7 +210,7 @@ def test_lidarr_refresh_artist_success(app_client, monkeypatch):
         )
     assert r.status_code == 200
     # The route must call the real service method (refresh_series, matching
-    # src-tauri/src/services/lidarr.rs), not a non-existent refresh_artist.
+    # the original Rust Lidarr service), not a non-existent refresh_artist.
     m.refresh_series.assert_called_once_with(1)
 
 

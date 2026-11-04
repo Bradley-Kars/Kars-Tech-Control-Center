@@ -1,6 +1,6 @@
 // Ticketing page (W1/W2)
 // Mobile-first, reuse existing UI components (Card, Badge, Input, Button, Label).
-// No @tauri-apps imports — data flows through src/lib/api.ts (same origin,
+// No desktop-app imports — data flows through src/lib/api.ts (same origin,
 // API under /api). Identity comes from the bridge (X-API-Token or the
 // Tailscale-User-Login header it trusts from loopback, W3).
 // No new libraries.

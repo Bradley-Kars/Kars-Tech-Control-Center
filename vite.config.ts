@@ -18,7 +18,7 @@ export default defineConfig({
   envPrefix: ['VITE_'],
   build: {
     target: 'es2021',
-    minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
-    sourcemap: !!process.env.TAURI_DEBUG,
+    minify: 'esbuild',
+    sourcemap: false,
   },
 })

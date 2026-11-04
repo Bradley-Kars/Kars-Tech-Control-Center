@@ -1,6 +1,6 @@
 """backend/fleet/myspeed_service.py — MySpeed port (P10).
 
-Port of src-tauri/src/services/myspeed.rs: speedtest summary, recent tests,
+Port of the original Rust MySpeed service: speedtest summary, recent tests,
 and per-server results over SSH against a local MySpeed SQLite database.
 Credentials/tokens never leave the backend; the router redacts any error
 before it reaches the client.
@@ -47,7 +47,7 @@ class MySpeedClient(ABC):
 
 
 # ---------------------------------------------------------------------------
-# Response shapes (mirror src-tauri/src/services/myspeed.rs)
+# Response shapes (mirror the original Rust MySpeed service)
 # ---------------------------------------------------------------------------
 
 
@@ -198,7 +198,7 @@ def parse_stats_row(row: str) -> MySpeedStats:
 class RealMySpeedClient(MySpeedClient):
     """Real MySpeed client running sqlite3 queries over SSH.
 
-    Mirrors the Tauri ``get_myspeed_*`` commands: each query runs
+    Mirrors the ``get_myspeed_*`` commands: each query runs
     ``sqlite3 <db_path> "<sql>"`` over SSH on the target server. The db path
     comes from ``service_keys.myspeed_db_path``.
     """

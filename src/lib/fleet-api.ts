@@ -1,14 +1,13 @@
 /**
  * src/lib/fleet-api.ts — HTTP fetch wrapper for the /api/fleet fleet API (F5).
  *
- * Implements the tauri-commands functions already ported to the FastAPI
- * backend with fetch, so the frontend talks to /api/fleet instead of Tauri
- * IPC. Mirrors src/lib/api.ts:
+ * Implements the fetch client for the ported fleet commands, so the frontend
+ * talks to /api/fleet. Mirrors src/lib/api.ts:
  *   - same-origin /api in production, VITE_API_BASE override in dev
  *   - X-API-Token auth (setAuthToken) or Tailscale-User-Login from loopback
  *   - FleetApiError (with .status and .detail) on non-ok responses
  *
- * Ported from src/lib/tauri-commands.ts:
+ * Ported from the original command module:
  *   getServers         -> GET    /api/fleet/servers
  *   saveServer         -> POST   /api/fleet/servers
  *   removeServer       -> DELETE /api/fleet/servers/{id}
@@ -23,7 +22,7 @@
  *   dockerRestart      -> POST   /api/fleet/docker/restart    {server_id, container}
  *   dockerLogs         -> POST   /api/fleet/docker/logs       {server_id, container, lines}
  *
- * Everything else in tauri-commands.ts stays a "not ported yet" stub there.
+ * Everything else in the original command module stays a "not ported yet" stub there.
  */
 
 import type {
@@ -166,7 +165,7 @@ async function request<T>(
 }
 
 // ---------------------------------------------------------------------------
-// Servers (ported from tauri-commands.ts)
+// Servers (ported from the original command module)
 // ---------------------------------------------------------------------------
 
 /** GET /api/fleet/servers — list all servers (redacted by the backend).
@@ -198,7 +197,7 @@ export async function removeServer(id: string, token?: string): Promise<void> {
 /**
  * POST /api/fleet/test_connection — probe connectivity to a server config.
  *
- * Mirrors the Tauri `test_connection` command: SSH-based connectivity in
+ * Mirrors the `test_connection` command: SSH-based connectivity in
  * this phase (per-service probes are stubbed until P2-P10). The config is
  * NOT persisted — this is a pre-save probe used by the connection screen.
  * A failed probe resolves with success=false rather than rejecting; only
@@ -312,7 +311,7 @@ export async function dockerLogs(
 }
 
 // ---------------------------------------------------------------------------
-// Unraid emhttp (ported from tauri-commands.ts)
+// Unraid emhttp (ported from the original command module)
 // ---------------------------------------------------------------------------
 
 /** GET /api/fleet/unraid/get_array_info?server_id=X — array info over emhttp. */
@@ -349,7 +348,7 @@ export async function getShares(
 }
 
 // ---------------------------------------------------------------------------
-// REST health (ported from tauri-commands.ts)
+// REST health (ported from the original command module)
 // ---------------------------------------------------------------------------
 
 /** GET /api/fleet/rest/health?service=X&server_id=X — probe a REST service. */
@@ -387,7 +386,7 @@ export async function getPlexLibraries(
 }
 
 // ---------------------------------------------------------------------------
-// Nextcloud (ported from tauri-commands.ts)
+// Nextcloud (ported from the original command module)
 // ---------------------------------------------------------------------------
 
 /** GET /api/fleet/nextcloud/info?server_id=X — Nextcloud server info. */
@@ -447,7 +446,7 @@ export async function getNextcloudActivity(
 }
 
 // ---------------------------------------------------------------------------
-// AdGuard Home (ported from tauri-commands.ts)
+// AdGuard Home (ported from the original command module)
 // ---------------------------------------------------------------------------
 
 /** GET /api/fleet/adguard/status?server_id=X — AdGuard Home status. */
@@ -543,7 +542,7 @@ export async function adguardDisable(
 }
 
 // ---------------------------------------------------------------------------
-// Home Assistant (ported from tauri-commands.ts)
+// Home Assistant (ported from the original command module)
 // ---------------------------------------------------------------------------
 
 /** GET /api/fleet/homeassistant/get_homeassistant_states?server_id=X — HA entity states. */
@@ -644,7 +643,7 @@ export async function homeAssistantTurnOff(
 }
 
 // ---------------------------------------------------------------------------
-// Lidarr (ported from tauri-commands.ts)
+// Lidarr (ported from the original command module)
 // ---------------------------------------------------------------------------
 
 /** GET /api/fleet/lidarr/get_lidarr_status?server_id=X — Lidarr server status. */
@@ -769,7 +768,7 @@ export async function lidarrSearchMissing(
 }
 
 // ---------------------------------------------------------------------------
-// MySpeed (ported from tauri-commands.ts)
+// MySpeed (ported from the original command module)
 // ---------------------------------------------------------------------------
 
 /** GET /api/fleet/myspeed/summary?server_id=X&limit=X — MySpeed summary. */
@@ -808,7 +807,7 @@ export async function getMySpeedServers(
 }
 
 // ---------------------------------------------------------------------------
-// Phone / KDE Connect (ported from tauri-commands.ts)
+// Phone / KDE Connect (ported from the original command module)
 // Host-local, feature-flagged: the backend runs adb/gdbus on its own machine.
 // ---------------------------------------------------------------------------
 
@@ -890,7 +889,7 @@ export async function getKdeConnectListDevices(
 }
 
 // ---------------------------------------------------------------------------
-// MeshCentral (ported from tauri-commands.ts)
+// MeshCentral (ported from the original command module)
 // ---------------------------------------------------------------------------
 
 /** GET /api/fleet/meshcentral/list_devices?server_id=X — list MeshCentral devices. */
@@ -992,7 +991,7 @@ export async function meshcentralGetFleetStats(
 }
 
 // ---------------------------------------------------------------------------
-// Remote shell / file listing / process list (ported from tauri-commands.ts)
+// Remote shell / file listing / process list (ported from the original command module)
 // ---------------------------------------------------------------------------
 
 /** POST /api/fleet/meshcentral/shell_exec — run a shell command on a device. */
@@ -1031,7 +1030,7 @@ export async function meshcentralGetProcesses(
 }
 
 // ---------------------------------------------------------------------------
-// Alerts (ported from tauri-commands.ts)
+// Alerts (ported from the original command module)
 // ---------------------------------------------------------------------------
 
 /** POST /api/fleet/alerts/create — create a new alert. */
@@ -1117,7 +1116,7 @@ export async function alertEvaluateAutoAck(token?: string): Promise<number> {
 }
 
 // ---------------------------------------------------------------------------
-// Historical metrics (ported from tauri-commands.ts)
+// Historical metrics (ported from the original command module)
 // ---------------------------------------------------------------------------
 
 /** POST /api/fleet/metrics/record — record one metric sample. */
@@ -1180,9 +1179,9 @@ export async function metricCollectAll(token?: string): Promise<number> {
 // ---------------------------------------------------------------------------
 // Dropped commands — web stubs (not ported to /api/fleet)
 // ---------------------------------------------------------------------------
-// These commands were in src/lib/tauri-commands.ts as Tauri `invoke` stubs
+// These commands were in the original command module as invoke stubs
 // but are NOT ported to the FastAPI backend (marked "dropped" in
-// docs/tauri-port/COMMANDS.md by P16). They remain here as web stubs so the
+// the port doc by P16). They remain here as web stubs so the
 // UI can compile and import everything from fleet-api.ts. They return empty
 // data / resolve without effect; no real command is executed.
 

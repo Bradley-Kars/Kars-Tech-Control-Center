@@ -1,6 +1,6 @@
 """backend/fleet/parsers/nvidia.py — parse nvidia-smi output into a GpuInfo dict.
 
-Mirrors src-tauri/src/parsers/nvidia.rs. The SSH probe uses the machine-readable
+Mirrors the original Rust nvidia parser. The SSH probe uses the machine-readable
 CSV form:
 
     nvidia-smi --query-gpu=name,driver_version,memory.total,memory.used,temperature.gpu,utilization.gpu --format=csv,noheader,nounits

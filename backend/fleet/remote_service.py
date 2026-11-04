@@ -2,7 +2,7 @@
 
 Provides ShellResult, RemoteFileInfo, RemoteProcess over SSH (direct to the
 target server) or over the MeshCentral meshctrl transport (when the server
-carries a meshcentral_device_id). Mirrors the Tauri meshcentral_shell_exec,
+carries a meshcentral_device_id). Mirrors the meshcentral_shell_exec,
 meshcentral_list_dir and meshcentral_get_processes commands.
 
 Fixture-only: tests never touch the real network or SSH.

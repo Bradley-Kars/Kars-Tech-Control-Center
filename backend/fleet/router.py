@@ -248,7 +248,7 @@ async def test_connection(body: dict) -> Any:
     Scope=write is enforced by create_app's middleware (POST). Secrets in the
     config are never echoed: any transport/auth/timeout failure is redacted
     before it reaches the client, and a failed probe returns success=false
-    with HTTP 200, mirroring the Tauri ``test_connection`` handler.
+    with HTTP 200, mirroring the ``test_connection`` handler.
     """
     if not isinstance(body, dict) or not body:
         return JSONResponse(
@@ -448,7 +448,7 @@ def _read_local(path: str) -> str:
 async def system_stats(request: Request, server_id: str) -> Any:
     """GET /api/fleet/system/stats?server_id=X — system stats over SSH.
 
-    Mirrors the Tauri ``get_system_stats`` command but probes over SSH
+    Mirrors the ``get_system_stats`` command but probes over SSH
     (hostname, uname -r, uptime, /proc/stat, /proc/meminfo, /proc/loadavg,
     /proc/cpuinfo) instead of Unraid's GraphQL API. A failed probe returns a
     redacted 502 rather than crashing.
@@ -521,7 +521,7 @@ async def smart_data(request: Request, server_id: str, device: str) -> Any:
 def local_stats(request: Request) -> Any:
     """GET /api/fleet/local/stats — host-local system stats (no SSH).
 
-    Reads /proc on the machine running the backend. Mirrors the Tauri
+    Reads /proc on the machine running the backend. Mirrors the
     ``get_local_system_stats`` command. Host-only: only meaningful when the
     backend runs on the machine being monitored.
     """
@@ -594,7 +594,7 @@ def _docker_logs_payload(body: Any) -> tuple[str, str, int] | JSONResponse:
 async def get_docker_containers(request: Request, server_id: str) -> Any:
     """GET /api/fleet/unraid/get_docker_containers?server_id=X — containers over SSH.
 
-    Mirrors the Tauri ``get_docker_containers`` command. Returns a list of
+    Mirrors the ``get_docker_containers`` command. Returns a list of
     {id, name, image, status, state, auto_start}. A failed probe returns a
     redacted 502.
     """
@@ -724,7 +724,7 @@ def _emhttp_client(server: ServerConfig) -> RealEmhttpClient:
 async def unraid_array_info(request: Request, server_id: str) -> Any:
     """GET /api/fleet/unraid/get_array_info?server_id=X — array info over emhttp.
 
-    Mirrors the Tauri ``get_array_info`` command but speaks Unraid's emhttp
+    Mirrors the ``get_array_info`` command but speaks Unraid's emhttp
     HTTP API directly instead of SSH. A failed probe returns a redacted 502.
     """
     server = _find_server(server_id)
@@ -743,7 +743,7 @@ async def unraid_array_info(request: Request, server_id: str) -> Any:
 async def unraid_array_check_status(request: Request, server_id: str) -> Any:
     """GET /api/fleet/unraid/get_array_check_status?server_id=X — parity status.
 
-    Mirrors the Tauri ``get_array_check_status`` command over emhttp.
+    Mirrors the ``get_array_check_status`` command over emhttp.
     """
     server = _find_server(server_id)
     if server is None:
@@ -761,7 +761,7 @@ async def unraid_array_check_status(request: Request, server_id: str) -> Any:
 async def unraid_get_shares(request: Request, server_id: str) -> Any:
     """GET /api/fleet/unraid/get_shares?server_id=X — shares over emhttp.
 
-    Mirrors the Tauri ``get_shares`` command over emhttp.
+    Mirrors the ``get_shares`` command over emhttp.
     """
     server = _find_server(server_id)
     if server is None:
@@ -779,7 +779,7 @@ async def unraid_get_shares(request: Request, server_id: str) -> Any:
 async def unraid_get_disks(request: Request, server_id: str) -> Any:
     """GET /api/fleet/unraid/get_disks?server_id=X — disks over emhttp.
 
-    Mirrors the Tauri ``get_disks`` command over emhttp.
+    Mirrors the ``get_disks`` command over emhttp.
     """
     server = _find_server(server_id)
     if server is None:
@@ -807,7 +807,7 @@ def _rest_client(server: ServerConfig) -> RestServiceClient:
 async def rest_health(request: Request, service: str, server_id: str) -> Any:
     """GET /api/fleet/rest/health?service=X&server_id=X — probe a REST service.
 
-    Mirrors the Tauri REST health probe: resolves the service from the
+    Mirrors the REST health probe: resolves the service from the
     server's service_keys, probes its health path, and reports reachable
     true/false with a detail string. Never raises: unreachable services
     report reachable=False with the failure detail.
@@ -839,7 +839,7 @@ async def rest_health(request: Request, service: str, server_id: str) -> Any:
 async def rest_plex_identity(request: Request, server_id: str) -> Any:
     """GET /api/fleet/rest/plex/identity?server_id=X — Plex server identity.
 
-    Mirrors the Tauri plex_identity command: GET /identity on the Plex
+    Mirrors the plex_identity command: GET /identity on the Plex
     server and parse the MediaContainer envelope.
     """
     server = _find_server(server_id)
@@ -863,7 +863,7 @@ async def rest_plex_identity(request: Request, server_id: str) -> Any:
 async def rest_plex_libraries(request: Request, server_id: str) -> Any:
     """GET /api/fleet/rest/plex/libraries?server_id=X — Plex library sections.
 
-    Mirrors the Tauri plex_libraries command: GET /library/sections on the
+    Mirrors the plex_libraries command: GET /library/sections on the
     Plex server and parse the MediaContainer.Directory array.
     """
     server = _find_server(server_id)
@@ -913,7 +913,7 @@ def _nextcloud_client(server: ServerConfig) -> RealNextcloudClient:
 async def nextcloud_info(request: Request, server_id: str) -> Any:
     """GET /api/fleet/nextcloud/info?server_id=X — Nextcloud server info.
 
-    Mirrors the Tauri ``get_nextcloud_info`` command over the OCS API.
+    Mirrors the ``get_nextcloud_info`` command over the OCS API.
     A failed probe returns a redacted 502.
     """
     server = _find_server(server_id)
@@ -934,7 +934,7 @@ async def nextcloud_info(request: Request, server_id: str) -> Any:
 async def nextcloud_status(request: Request, server_id: str) -> Any:
     """GET /api/fleet/nextcloud/status?server_id=X — Nextcloud system status.
 
-    Mirrors the Tauri ``get_nextcloud_status`` command over the OCS API.
+    Mirrors the ``get_nextcloud_status`` command over the OCS API.
     """
     server = _find_server(server_id)
     if server is None:
@@ -954,7 +954,7 @@ async def nextcloud_status(request: Request, server_id: str) -> Any:
 async def nextcloud_storage(request: Request, server_id: str) -> Any:
     """GET /api/fleet/nextcloud/storage?server_id=X — Nextcloud storage stats.
 
-    Mirrors the Tauri ``get_nextcloud_storage`` command over the OCS API.
+    Mirrors the ``get_nextcloud_storage`` command over the OCS API.
     """
     server = _find_server(server_id)
     if server is None:
@@ -974,7 +974,7 @@ async def nextcloud_storage(request: Request, server_id: str) -> Any:
 async def nextcloud_users(request: Request, server_id: str) -> Any:
     """GET /api/fleet/nextcloud/users?server_id=X — Nextcloud users.
 
-    Mirrors the Tauri ``get_nextcloud_users`` command over the OCS API.
+    Mirrors the ``get_nextcloud_users`` command over the OCS API.
     """
     server = _find_server(server_id)
     if server is None:
@@ -994,7 +994,7 @@ async def nextcloud_users(request: Request, server_id: str) -> Any:
 async def nextcloud_activity(request: Request, server_id: str) -> Any:
     """GET /api/fleet/nextcloud/activity?server_id=X&limit=X — Nextcloud activity.
 
-    Mirrors the Tauri ``get_nextcloud_activity`` command over the OCS API.
+    Mirrors the ``get_nextcloud_activity`` command over the OCS API.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1051,7 +1051,7 @@ def _adguard_action_payload(body: Any) -> str | JSONResponse:
 async def adguard_status(request: Request, server_id: str) -> Any:
     """GET /api/fleet/adguard/get_adguard_status?server_id=X — AdGuard status.
 
-    Mirrors the Tauri ``get_adguard_status`` command. A failed probe returns a
+    Mirrors the ``get_adguard_status`` command. A failed probe returns a
     redacted 502.
     """
     server = _find_server(server_id)
@@ -1072,7 +1072,7 @@ async def adguard_status(request: Request, server_id: str) -> Any:
 async def adguard_stats(request: Request, server_id: str) -> Any:
     """GET /api/fleet/adguard/get_adguard_stats?server_id=X — AdGuard stats.
 
-    Mirrors the Tauri ``get_adguard_stats`` command.
+    Mirrors the ``get_adguard_stats`` command.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1092,7 +1092,7 @@ async def adguard_stats(request: Request, server_id: str) -> Any:
 async def adguard_query_log(request: Request, server_id: str) -> Any:
     """GET /api/fleet/adguard/get_adguard_query_log?server_id=X&limit=X&offset=X.
 
-    Mirrors the Tauri ``get_adguard_query_log`` command.
+    Mirrors the ``get_adguard_query_log`` command.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1240,7 +1240,7 @@ def _adguard_client(server: ServerConfig) -> RealAdGuardClient:
 async def adguard_status(request: Request, server_id: str) -> Any:
     """GET /api/fleet/adguard/status?server_id=X — AdGuard Home status.
 
-    Mirrors the Tauri ``get_adguard_status`` command over the AdGuard Home API.
+    Mirrors the ``get_adguard_status`` command over the AdGuard Home API.
     A failed probe returns a redacted 502.
     """
     server = _find_server(server_id)
@@ -1261,7 +1261,7 @@ async def adguard_status(request: Request, server_id: str) -> Any:
 async def adguard_stats(request: Request, server_id: str) -> Any:
     """GET /api/fleet/adguard/stats?server_id=X — AdGuard Home statistics.
 
-    Mirrors the Tauri ``get_adguard_stats`` command over the AdGuard Home API.
+    Mirrors the ``get_adguard_stats`` command over the AdGuard Home API.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1281,7 +1281,7 @@ async def adguard_stats(request: Request, server_id: str) -> Any:
 async def adguard_querylog(request: Request, server_id: str) -> Any:
     """GET /api/fleet/adguard/querylog?server_id=X&limit=X&offset=X — AdGuard query log.
 
-    Mirrors the Tauri ``get_adguard_query_log`` command over the AdGuard Home API.
+    Mirrors the ``get_adguard_query_log`` command over the AdGuard Home API.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1305,7 +1305,7 @@ async def adguard_querylog(request: Request, server_id: str) -> Any:
 async def adguard_clients(request: Request, server_id: str) -> Any:
     """GET /api/fleet/adguard/clients?server_id=X — AdGuard Home clients.
 
-    Mirrors the Tauri ``get_adguard_clients`` command over the AdGuard Home API.
+    Mirrors the ``get_adguard_clients`` command over the AdGuard Home API.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1325,7 +1325,7 @@ async def adguard_clients(request: Request, server_id: str) -> Any:
 async def adguard_filters(request: Request, server_id: str) -> Any:
     """GET /api/fleet/adguard/filters?server_id=X — AdGuard Home filters.
 
-    Mirrors the Tauri ``get_adguard_filters`` command over the AdGuard Home API.
+    Mirrors the ``get_adguard_filters`` command over the AdGuard Home API.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1345,7 +1345,7 @@ async def adguard_filters(request: Request, server_id: str) -> Any:
 async def adguard_dhcp(request: Request, server_id: str) -> Any:
     """GET /api/fleet/adguard/dhcp?server_id=X — AdGuard Home DHCP status.
 
-    Mirrors the Tauri ``get_adguard_dhcp`` command over the AdGuard Home API.
+    Mirrors the ``get_adguard_dhcp`` command over the AdGuard Home API.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1365,7 +1365,7 @@ async def adguard_dhcp(request: Request, server_id: str) -> Any:
 async def adguard_enable(request: Request, server_id: str) -> Any:
     """POST /api/fleet/adguard/enable?server_id=X — enable AdGuard protection.
 
-    Mirrors the Tauri ``adguard_enable`` command over the AdGuard Home API.
+    Mirrors the ``adguard_enable`` command over the AdGuard Home API.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1386,7 +1386,7 @@ async def adguard_enable(request: Request, server_id: str) -> Any:
 async def adguard_disable(request: Request, server_id: str) -> Any:
     """POST /api/fleet/adguard/disable?server_id=X — disable AdGuard protection.
 
-    Mirrors the Tauri ``adguard_disable`` command over the AdGuard Home API.
+    Mirrors the ``adguard_disable`` command over the AdGuard Home API.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1436,7 +1436,7 @@ def _ha_entity_id_payload(request: Request, server_id: str, entity_id: str) -> N
 async def homeassistant_states(request: Request, server_id: str) -> Any:
     """GET /api/fleet/homeassistant/get_homeassistant_states?server_id=X — HA states.
 
-    Mirrors the Tauri ``get_homeassistant_states`` command. A failed probe
+    Mirrors the ``get_homeassistant_states`` command. A failed probe
     returns a redacted 502.
     """
     server = _find_server(server_id)
@@ -1457,7 +1457,7 @@ async def homeassistant_states(request: Request, server_id: str) -> Any:
 async def homeassistant_config(request: Request, server_id: str) -> Any:
     """GET /api/fleet/homeassistant/get_homeassistant_config?server_id=X — HA config.
 
-    Mirrors the Tauri ``get_homeassistant_config`` command.
+    Mirrors the ``get_homeassistant_config`` command.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1477,7 +1477,7 @@ async def homeassistant_config(request: Request, server_id: str) -> Any:
 async def homeassistant_areas(request: Request, server_id: str) -> Any:
     """GET /api/fleet/homeassistant/get_homeassistant_areas?server_id=X — HA areas.
 
-    Mirrors the Tauri ``get_homeassistant_areas`` command.
+    Mirrors the ``get_homeassistant_areas`` command.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1497,7 +1497,7 @@ async def homeassistant_areas(request: Request, server_id: str) -> Any:
 async def homeassistant_devices(request: Request, server_id: str) -> Any:
     """GET /api/fleet/homeassistant/get_homeassistant_devices?server_id=X — HA devices.
 
-    Mirrors the Tauri ``get_homeassistant_devices`` command.
+    Mirrors the ``get_homeassistant_devices`` command.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1517,7 +1517,7 @@ async def homeassistant_devices(request: Request, server_id: str) -> Any:
 async def homeassistant_entities(request: Request, server_id: str) -> Any:
     """GET /api/fleet/homeassistant/get_homeassistant_entities?server_id=X — HA entity registry.
 
-    Mirrors the Tauri ``get_homeassistant_entities`` command (entity registry).
+    Mirrors the ``get_homeassistant_entities`` command (entity registry).
     """
     server = _find_server(server_id)
     if server is None:
@@ -1537,7 +1537,7 @@ async def homeassistant_entities(request: Request, server_id: str) -> Any:
 async def homeassistant_toggle(request: Request, server_id: str, entity_id: str) -> Any:
     """POST /api/fleet/homeassistant/homeassistant_toggle?server_id=X&entity_id=X — toggle an entity.
 
-    Mirrors the Tauri ``homeassistant_toggle`` command. Requires scope=write
+    Mirrors the ``homeassistant_toggle`` command. Requires scope=write
     (enforced by the create_app middleware).
     """
     _ha_entity_id_payload(request, server_id, entity_id)
@@ -1560,7 +1560,7 @@ async def homeassistant_toggle(request: Request, server_id: str, entity_id: str)
 async def homeassistant_turn_on(request: Request, server_id: str, entity_id: str) -> Any:
     """POST /api/fleet/homeassistant/homeassistant_turn_on?server_id=X&entity_id=X — turn an entity on.
 
-    Mirrors the Tauri ``homeassistant_turn_on`` command. Requires scope=write
+    Mirrors the ``homeassistant_turn_on`` command. Requires scope=write
     (enforced by the create_app middleware).
     """
     _ha_entity_id_payload(request, server_id, entity_id)
@@ -1583,7 +1583,7 @@ async def homeassistant_turn_on(request: Request, server_id: str, entity_id: str
 async def homeassistant_turn_off(request: Request, server_id: str, entity_id: str) -> Any:
     """POST /api/fleet/homeassistant/homeassistant_turn_off?server_id=X&entity_id=X — turn an entity off.
 
-    Mirrors the Tauri ``homeassistant_turn_off`` command. Requires scope=write
+    Mirrors the ``homeassistant_turn_off`` command. Requires scope=write
     (enforced by the create_app middleware).
     """
     _ha_entity_id_payload(request, server_id, entity_id)
@@ -1623,7 +1623,7 @@ def _lidarr_client(server: ServerConfig) -> RealLidarrClient:
 async def lidarr_status(request: Request, server_id: str) -> Any:
     """GET /api/fleet/lidarr/get_lidarr_status?server_id=X — Lidarr status.
 
-    Mirrors the Tauri ``get_lidarr_status`` command. A failed probe returns
+    Mirrors the ``get_lidarr_status`` command. A failed probe returns
     a redacted 502.
     """
     server = _find_server(server_id)
@@ -1644,7 +1644,7 @@ async def lidarr_status(request: Request, server_id: str) -> Any:
 async def lidarr_health(request: Request, server_id: str) -> Any:
     """GET /api/fleet/lidarr/get_lidarr_health?server_id=X — Lidarr health.
 
-    Mirrors the Tauri ``get_lidarr_health`` command.
+    Mirrors the ``get_lidarr_health`` command.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1664,7 +1664,7 @@ async def lidarr_health(request: Request, server_id: str) -> Any:
 async def lidarr_artists(request: Request, server_id: str) -> Any:
     """GET /api/fleet/lidarr/get_lidarr_artists?server_id=X — Lidarr artists.
 
-    Mirrors the Tauri ``get_lidarr_artists`` command.
+    Mirrors the ``get_lidarr_artists`` command.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1684,7 +1684,7 @@ async def lidarr_artists(request: Request, server_id: str) -> Any:
 async def lidarr_albums(request: Request, server_id: str) -> Any:
     """GET /api/fleet/lidarr/get_lidarr_albums?server_id=X&artistId=X&monitored=X.
 
-    Mirrors the Tauri ``get_lidarr_albums`` command.
+    Mirrors the ``get_lidarr_albums`` command.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1710,7 +1710,7 @@ async def lidarr_albums(request: Request, server_id: str) -> Any:
 async def lidarr_wanted(request: Request, server_id: str) -> Any:
     """GET /api/fleet/lidarr/get_lidarr_wanted?server_id=X&page=X&pageSize=X.
 
-    Mirrors the Tauri ``get_lidarr_wanted`` command.
+    Mirrors the ``get_lidarr_wanted`` command.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1732,7 +1732,7 @@ async def lidarr_wanted(request: Request, server_id: str) -> Any:
 async def lidarr_queue(request: Request, server_id: str) -> Any:
     """GET /api/fleet/lidarr/get_lidarr_queue?server_id=X&page=X&pageSize=X.
 
-    Mirrors the Tauri ``get_lidarr_queue`` command.
+    Mirrors the ``get_lidarr_queue`` command.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1754,7 +1754,7 @@ async def lidarr_queue(request: Request, server_id: str) -> Any:
 async def lidarr_diskspace(request: Request, server_id: str) -> Any:
     """GET /api/fleet/lidarr/get_lidarr_diskspace?server_id=X — Lidarr disk space.
 
-    Mirrors the Tauri ``get_lidarr_diskspace`` command.
+    Mirrors the ``get_lidarr_diskspace`` command.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1774,7 +1774,7 @@ async def lidarr_diskspace(request: Request, server_id: str) -> Any:
 async def lidarr_refresh_artist(request: Request, server_id: str, artist_id: str) -> Any:
     """POST /api/fleet/lidarr/lidarr_refresh_artist?server_id=X&artistId=X.
 
-    Mirrors the Tauri ``lidarr_refresh_artist`` command. Requires scope=write
+    Mirrors the ``lidarr_refresh_artist`` command. Requires scope=write
     (enforced by the create_app middleware).
     """
     if not isinstance(server_id, str) or not server_id.strip():
@@ -1800,7 +1800,7 @@ async def lidarr_refresh_artist(request: Request, server_id: str, artist_id: str
 async def lidarr_search_missing(request: Request, server_id: str, artist_id: str) -> Any:
     """POST /api/fleet/lidarr/lidarr_search_missing?server_id=X&artistId=X.
 
-    Mirrors the Tauri ``lidarr_search_missing`` command. Requires scope=write
+    Mirrors the ``lidarr_search_missing`` command. Requires scope=write
     (enforced by the create_app middleware).
     """
     if not isinstance(server_id, str) or not server_id.strip():
@@ -1841,7 +1841,7 @@ def _myspeed_client(server: ServerConfig) -> RealMySpeedClient:
 async def myspeed_summary(request: Request, server_id: str, limit: int = 50) -> Any:
     """GET /api/fleet/myspeed/summary?server_id=X&limit=X — MySpeed summary.
 
-    Mirrors the Tauri ``get_myspeed_summary`` command: aggregate stats,
+    Mirrors the ``get_myspeed_summary`` command: aggregate stats,
     recent tests, and configured test servers from the MySpeed sqlite3
     database over SSH. A failed probe returns a redacted 502.
     """
@@ -1863,7 +1863,7 @@ async def myspeed_summary(request: Request, server_id: str, limit: int = 50) -> 
 async def myspeed_tests(request: Request, server_id: str, limit: int = 50) -> Any:
     """GET /api/fleet/myspeed/tests?server_id=X&limit=X — recent speedtest results.
 
-    Mirrors the Tauri ``get_myspeed_tests`` command.
+    Mirrors the ``get_myspeed_tests`` command.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1883,7 +1883,7 @@ async def myspeed_tests(request: Request, server_id: str, limit: int = 50) -> An
 async def myspeed_servers(request: Request, server_id: str) -> Any:
     """GET /api/fleet/myspeed/servers?server_id=X — MySpeed test servers.
 
-    Mirrors the Tauri ``get_myspeed_servers`` command.
+    Mirrors the ``get_myspeed_servers`` command.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1956,7 +1956,7 @@ def _meshcentral_batch_payload(body: Any) -> tuple[str, list[str], list[dict]] |
 async def meshcentral_list_devices(request: Request, server_id: str) -> Any:
     """GET /api/fleet/meshcentral/list_devices?server_id=X — list MeshCentral devices.
 
-    Mirrors the Tauri ``meshcentral_list_devices`` command over SSH meshctrl.
+    Mirrors the ``meshcentral_list_devices`` command over SSH meshctrl.
     A failed probe returns a redacted 502.
     """
     server = _find_server(server_id)
@@ -1992,7 +1992,7 @@ async def meshcentral_get_device_status(
 ) -> Any:
     """GET /api/fleet/meshcentral/get_device_status?server_id=X&device_id=X.
 
-    Mirrors the Tauri ``meshcentral_get_device_status`` command.
+    Mirrors the ``meshcentral_get_device_status`` command.
     """
     server = _find_server(server_id)
     if server is None:
@@ -2014,7 +2014,7 @@ async def meshcentral_execute_batch(request: Request, body: dict) -> Any:
 
     Body: {server_id, device_ids: [str], commands: [{command: str, args?: [str]}]}.
     Requires scope=write (enforced by the create_app middleware).
-    Mirrors the Tauri ``meshcentral_execute_batch`` command.
+    Mirrors the ``meshcentral_execute_batch`` command.
     """
     validated = _meshcentral_batch_payload(body)
     if isinstance(validated, JSONResponse):
@@ -2050,7 +2050,7 @@ async def meshcentral_get_terminal_url(
 ) -> Any:
     """GET /api/fleet/meshcentral/get_terminal_url?server_id=X&device_id=X.
 
-    Mirrors the Tauri ``meshcentral_get_terminal_url`` command. No network —
+    Mirrors the ``meshcentral_get_terminal_url`` command. No network —
     builds the MeshCentral web terminal URL from the configured server_url.
     """
     server = _find_server(server_id)
@@ -2073,7 +2073,7 @@ async def meshcentral_get_file_manager_url(
 ) -> Any:
     """GET /api/fleet/meshcentral/get_file_manager_url?server_id=X&device_id=X.
 
-    Mirrors the Tauri ``meshcentral_get_file_manager_url`` command. No network —
+    Mirrors the ``meshcentral_get_file_manager_url`` command. No network —
     builds the MeshCentral file manager URL from the configured server_url.
     """
     server = _find_server(server_id)
@@ -2096,7 +2096,7 @@ async def meshcentral_get_enrollment_info(
 ) -> Any:
     """GET /api/fleet/meshcentral/get_enrollment_info?server_id=X&device_type=X.
 
-    Mirrors the Tauri ``meshcentral_get_enrollment_info`` command. No network —
+    Mirrors the ``meshcentral_get_enrollment_info`` command. No network —
     generates agent install commands from the configured server_url and group_id.
     """
     server = _find_server(server_id)
@@ -2125,7 +2125,7 @@ async def meshcentral_sync_fleet(request: Request, body: dict) -> Any:
     """POST /api/fleet/meshcentral/sync_fleet — sync MeshCentral inventory to servers.json.
 
     Body: {server_id}. Requires scope=write (enforced by the create_app
-    middleware). Mirrors the Tauri ``meshcentral_sync_fleet`` command.
+    middleware). Mirrors the ``meshcentral_sync_fleet`` command.
     """
     if not isinstance(body, dict) or not body:
         return JSONResponse(
@@ -2163,7 +2163,7 @@ async def meshcentral_sync_fleet(request: Request, body: dict) -> Any:
 async def meshcentral_get_fleet_stats(request: Request, server_id: str) -> Any:
     """GET /api/fleet/meshcentral/get_fleet_stats?server_id=X — MeshCentral fleet stats.
 
-    Mirrors the Tauri ``meshcentral_get_fleet_stats`` command.
+    Mirrors the ``meshcentral_get_fleet_stats`` command.
     """
     server = _find_server(server_id)
     if server is None:
@@ -2223,7 +2223,7 @@ async def meshcentral_shell_exec(
 
     Body: {server_id, command, timeout_secs?}. Requires scope=write (enforced
     by the create_app middleware) and admin identity (require_admin, T2).
-    Mirrors the Tauri ``meshcentral_shell_exec`` command. A failed probe
+    Mirrors the ``meshcentral_shell_exec`` command. A failed probe
     returns a redacted 502.
     """
     validated = _remote_shell_payload(body)
@@ -2261,7 +2261,7 @@ async def meshcentral_list_dir(
 ) -> Any:
     """GET /api/fleet/meshcentral/list_dir?server_id=X&path=X — list a remote dir.
 
-    Mirrors the Tauri ``meshcentral_list_dir`` command. A failed probe returns
+    Mirrors the ``meshcentral_list_dir`` command. A failed probe returns
     a redacted 502. Requires admin identity (require_admin, T2).
     """
     server = _find_server(server_id)
@@ -2301,7 +2301,7 @@ async def meshcentral_get_processes(
 ) -> Any:
     """GET /api/fleet/meshcentral/get_processes?server_id=X&limit=X — list procs.
 
-    Mirrors the Tauri ``meshcentral_get_processes`` command. A failed probe
+    Mirrors the ``meshcentral_get_processes`` command. A failed probe
     returns a redacted 502. Requires admin identity (require_admin, T2).
     """
     server = _find_server(server_id)
@@ -2396,7 +2396,7 @@ def _alert_create_payload(body: Any) -> tuple[str, str, str, dict] | JSONRespons
 def alerts_create(request: Request, body: dict) -> Any:
     """POST /api/fleet/alerts/create — create a new alert.
 
-    Mirrors the Tauri ``alert_create`` command. Requires scope=write
+    Mirrors the ``alert_create`` command. Requires scope=write
     (enforced by the create_app middleware).
     """
     validated = _alert_create_payload(body)
@@ -2419,7 +2419,7 @@ def alerts_create(request: Request, body: dict) -> Any:
 def alerts_list(request: Request) -> Any:
     """GET /api/fleet/alerts/list?severity=&device_id=&acknowledged=&since=&limit=&offset=.
 
-    Mirrors the Tauri ``alert_list`` command. Returns alerts newest first.
+    Mirrors the ``alert_list`` command. Returns alerts newest first.
     """
     f = AlertFilter(
         severity=request.query_params.get("severity") or None,
@@ -2574,7 +2574,7 @@ def _positive_int(value: str | None, field: str) -> int | JSONResponse:
 def metrics_record(request: Request, body: dict) -> Any:
     """POST /api/fleet/metrics/record — record one metric sample.
 
-    Mirrors the Tauri ``metric_record`` command. Body: {device_id, metric, value}.
+    Mirrors the ``metric_record`` command. Body: {device_id, metric, value}.
     """
     if not isinstance(body, dict) or not body:
         return JSONResponse(
@@ -2604,7 +2604,7 @@ def metrics_record(request: Request, body: dict) -> Any:
 def metrics_query(request: Request) -> Any:
     """GET /api/fleet/metrics/query?device_id=&metric=&from=&to=&limit=.
 
-    Mirrors the Tauri ``metric_query`` command.
+    Mirrors the ``metric_query`` command.
     """
     device_id = request.query_params.get("device_id")
     metric = request.query_params.get("metric")
@@ -2630,7 +2630,7 @@ def metrics_query_multi(request: Request) -> Any:
     """GET /api/fleet/metrics/query_multi — multiple device/metric series.
 
     Query params (repeatable): device_ids, metrics. Plus from and optional to.
-    Mirrors the Tauri ``metric_query_multi`` command.
+    Mirrors the ``metric_query_multi`` command.
     """
     device_ids = request.query_params.getlist("device_ids")
     metrics = request.query_params.getlist("metrics")
@@ -2656,7 +2656,7 @@ def metrics_query_multi(request: Request) -> Any:
 def metrics_collect_all(request: Request, body: dict) -> Any:
     """POST /api/fleet/metrics/collect_all — run all metric collectors.
 
-    Mirrors the Tauri ``metric_collect_all`` command. No collectors are
+    Mirrors the ``metric_collect_all`` command. No collectors are
     registered yet, so this returns 0 recorded. Takes an empty body {}.
     """
     if not isinstance(body, dict):
@@ -2683,7 +2683,7 @@ def _phone_unavailable(exc: Exception, server: ServerConfig) -> JSONResponse:
 async def phone_device_info(request: Request, server_id: str) -> Any:
     """GET /api/fleet/phone/device_info?server_id=X — phone device info.
 
-    Mirrors the Tauri ``get_phone_device_info`` command. Host-local over ADB.
+    Mirrors the ``get_phone_device_info`` command. Host-local over ADB.
     """
     server = _find_server(server_id)
     if server is None:
@@ -2707,7 +2707,7 @@ async def phone_device_info(request: Request, server_id: str) -> Any:
 async def phone_battery(request: Request, server_id: str) -> Any:
     """GET /api/fleet/phone/battery?server_id=X — phone battery state.
 
-    Mirrors the Tauri ``get_phone_battery`` command. Host-local over ADB.
+    Mirrors the ``get_phone_battery`` command. Host-local over ADB.
     """
     server = _find_server(server_id)
     if server is None:
@@ -2731,7 +2731,7 @@ async def phone_battery(request: Request, server_id: str) -> Any:
 async def phone_storage(request: Request, server_id: str) -> Any:
     """GET /api/fleet/phone/storage?server_id=X — phone storage.
 
-    Mirrors the Tauri ``get_phone_storage`` command. Host-local over ADB.
+    Mirrors the ``get_phone_storage`` command. Host-local over ADB.
     """
     server = _find_server(server_id)
     if server is None:
@@ -2755,7 +2755,7 @@ async def phone_storage(request: Request, server_id: str) -> Any:
 async def phone_memory(request: Request, server_id: str) -> Any:
     """GET /api/fleet/phone/memory?server_id=X — phone memory.
 
-    Mirrors the Tauri ``get_phone_memory`` command. Host-local over ADB.
+    Mirrors the ``get_phone_memory`` command. Host-local over ADB.
     """
     server = _find_server(server_id)
     if server is None:
@@ -2784,7 +2784,7 @@ def _kdeconnect_unavailable(exc: Exception, server: ServerConfig) -> JSONRespons
 async def kdeconnect_battery(request: Request, server_id: str) -> Any:
     """GET /api/fleet/kdeconnect/battery?server_id=X — KDE Connect battery.
 
-    Mirrors the Tauri ``get_kdeconnect_battery`` command. Host-local over gdbus.
+    Mirrors the ``get_kdeconnect_battery`` command. Host-local over gdbus.
     """
     server = _find_server(server_id)
     if server is None:
@@ -2808,7 +2808,7 @@ async def kdeconnect_battery(request: Request, server_id: str) -> Any:
 async def kdeconnect_connectivity(request: Request, server_id: str) -> Any:
     """GET /api/fleet/kdeconnect/connectivity?server_id=X — connectivity report.
 
-    Mirrors the Tauri ``get_kdeconnect_connectivity`` command. Host-local over gdbus.
+    Mirrors the ``get_kdeconnect_connectivity`` command. Host-local over gdbus.
     """
     server = _find_server(server_id)
     if server is None:
@@ -2832,7 +2832,7 @@ async def kdeconnect_connectivity(request: Request, server_id: str) -> Any:
 async def kdeconnect_list_devices(request: Request, server_id: str) -> Any:
     """GET /api/fleet/kdeconnect/list_devices?server_id=X — paired device list.
 
-    Mirrors the Tauri ``kdeconnect_list_devices`` command. Host-local over gdbus.
+    Mirrors the ``kdeconnect_list_devices`` command. Host-local over gdbus.
     """
     server = _find_server(server_id)
     if server is None:

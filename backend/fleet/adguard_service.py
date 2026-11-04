@@ -1,6 +1,6 @@
 """backend/fleet/adguard_service.py — AdGuard Home port (P7).
 
-Port of src-tauri/src/services/adguard.rs: status, stats, query log,
+Port of the original Rust AdGuard service: status, stats, query log,
 clients, filters, DHCP, and protection enable/disable over AdGuard Home's
 local API (/control/...), using basic auth. Credentials are resolved from
 ``ServiceKeys`` (``adguard_url`` / ``adguard_user`` / ``adguard_pass``).
@@ -72,7 +72,7 @@ class AdGuardClient(ABC):
 
 
 # ---------------------------------------------------------------------------
-# Response shapes (mirror src-tauri/src/services/adguard.rs)
+# Response shapes (mirror the original Rust AdGuard service)
 # ---------------------------------------------------------------------------
 
 
@@ -450,7 +450,7 @@ class RealAdGuardClient(AdGuardClient):
     async def get_stats(self) -> AdGuardStats:
         stats = parse_adguard_stats(await self._request("stats"))
         # Aggregate clients/filters from their own endpoints, degrading to
-        # zeros on failure (mirrors src-tauri/src/services/adguard.rs).
+        # zeros on failure (mirrors the original Rust AdGuard service).
         try:
             clients = await self.get_clients()
             stats.clients["total"] = len(clients.clients)

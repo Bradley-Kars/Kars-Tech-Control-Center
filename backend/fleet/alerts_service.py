@@ -1,7 +1,7 @@
 """backend/fleet/alerts_service.py — alert and metric store (P13).
 
 Sqlite-backed store for Alert, AlertFilter and MetricSeries, mirroring the
-Tauri implementation in src-tauri/src/commands/mod.rs (alert_create,
+desktop app implementation (alert_create,
 alert_list, alert_acknowledge, alert_acknowledge_all, alert_get, alert_delete,
 alert_auto_ack_run, metric_record, metric_query, metric_query_multi).
 

@@ -5,7 +5,7 @@ telemetry, and remote operations. Uses `meshctrl runcommand` via SSH to the
 Unraid server where the meshcentral container runs — this is the PRIMARY
 transport for MeshCentral fleet ops.
 
-Mirrors src-tauri/src/meshcentral/{mod.rs,transport.rs}: MeshCentralClient
+Mirrors the original Rust MeshCentral module: MeshCentralClient
 (device list, device status, execute batch, terminal/file-manager URLs,
 enrollment info, sync to servers.json, fleet stats) plus the SSH transport
 foundation that P12 builds on for shell/file/process/reboot/shutdown/docker.

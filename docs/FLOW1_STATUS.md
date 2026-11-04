@@ -8,7 +8,7 @@
 
 | # | Issue | File(s) | Status | Evidence |
 |---|-------|---------|--------|----------|
-| 1 | MESH-001: toast crash on /meshcentral | `src/lib/tauri-commands.ts`, `src/components/ui/Toast.tsx` | TODO | Not started |
+| 1 | MESH-001: toast crash on /meshcentral | `src/lib/fleet-api.ts`, `src/components/ui/Toast.tsx` | TODO | Not started |
 | 2 | SIDEBAR-001: sidebar overlap on mobile | `src/App.tsx` | TODO | Not started |
 | 3 | LOGO-001/002: wrong/missing logo | `public/favicon.svg`, `src/components/layout/Sidebar.tsx`, `TopBar.tsx` | TODO | Not started |
 | 4 | CMDPAL-001: emoji icons in command palette | `src/components/layout/CommandPalette.tsx` | TODO | Not started |
