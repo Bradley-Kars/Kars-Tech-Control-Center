@@ -87,7 +87,7 @@ Replace the following placeholders with actual staging values before running the
 |-------------|-------------|---------|
 | `<staging-base-url>` | Staging frontend URL | `https://staging.kts.example.com` |
 | `<backend-url>` | Staging backend URL | `https://staging-api.kts.example.com:8799` |
-| `<device>.<tailnet>.ts.net` | Tailscale hostname | `home-server.tailf6d3b4.ts.net` |
+| `<device>.<tailnet>.ts.net` | Tailscale hostname | `<device>.<tailnet>.ts.net` |
 
 ## 3. Pass/Fail Criteria
 

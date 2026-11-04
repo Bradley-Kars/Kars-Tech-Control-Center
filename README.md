@@ -76,8 +76,8 @@ After=network.target
 [Service]
 Type=simple
 User=kts
-WorkingDirectory=/home/slayerbrk/GitHub/Kars-Tech-Control-Center/backend
-Environment=KTS_SERVERS_FILE=/home/slayerbrk/.config/master-control/servers.json
+WorkingDirectory=/home/<user>/GitHub/Kars-Tech-Control-Center/backend
+Environment=KTS_SERVERS_FILE=/home/<user>/.config/master-control/servers.json
 Environment=KTS_ALLOWED_HOSTS=127.0.0.1,localhost
 ExecStart=/usr/bin/python3 -m uvicorn core.bridge:app --host 127.0.0.1 --port 8799
 Restart=always
