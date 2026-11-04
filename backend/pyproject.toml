@@ -17,6 +17,7 @@ dependencies = [
     "httpx>=0.24",
     "requests>=2.31",
     "asyncssh>=2.14",
+    "aiohttp>=3.9",
 ]
 
 [project.optional-dependencies]

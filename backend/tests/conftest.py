@@ -11,6 +11,23 @@ os.environ["KTS_SANDBOX"] = "1"
 os.environ["KTS_VAULT"] = str(VAULT)
 os.environ["KTS_HOME"] = str(HOME)
 
+# R3: ignore real-tree / phasef_helpers tests. They snapshot and restore the
+# REAL vault and REAL ~/.ticketing and must never run in CI or on a dev machine
+# (queue rule: never run tests that touch the real vault or real ~/.ticketing).
+# They require this machine's real install; see the real_install marker docs in
+# pyproject.toml and the queue rule above.
+collect_ignore_glob = [
+    "*test_cli.py",
+    "*test_counters.py",
+    "*test_evidence.py",
+    "*test_g4_numbering.py",
+    "*test_h2b_auth.py",
+    "*test_real_untouched.py",
+    "*test_ticket_id_schema.py",
+    "*test_validator.py",
+]
+
+
 @pytest.fixture(autouse=True)
 def _clean_vault():
     yield
