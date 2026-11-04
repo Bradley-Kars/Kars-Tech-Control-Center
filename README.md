@@ -158,7 +158,7 @@ npm run lint          # oxlint
 npx tsc -b            # TypeScript typecheck
 npm run test:coverage # vitest with coverage
 npm run build         # tsc -b && vite build
-bash backend/verify-gates.sh  # from project root
+cd backend && python3 -m venv .venv && .venv/bin/pip install -q -e ".[dev]" && .venv/bin/python -m pytest -q -p no:cacheprovider tests $(grep -l phasef_helpers tests/*.py | sed 's#^#--ignore=#')  # backend gates (pytest)
 ```
 
 ### E2E tests

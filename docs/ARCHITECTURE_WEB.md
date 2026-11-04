@@ -20,7 +20,7 @@ The original Rust code is reference material only: read it, port its behaviour t
 - `backend/migrations/` — database migrations
 - `backend/schemas/`, `backend/tools/`
 - `backend/tests/` — pytest suite (`conftest.py`, `fixtures/`, `phasef_helpers.py`)
-- `backend/verify-gates.sh` — independent gate verification
+- `backend/tests/` — pytest suite (`conftest.py` skips real-tree tests: phasef_helpers, `~/.ticketing`, real vault). Backend gates run pytest with temp-dir fixtures.
 
 ## Configuration: `servers.json`
 

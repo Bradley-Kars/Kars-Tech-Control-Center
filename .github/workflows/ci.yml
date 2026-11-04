@@ -36,8 +36,17 @@ jobs:
       - name: Production build (tsc -b && vite build)
         run: npm run build
 
-      - name: Backend gates
-        run: bash backend/verify-gates.sh
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Backend gates (pytest)
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install -q -e ".[dev]"
+          .venv/bin/python -m pytest -q -p no:cacheprovider tests $(grep -l phasef_helpers tests/*.py | sed 's#^#--ignore=#')
         working-directory: backend
 
       - name: E2E against built web app + backend on random port with stub servers
