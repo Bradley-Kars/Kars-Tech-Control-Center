@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { SystemPage } from './SystemPage';
 import { mockServerConfig } from '../../test/mock-data';
 
-vi.mock('../../lib/tauri-commands', () => ({
+vi.mock('../../lib/fleet-api', () => ({
   getProcesses: vi.fn(),
   getSyslog: vi.fn(),
   getUserScripts: vi.fn(),
@@ -11,7 +11,7 @@ vi.mock('../../lib/tauri-commands', () => ({
   runUserScript: vi.fn(),
 }));
 
-import { getProcesses, getSyslog } from '../../lib/tauri-commands';
+import { getProcesses, getSyslog } from '../../lib/fleet-api';
 
 function pending<T>() {
   let resolve!: (value: T) => void;

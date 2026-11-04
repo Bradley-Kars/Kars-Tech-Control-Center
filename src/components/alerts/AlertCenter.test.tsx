@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
-vi.mock('../../lib/tauri-commands', () => ({
+vi.mock('../../lib/fleet-api', () => ({
   alertList: vi.fn(),
   alertAcknowledge: vi.fn().mockResolvedValue({ id: '1', acknowledged: true }),
   alertAcknowledgeAll: vi.fn().mockResolvedValue(0),
@@ -16,7 +16,7 @@ import {
   alertAcknowledgeAll,
   alertDelete,
   alertEvaluateAutoAck,
-} from '../../lib/tauri-commands';
+} from '../../lib/fleet-api';
 const mockAlertList = vi.mocked(alertList);
 const mockAlertAcknowledge = vi.mocked(alertAcknowledge);
 const mockAlertAcknowledgeAll = vi.mocked(alertAcknowledgeAll);

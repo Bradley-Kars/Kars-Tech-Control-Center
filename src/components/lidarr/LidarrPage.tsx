@@ -7,7 +7,7 @@ import {
   getLidarrDiskspace,
   lidarrRefreshArtist,
   lidarrSearchMissing,
-} from '../../lib/tauri-commands';
+} from '../../lib/fleet-api';
 import type {
   ServerConfig,
   LidarrStatus,

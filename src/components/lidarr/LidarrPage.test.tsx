@@ -3,7 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { LidarrPage } from './LidarrPage';
 import { mockServerConfig, mockLidarrStatus, mockLidarrArtists, mockLidarrAlbums, mockLidarrWanted, mockLidarrDiskspace } from '../../test/mock-data';
 
-vi.mock('../../lib/tauri-commands', () => ({
+vi.mock('../../lib/fleet-api', () => ({
   getLidarrStatus: vi.fn(),
   getLidarrArtists: vi.fn(),
   getLidarrAlbums: vi.fn(),
@@ -13,7 +13,7 @@ vi.mock('../../lib/tauri-commands', () => ({
   lidarrSearchMissing: vi.fn(),
 }));
 
-import { getLidarrStatus, getLidarrArtists, getLidarrAlbums, getLidarrWanted, getLidarrDiskspace } from '../../lib/tauri-commands';
+import { getLidarrStatus, getLidarrArtists, getLidarrAlbums, getLidarrWanted, getLidarrDiskspace } from '../../lib/fleet-api';
 
 beforeEach(() => {
   vi.clearAllMocks();

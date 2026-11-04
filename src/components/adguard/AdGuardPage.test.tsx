@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { AdGuardPage } from './AdGuardPage';
 import { mockServerConfig, mockAdGuardStatus, mockAdGuardStats, mockAdGuardQueryLog, mockAdGuardClients, mockAdGuardFilters } from '../../test/mock-data';
 
-vi.mock('../../lib/tauri-commands', () => ({
+vi.mock('../../lib/fleet-api', () => ({
   getAdGuardStatus: vi.fn(),
   getAdGuardStats: vi.fn(),
   getAdGuardQueryLog: vi.fn(),
@@ -14,7 +14,7 @@ vi.mock('../../lib/tauri-commands', () => ({
   adguardDisable: vi.fn(),
 }));
 
-import { getAdGuardStatus, getAdGuardStats, getAdGuardQueryLog, getAdGuardClients, getAdGuardFilters, getAdGuardDhcp } from '../../lib/tauri-commands';
+import { getAdGuardStatus, getAdGuardStats, getAdGuardQueryLog, getAdGuardClients, getAdGuardFilters, getAdGuardDhcp } from '../../lib/fleet-api';
 
 beforeEach(() => {
   vi.clearAllMocks();

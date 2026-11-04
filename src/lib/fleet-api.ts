@@ -82,6 +82,8 @@ import type {
   KdeConnectConnectivity,
 } from './types';
 
+export type { Alert, AlertFilter, AlertSeverity, MetricPoint, MetricSeries };
+
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/+$/, '');
 
 let authToken = '';
@@ -1173,4 +1175,350 @@ export async function metricCollectAll(token?: string): Promise<number> {
     body: {},
     token,
   });
+}
+
+// ---------------------------------------------------------------------------
+// Dropped commands — web stubs (not ported to /api/fleet)
+// ---------------------------------------------------------------------------
+// These commands were in src/lib/tauri-commands.ts as Tauri `invoke` stubs
+// but are NOT ported to the FastAPI backend (marked "dropped" in
+// docs/tauri-port/COMMANDS.md by P16). They remain here as web stubs so the
+// UI can compile and import everything from fleet-api.ts. They return empty
+// data / resolve without effect; no real command is executed.
+
+/** One Prometheus range-query series (instance label + points). */
+export interface PromSeries {
+  instance: string;
+  points: MetricPoint[];
+}
+
+/** Single Prometheus alert from polling. */
+export interface PromAlertCreated {
+  id: number;
+  severity: AlertSeverity;
+  title: string;
+  message: string;
+  device_id?: string;
+  source: string;
+}
+
+/** Web stub: not ported. Returns an empty alert list. */
+export async function pollAllAlertSources(
+  _prometheusBaseUrl: string,
+): Promise<PromAlertCreated[]> {
+  return [];
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function meshcentralReboot(_serverId: string): Promise<void> {
+  return undefined;
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function meshcentralShutdown(_serverId: string): Promise<void> {
+  return undefined;
+}
+
+/** Web stub: not ported. Returns an empty result array. */
+export async function meshcentralShellFleet(
+  _serverIds: string[],
+  _command: string,
+  _timeoutSecs?: number,
+): Promise<ShellResult[]> {
+  return [];
+}
+
+/** Web stub: not ported. Returns an empty string. */
+export async function getNetworkInterfaces(_serverId: string): Promise<string> {
+  return '';
+}
+
+/** Web stub: not ported. Returns an empty string. */
+export async function getTailscalePeers(_serverId: string): Promise<string> {
+  return '';
+}
+
+/** Web stub: not ported. Returns an empty string. */
+export async function getProcesses(_serverId: string): Promise<string> {
+  return '';
+}
+
+/** Web stub: not ported. Returns an empty string. */
+export async function getSyslog(_serverId: string, _lines: number): Promise<string> {
+  return '';
+}
+
+/** Web stub: not ported. Returns an empty string. */
+export async function getUserScripts(_serverId: string): Promise<string> {
+  return '';
+}
+
+/** Web stub: not ported. Returns an empty array. */
+export async function getPlugins(_serverId: string): Promise<string[]> {
+  return [];
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function runUserScript(
+  _serverId: string,
+  _script: string,
+): Promise<string> {
+  return '';
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function dockerRemove(
+  _serverId: string,
+  _container: string,
+): Promise<string> {
+  return '';
+}
+
+/** Web stub: not ported. Returns null. */
+export async function getPhoneCpu(_serverId: string): Promise<any> {
+  return null;
+}
+
+/** Web stub: not ported. Returns null. */
+export async function getKdeConnectNotifications(
+  _serverId: string,
+): Promise<any> {
+  return null;
+}
+
+/** Web stub: not ported. Returns null. */
+export async function getKdeConnectMpris(_serverId: string): Promise<any> {
+  return null;
+}
+
+/** Web stub: not ported. Returns null. */
+export async function getPhoneThermal(_serverId: string): Promise<any> {
+  return null;
+}
+
+/** Web stub: not ported. Returns null. */
+export async function getPhoneScreen(_serverId: string): Promise<any> {
+  return null;
+}
+
+/** Web stub: not ported. Returns null. */
+export async function getPhoneNetwork(_serverId: string): Promise<any> {
+  return null;
+}
+
+/** Web stub: not ported. Returns null. */
+export async function getPhoneActivity(_serverId: string): Promise<any> {
+  return null;
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function kdeConnectMprisPlayPause(_serverId: string): Promise<void> {
+  return undefined;
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function kdeConnectMprisNext(_serverId: string): Promise<void> {
+  return undefined;
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function kdeConnectMprisPrevious(
+  _serverId: string,
+): Promise<void> {
+  return undefined;
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function kdeConnectMprisSetVolume(
+  _serverId: string,
+  _volume: number,
+): Promise<void> {
+  return undefined;
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function kdeConnectRingDevice(_serverId: string): Promise<void> {
+  return undefined;
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function kdeConnectSendPing(
+  _serverId: string,
+  _message: string,
+): Promise<void> {
+  return undefined;
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function kdeConnectGetClipboard(_serverId: string): Promise<string> {
+  return '';
+}
+
+/** Web stub: not ported. Returns null. */
+export async function getKdeConnectTelephony(_serverId: string): Promise<any> {
+  return null;
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function kdeConnectShareUrl(
+  _serverId: string,
+  _url: string,
+): Promise<void> {
+  return undefined;
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function kdeConnectShareText(
+  _serverId: string,
+  _text: string,
+): Promise<void> {
+  return undefined;
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function phoneSetScreen(
+  _serverId: string,
+  _on: boolean,
+): Promise<void> {
+  return undefined;
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function phoneVolumeUp(_serverId: string): Promise<void> {
+  return undefined;
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function phoneVolumeDown(_serverId: string): Promise<void> {
+  return undefined;
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function phoneReboot(_serverId: string): Promise<void> {
+  return undefined;
+}
+
+/** Web stub: not ported. Returns an empty Uint8Array. */
+export async function phoneScreenshot(_serverId: string): Promise<Uint8Array> {
+  return new Uint8Array(0);
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function launchRustdesk(_serverId: string): Promise<void> {
+  return undefined;
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function phoneGetSmsByAddress(
+  _serverId: string,
+  _address: string,
+): Promise<any[]> {
+  return [];
+}
+
+/** Web stub: not ported. Returns an empty array. */
+export async function phoneGetSmsConversations(_serverId: string): Promise<any[]> {
+  return [];
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function kdeConnectSendSms(
+  _serverId: string,
+  _number: string,
+  _message: string,
+): Promise<void> {
+  return undefined;
+}
+
+/** Web stub: not ported. Returns an empty array. */
+export async function phoneGetCallLog(_serverId: string): Promise<any[]> {
+  return [];
+}
+
+/** Web stub: not ported. Returns an empty array. */
+export async function phoneGetContacts(_serverId: string): Promise<any[]> {
+  return [];
+}
+
+/** Web stub: not ported. Returns an empty array. */
+export async function kdeConnectSftpList(
+  _serverId: string,
+  _path: string,
+): Promise<any[]> {
+  return [];
+}
+
+/** Web stub: not ported. Returns an empty array. */
+export async function steamdeckGetSystemStats(_serverId: string): Promise<any> {
+  return null;
+}
+
+/** Web stub: not ported. Returns null. */
+export async function steamdeckGetBattery(_serverId: string): Promise<any> {
+  return null;
+}
+
+/** Web stub: not ported. Returns null. */
+export async function steamdeckGetThermal(_serverId: string): Promise<any> {
+  return null;
+}
+
+/** Web stub: not ported. Returns null. */
+export async function steamdeckGetDisk(_serverId: string): Promise<any> {
+  return null;
+}
+
+/** Web stub: not ported. Returns null. */
+export async function steamdeckGetNetwork(_serverId: string): Promise<any> {
+  return null;
+}
+
+/** Web stub: not ported. Returns null. */
+export async function steamdeckGetGpu(_serverId: string): Promise<any> {
+  return null;
+}
+
+/** Web stub: not ported. Resolves without effect. */
+export async function steamdeckLaunchRustdesk(_serverId: string): Promise<void> {
+  return undefined;
+}
+
+/** Web stub: not ported. Returns null. */
+export async function steamdeckGetDeskflowStatus(
+  _serverId: string,
+): Promise<any> {
+  return null;
+}
+
+/** Web stub: not ported. Returns null. */
+export async function allyProvision(_serverId: string): Promise<any> {
+  return null;
+}
+
+/** Web stub: not ported. Returns null. */
+export async function allyLaunchAgent(_serverId: string): Promise<any> {
+  return null;
+}
+
+/** Web stub: not ported. Returns null. */
+export async function meshcentralGetSystemStats(
+  _serverId: string,
+): Promise<any> {
+  return null;
+}
+
+/** Web stub: not ported. Returns an empty array. */
+export async function promQueryRange(
+  _baseUrl: string,
+  _query: string,
+  _start: string,
+  _end: string,
+  _step: string,
+): Promise<PromSeries[]> {
+  return [];
+}
+
+/** Web stub: not ported. Returns false. */
+export async function prometheusHealth(_baseUrl: string): Promise<boolean> {
+  return false;
 }

@@ -34,7 +34,7 @@ import {
   phoneGetCallLog,
   phoneGetContacts,
   kdeConnectSftpList,
-} from '../../lib/tauri-commands';
+} from '../../lib/fleet-api';
 
 interface Props {
   servers: ServerConfig[];

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ServerConfig } from '../../lib/types';
-import { getProcesses, getSyslog, getUserScripts, getPlugins, runUserScript } from '../../lib/tauri-commands';
+import { getProcesses, getSyslog, getUserScripts, getPlugins, runUserScript } from '../../lib/fleet-api';
 import { Skeleton } from '../ui/Skeleton';
 
 interface Props { server: ServerConfig; }

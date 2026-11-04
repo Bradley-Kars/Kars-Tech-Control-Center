@@ -22,7 +22,7 @@ import {
   steamdeckGetDisk,
   steamdeckGetGpu,
   getLocalSystemStats,
-} from '../../lib/tauri-commands';
+} from '../../lib/fleet-api';
 
 type Page = 'dashboard' | 'phone' | 'steamdeck' | 'docker' | 'storage' | 'system' | 'network' | 'nextcloud' | 'lidarr' | 'homeassistant' | 'myspeed' | 'adguard';
 

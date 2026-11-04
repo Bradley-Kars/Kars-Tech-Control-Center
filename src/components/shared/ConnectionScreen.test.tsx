@@ -2,11 +2,11 @@ import { it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { ServerConfig } from '../../lib/types';
 
-vi.mock('../../lib/tauri-commands', () => ({
+vi.mock('../../lib/fleet-api', () => ({
   testConnection: vi.fn(),
 }));
 
-import { testConnection } from '../../lib/tauri-commands';
+import { testConnection } from '../../lib/fleet-api';
 import { ConnectionScreen } from './ConnectionScreen';
 
 const mockTestConnection = vi.mocked(testConnection);

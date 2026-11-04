@@ -18,7 +18,7 @@ import {
   meshcentralGetFileManagerUrl,
   meshcentralGetProcesses,
   meshcentralGetSystemStats,
-} from '../lib/tauri-commands';
+} from '../lib/fleet-api';
 import type { RemoteProcess, MeshSystemStats } from '../lib/types';
 import { EmbeddedTerminal } from '../components/terminal/EmbeddedTerminal';
 

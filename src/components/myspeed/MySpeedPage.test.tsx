@@ -3,11 +3,11 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MySpeedPage } from './MySpeedPage';
 import { mockServerConfig, mockMySpeedSummary } from '../../test/mock-data';
 
-vi.mock('../../lib/tauri-commands', () => ({
+vi.mock('../../lib/fleet-api', () => ({
   getMySpeedSummary: vi.fn(),
 }));
 
-import { getMySpeedSummary } from '../../lib/tauri-commands';
+import { getMySpeedSummary } from '../../lib/fleet-api';
 
 beforeEach(() => {
   vi.clearAllMocks();

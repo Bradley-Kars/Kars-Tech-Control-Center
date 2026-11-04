@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   executeBatch: vi.fn(),
 }));
 
-vi.mock('../lib/tauri-commands', () => ({
+vi.mock('../lib/fleet-api', () => ({
   meshcentralListDevices: mocks.listDevices,
   meshcentralGetEnrollmentInfo: mocks.getEnrollmentInfo,
   meshcentralSyncFleet: mocks.syncFleet,
@@ -24,7 +24,7 @@ import {
   meshcentralGetEnrollmentInfo,
   meshcentralSyncFleet,
   meshcentralExecuteBatch,
-} from '../lib/tauri-commands';
+} from '../lib/fleet-api';
 
 const mockListDevices = vi.mocked(meshcentralListDevices);
 const mockGetEnrollmentInfo = vi.mocked(meshcentralGetEnrollmentInfo);

@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { ServicePage } from './ServicePage';
 
-vi.mock('../lib/tauri-commands', () => ({
+vi.mock('../lib/fleet-api', () => ({
   getServers: vi.fn().mockResolvedValue([]),
   meshcentralShellFleet: vi.fn().mockResolvedValue([]),
 }));

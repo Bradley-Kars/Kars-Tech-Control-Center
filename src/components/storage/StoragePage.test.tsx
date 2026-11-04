@@ -3,13 +3,13 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { StoragePage } from './StoragePage';
 import { mockServerConfig, mockDisks, mockShares } from '../../test/mock-data';
 
-vi.mock('../../lib/tauri-commands', () => ({
+vi.mock('../../lib/fleet-api', () => ({
   getDisks: vi.fn(),
   getShares: vi.fn(),
   getSmartData: vi.fn(),
 }));
 
-import { getDisks, getShares, getSmartData } from '../../lib/tauri-commands';
+import { getDisks, getShares, getSmartData } from '../../lib/fleet-api';
 
 beforeEach(() => {
   vi.clearAllMocks();

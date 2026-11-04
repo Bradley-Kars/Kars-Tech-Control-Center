@@ -11,7 +11,7 @@ import {
   steamdeckGetDeskflowStatus,
   allyProvision,
   allyLaunchAgent,
-} from '../../lib/tauri-commands';
+} from '../../lib/fleet-api';
 
 function GaugeRing({ value, label, color }: { value: number; label: string; color: string }) {
   const radius = 40;

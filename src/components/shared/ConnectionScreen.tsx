@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ServerConfig } from '../../lib/types';
-import { testConnection } from '../../lib/tauri-commands';
+import { testConnection } from '../../lib/fleet-api';
 
 interface Props {
   onConnect: (config: ServerConfig) => void;

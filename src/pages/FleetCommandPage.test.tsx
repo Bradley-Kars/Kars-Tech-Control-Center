@@ -4,13 +4,13 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { AppProvider } from '../context/AppContext';
 import { FleetCommandPage } from './FleetCommandPage';
 import { useServers } from '../hooks';
-import { meshcentralShellFleet } from '../lib/tauri-commands';
+import { meshcentralShellFleet } from '../lib/fleet-api';
 import type { ShellResult } from '../lib/types';
 
 vi.mock('../hooks', () => ({
   useServers: vi.fn(),
 }));
-vi.mock('../lib/tauri-commands', () => ({
+vi.mock('../lib/fleet-api', () => ({
   meshcentralShellFleet: vi.fn(),
 }));
 

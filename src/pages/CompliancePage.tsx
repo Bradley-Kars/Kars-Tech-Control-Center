@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useServers } from '../hooks';
-import { meshcentralShellFleet } from '../lib/tauri-commands';
+import { meshcentralShellFleet } from '../lib/fleet-api';
 import type { ShellResult, ServerConfig } from '../lib/types';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';

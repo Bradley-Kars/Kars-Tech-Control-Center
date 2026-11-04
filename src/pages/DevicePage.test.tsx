@@ -14,7 +14,7 @@ vi.mock('../components/steamdeck/SteamDeckPage', () => ({
   SteamDeckPage: () => <div data-testid="steamdeck-page">Steam Deck Placeholder</div>,
 }));
 
-vi.mock('../lib/tauri-commands', () => ({
+vi.mock('../lib/fleet-api', () => ({
   meshcentralReboot: vi.fn(),
   meshcentralShutdown: vi.fn(),
   meshcentralGetTerminalUrl: vi.fn(),

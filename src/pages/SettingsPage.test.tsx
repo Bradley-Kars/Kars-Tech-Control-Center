@@ -19,7 +19,7 @@ Object.defineProperty(window, 'localStorage', {
 // jsdom does not apply responsive CSS classes, so both desktop grid nav
 // and mobile tab strip render. Tests therefore use getAllByRole where a
 // button appears in both layouts.
-vi.mock('../lib/tauri-commands', () => ({
+vi.mock('../lib/fleet-api', () => ({
   meshcentralSyncFleet: vi.fn().mockResolvedValue({
     devices_found: 2,
     devices_matched: 2,

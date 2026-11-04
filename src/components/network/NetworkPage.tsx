@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ServerConfig } from '../../lib/types';
-import { getNetworkInterfaces, getTailscalePeers } from '../../lib/tauri-commands';
+import { getNetworkInterfaces, getTailscalePeers } from '../../lib/fleet-api';
 import { Skeleton } from '../ui/Skeleton';
 
 interface Props { server: ServerConfig; }

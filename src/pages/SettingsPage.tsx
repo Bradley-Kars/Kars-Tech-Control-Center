@@ -7,7 +7,7 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card, CardSection } from '../components/ui/Card';
 import { useMediaQuery, useServers } from '../hooks';
-import { meshcentralSyncFleet, meshcentralGetFleetStats } from '../lib/tauri-commands';
+import { meshcentralSyncFleet, meshcentralGetFleetStats } from '../lib/fleet-api';
 import type { SyncResult } from '../lib/types';
 import {
   Layout,

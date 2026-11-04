@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { getServers, saveServer, removeServer, getSystemStats, getLocalSystemStats, meshcentralGetFleetStats, meshcentralGetSystemStats } from '../lib/tauri-commands';
+import { getServers, saveServer, removeServer, getSystemStats, getLocalSystemStats, meshcentralGetFleetStats, meshcentralGetSystemStats } from '../lib/fleet-api';
 import type { ServerConfig, ConnectionMethod } from '../lib/types';
 
 export function useServers() {

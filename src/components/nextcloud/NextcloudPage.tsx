@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getNextcloudInfo, getNextcloudStatus, getNextcloudStorage, getNextcloudUsers, getNextcloudActivity } from '../../lib/tauri-commands';
+import { getNextcloudInfo, getNextcloudStatus, getNextcloudStorage, getNextcloudUsers, getNextcloudActivity } from '../../lib/fleet-api';
 import type { ServerConfig } from '../../lib/types';
 
 interface NextcloudInfo {

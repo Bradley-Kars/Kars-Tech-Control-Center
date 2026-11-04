@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { DockerPage } from './DockerPage';
 import { mockServerConfig, mockDockerContainers } from '../../test/mock-data';
 
-vi.mock('../../lib/tauri-commands', () => ({
+vi.mock('../../lib/fleet-api', () => ({
   getDockerContainers: vi.fn(),
   dockerStart: vi.fn(),
   dockerStop: vi.fn(),
@@ -12,7 +12,7 @@ vi.mock('../../lib/tauri-commands', () => ({
   dockerRemove: vi.fn(),
 }));
 
-import { getDockerContainers } from '../../lib/tauri-commands';
+import { getDockerContainers } from '../../lib/fleet-api';
 const mockGetDockerContainers = vi.mocked(getDockerContainers);
 
 beforeEach(() => {

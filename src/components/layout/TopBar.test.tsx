@@ -16,13 +16,13 @@ Object.defineProperty(window, 'localStorage', {
   writable: true,
 });
 
-vi.mock('../../lib/tauri-commands', () => ({
+vi.mock('../../lib/fleet-api', () => ({
   alertList: vi.fn().mockResolvedValue([]),
   alertAcknowledge: vi.fn().mockResolvedValue({} as any),
   alertAcknowledgeAll: vi.fn().mockResolvedValue(0),
 }));
 
-import { alertList } from '../../lib/tauri-commands';
+import { alertList } from '../../lib/fleet-api';
 
 function renderTopBar(overrides: {
   location?: { pathname: string };

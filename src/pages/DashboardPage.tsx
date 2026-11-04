@@ -9,7 +9,7 @@ import { Skeleton, SkeletonCard } from '../components/ui/Skeleton';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Link, useNavigate } from 'react-router-dom';
 import GridLayout, { useContainerWidth } from 'react-grid-layout';
-import { alertList, alertCreate, meshcentralShellFleet } from '../lib/tauri-commands';
+import { alertList, alertCreate, meshcentralShellFleet } from '../lib/fleet-api';
 import { ToastManager, useToast } from '../components/ui/Toast';
 import type { Alert } from '../lib/types';
 

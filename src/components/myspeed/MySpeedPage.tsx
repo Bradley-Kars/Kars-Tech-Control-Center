@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getMySpeedSummary } from '../../lib/tauri-commands';
+import { getMySpeedSummary } from '../../lib/fleet-api';
 import type { ServerConfig } from '../../lib/types';
 
 interface MySpeedTest {

@@ -19,7 +19,7 @@ import { ChatPage } from './pages/ChatPage';
 import { TicketingPage } from './pages/TicketingPage';
 import { useKiosk } from './hooks/useKiosk';
 import { ConnectionScreen } from './components/shared/ConnectionScreen';
-import { metricCollectAll, pollAllAlertSources, saveServer } from './lib/tauri-commands';
+import { metricCollectAll, pollAllAlertSources, saveServer } from './lib/fleet-api';
 import type { ServerConfig } from './lib/types';
 import './styles/globals.css';
 

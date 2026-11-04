@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ServerConfig } from '../../lib/types';
-import { getDockerContainers, dockerStart, dockerStop, dockerRestart, dockerLogs, dockerRemove } from '../../lib/tauri-commands';
+import { getDockerContainers, dockerStart, dockerStop, dockerRestart, dockerLogs, dockerRemove } from '../../lib/fleet-api';
 
 type Page = 'dashboard' | 'docker' | 'storage' | 'system' | 'network' | 'nextcloud' | 'lidarr' | 'homeassistant' | 'myspeed' | 'adguard';
 

@@ -11,12 +11,12 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../hooks', () => ({
   useServers: mocks.useServers,
 }));
-vi.mock('../lib/tauri-commands', () => ({
+vi.mock('../lib/fleet-api', () => ({
   meshcentralShellFleet: mocks.shellFleet,
 }));
 
 import { useServers } from '../hooks';
-import { meshcentralShellFleet } from '../lib/tauri-commands';
+import { meshcentralShellFleet } from '../lib/fleet-api';
 
 const mockUseServers = vi.mocked(useServers);
 const mockShellFleet = vi.mocked(meshcentralShellFleet);

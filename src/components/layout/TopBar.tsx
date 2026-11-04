@@ -9,7 +9,7 @@ import {
   alertList,
   alertAcknowledge,
   alertAcknowledgeAll,
-} from '../../lib/tauri-commands';
+} from '../../lib/fleet-api';
 import type { Alert } from '../../lib/types';
 import {
   Menu,

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { metricQueryMulti, promQueryRange, prometheusHealth, type MetricPoint } from '../../lib/tauri-commands';
+import { metricQueryMulti, promQueryRange, prometheusHealth, type MetricPoint } from '../../lib/fleet-api';
 import { useServers } from '../../hooks';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';

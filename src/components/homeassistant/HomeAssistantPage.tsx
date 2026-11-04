@@ -5,7 +5,7 @@ import {
   homeAssistantToggle,
   homeAssistantTurnOn,
   homeAssistantTurnOff,
-} from '../../lib/tauri-commands';
+} from '../../lib/fleet-api';
 import type { ServerConfig } from '../../lib/types';
 
 interface HAState {

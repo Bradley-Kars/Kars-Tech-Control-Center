@@ -22,7 +22,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 // Mock tauri-commands so hooks don't throw in jsdom
-vi.mock('../lib/tauri-commands', () => ({
+vi.mock('../lib/fleet-api', () => ({
   getServers: vi.fn().mockResolvedValue([]),
   saveServer: vi.fn().mockResolvedValue(undefined),
   removeServer: vi.fn().mockResolvedValue(undefined),

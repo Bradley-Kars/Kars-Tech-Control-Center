@@ -25,13 +25,13 @@ vi.mock('../hooks', () => ({
   useFleetStats: mocks.useFleetStats,
 }));
 
-vi.mock('../lib/tauri-commands', () => ({
+vi.mock('../lib/fleet-api', () => ({
   alertList: vi.fn(),
   alertCreate: vi.fn(),
   meshcentralShellFleet: vi.fn(),
 }));
 
-import { alertList, alertCreate, meshcentralShellFleet } from '../lib/tauri-commands';
+import { alertList, alertCreate, meshcentralShellFleet } from '../lib/fleet-api';
 const mockAlertList = vi.mocked(alertList);
 const mockAlertCreate = vi.mocked(alertCreate);
 const mockMeshcentralShellFleet = vi.mocked(meshcentralShellFleet);

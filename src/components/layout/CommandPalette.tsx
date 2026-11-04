@@ -8,7 +8,7 @@ import {
   phoneScreenshot,
   launchRustdesk,
   kdeConnectRingDevice,
-} from '../../lib/tauri-commands';
+} from '../../lib/fleet-api';
 import {
   Layout,
   Laptop,

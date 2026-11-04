@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Dashboard } from './Dashboard';
 import { mockServerConfig, mockSystemStats } from '../../test/mock-data';
 
-vi.mock('../../lib/tauri-commands', () => ({
+vi.mock('../../lib/fleet-api', () => ({
   getGpuInfo: vi.fn(),
   getDockerContainers: vi.fn(),
   meshcentralReboot: vi.fn(),
@@ -26,7 +26,7 @@ vi.mock('../../lib/tauri-commands', () => ({
   getLocalSystemStats: vi.fn(),
 }));
 
-import { getGpuInfo, getDockerContainers, getArrayInfo, steamdeckGetBattery, steamdeckGetThermal, steamdeckGetDeskflowStatus, steamdeckGetSystemStats, steamdeckGetDisk, steamdeckGetGpu, getLocalSystemStats } from '../../lib/tauri-commands';
+import { getGpuInfo, getDockerContainers, getArrayInfo, steamdeckGetBattery, steamdeckGetThermal, steamdeckGetDeskflowStatus, steamdeckGetSystemStats, steamdeckGetDisk, steamdeckGetGpu, getLocalSystemStats } from '../../lib/fleet-api';
 const mockGetGpuInfo = vi.mocked(getGpuInfo);
 const mockGetDockerContainers = vi.mocked(getDockerContainers);
 const mockGetArrayInfo = vi.mocked(getArrayInfo);

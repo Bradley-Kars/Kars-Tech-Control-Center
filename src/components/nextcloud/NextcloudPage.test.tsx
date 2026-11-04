@@ -3,7 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { NextcloudPage } from './NextcloudPage';
 import { mockServerConfig, mockNextcloudInfo, mockNextcloudStorage, mockNextcloudUsers, mockNextcloudActivity } from '../../test/mock-data';
 
-vi.mock('../../lib/tauri-commands', () => ({
+vi.mock('../../lib/fleet-api', () => ({
   getNextcloudInfo: vi.fn(),
   getNextcloudStatus: vi.fn(),
   getNextcloudStorage: vi.fn(),
@@ -11,7 +11,7 @@ vi.mock('../../lib/tauri-commands', () => ({
   getNextcloudActivity: vi.fn(),
 }));
 
-import { getNextcloudInfo, getNextcloudStatus, getNextcloudStorage, getNextcloudUsers, getNextcloudActivity } from '../../lib/tauri-commands';
+import { getNextcloudInfo, getNextcloudStatus, getNextcloudStorage, getNextcloudUsers, getNextcloudActivity } from '../../lib/fleet-api';
 
 beforeEach(() => {
   vi.clearAllMocks();

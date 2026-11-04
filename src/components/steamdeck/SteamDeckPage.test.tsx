@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { SteamDeckPage } from './SteamDeckPage';
 
-vi.mock('../../lib/tauri-commands', () => ({
+vi.mock('../../lib/fleet-api', () => ({
   steamdeckGetSystemStats: vi.fn(),
   steamdeckGetBattery: vi.fn(),
   steamdeckGetThermal: vi.fn(),
@@ -24,7 +24,7 @@ import {
   steamdeckGetGpu,
   steamdeckGetDeskflowStatus,
   allyLaunchAgent,
-} from '../../lib/tauri-commands';
+} from '../../lib/fleet-api';
 const mockStats = vi.mocked(steamdeckGetSystemStats);
 const mockBattery = vi.mocked(steamdeckGetBattery);
 const mockThermal = vi.mocked(steamdeckGetThermal);

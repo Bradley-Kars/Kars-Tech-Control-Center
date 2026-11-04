@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { meshcentralListDevices, meshcentralGetEnrollmentInfo, meshcentralSyncFleet, meshcentralExecuteBatch, meshcentralGetTerminalUrl, meshcentralGetFileManagerUrl } from '../lib/tauri-commands';
+import { meshcentralListDevices, meshcentralGetEnrollmentInfo, meshcentralSyncFleet, meshcentralExecuteBatch, meshcentralGetTerminalUrl, meshcentralGetFileManagerUrl } from '../lib/fleet-api';
 import { useServers } from '../hooks';
 import { Card, CardSection } from '../components/ui/Card';
 import { Button, IconButton } from '../components/ui/Button';

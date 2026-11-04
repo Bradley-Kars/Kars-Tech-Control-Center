@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { Alert, AlertFilter, AlertSeverity } from '../../lib/tauri-commands';
-import { alertList, alertAcknowledge, alertAcknowledgeAll, alertDelete, alertEvaluateAutoAck } from '../../lib/tauri-commands';
+import type { Alert, AlertFilter, AlertSeverity } from '../../lib/fleet-api';
+import { alertList, alertAcknowledge, alertAcknowledgeAll, alertDelete, alertEvaluateAutoAck } from '../../lib/fleet-api';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';

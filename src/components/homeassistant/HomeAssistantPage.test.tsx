@@ -3,7 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { HomeAssistantPage } from './HomeAssistantPage';
 import { mockServerConfig, mockHomeAssistantConfig, mockHomeAssistantStates } from '../../test/mock-data';
 
-vi.mock('../../lib/tauri-commands', () => ({
+vi.mock('../../lib/fleet-api', () => ({
   getHomeAssistantStates: vi.fn(),
   getHomeAssistantConfig: vi.fn(),
   homeAssistantToggle: vi.fn(),
@@ -11,7 +11,7 @@ vi.mock('../../lib/tauri-commands', () => ({
   homeAssistantTurnOff: vi.fn(),
 }));
 
-import { getHomeAssistantStates, getHomeAssistantConfig } from '../../lib/tauri-commands';
+import { getHomeAssistantStates, getHomeAssistantConfig } from '../../lib/fleet-api';
 
 beforeEach(() => {
   vi.clearAllMocks();

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { ServerConfig, DiskInfo, ShareInfo, SmartInfo } from '../../lib/types';
-import { getDisks, getShares, getSmartData } from '../../lib/tauri-commands';
+import { getDisks, getShares, getSmartData } from '../../lib/fleet-api';
 import { useResource } from '../../hooks/useResource';
 import { pageDef } from '../../lib/serviceRegistry';
 

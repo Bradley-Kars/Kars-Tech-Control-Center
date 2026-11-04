@@ -3,12 +3,12 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { NetworkPage } from './NetworkPage';
 import { mockServerConfig } from '../../test/mock-data';
 
-vi.mock('../../lib/tauri-commands', () => ({
+vi.mock('../../lib/fleet-api', () => ({
   getNetworkInterfaces: vi.fn(),
   getTailscalePeers: vi.fn(),
 }));
 
-import { getNetworkInterfaces, getTailscalePeers } from '../../lib/tauri-commands';
+import { getNetworkInterfaces, getTailscalePeers } from '../../lib/fleet-api';
 
 beforeEach(() => {
   vi.clearAllMocks();

@@ -1,6 +1,6 @@
 export function TitleBar() {
   return (
-    <div data-tauri-drag-region className="flex items-center h-9 bg-panel border-b border-line select-none shrink-0">
+    <div className="flex items-center h-9 bg-panel border-b border-line select-none shrink-0">
       <div className="flex items-center gap-2.5 px-4">
         <div className="w-5 h-5 rounded bg-gradient-to-br from-teal to-teal-dim flex items-center justify-center">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
