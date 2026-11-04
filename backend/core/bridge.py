@@ -22,6 +22,8 @@ Scope (H2b/MC-2): every token carries scope="read" (default) or "write".
 GET/HEAD/OPTIONS require "read"; POST/PUT/PATCH/DELETE require "write".
 Read tokens are rejected with 403 on mutating routes.
 """
+from __future__ import annotations
+
 import os
 import re
 import time
