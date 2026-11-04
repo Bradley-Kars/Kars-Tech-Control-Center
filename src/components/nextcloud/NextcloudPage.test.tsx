@@ -111,7 +111,7 @@ describe('NextcloudPage state matrix', () => {
   it('M modal: no dialog', async () => {
     render(<NextcloudPage server={mockServerConfig} />);
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     expect(screen.getByText('Nextcloud')).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

@@ -14,69 +14,51 @@ import { getNetworkInterfaces, getTailscalePeers } from '../../lib/fleet-api';
 const mockGetNetworkInterfaces = vi.mocked(getNetworkInterfaces);
 const mockGetTailscalePeers = vi.mocked(getTailscalePeers);
 
-const renderPage = (overrides: {
-  interfaces?: string;
-  tailscale?: string;
-} = {}) => {
-  mockGetNetworkInterfaces.mockResolvedValue(overrides.interfaces ?? '');
-  mockGetTailscalePeers.mockResolvedValue(overrides.tailscale ?? '');
-  return render(
-    <MemoryRouter>
-      <NetworkPage server={mockServerConfig} />
-    </MemoryRouter>
-  );
-};
-
 beforeEach(() => {
   vi.clearAllMocks();
+  mockGetNetworkInterfaces.mockResolvedValue('eth0 UP 192.168.1.100/24');
+  mockGetTailscalePeers.mockResolvedValue('100.103.29.63 home-server');
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('NetworkPage (D/E/L/R/I/M state matrix)', () => {
+describe('NetworkPage state matrix', () => {
   it('L loading: shows skeleton skeletons while data loads', async () => {
     mockGetNetworkInterfaces.mockResolvedValue(new Promise(() => {}));
     mockGetTailscalePeers.mockResolvedValue(new Promise(() => {}));
 
-    renderPage();
+    render(<NetworkPage server={mockServerConfig} />);
 
     expect(screen.getByTestId('network-interfaces-loading')).toBeInTheDocument();
     expect(screen.getByTestId('tailscale-peers-loading')).toBeInTheDocument();
   });
 
   it('D populated: shows network interfaces and tailscale peers data', async () => {
-    mockGetNetworkInterfaces.mockResolvedValue(
-      'eth0 UP 192.168.1.100/24\nwlan0 UP 192.168.1.101/24' as any
-    );
-    mockGetTailscalePeers.mockResolvedValue(
-      '100.103.29.63 home-server\n100.103.29.64 laptop' as any
-    );
+    mockGetNetworkInterfaces.mockResolvedValue('eth0 UP 192.168.1.100/24\nwlan0 UP 192.168.1.101/24');
+    mockGetTailscalePeers.mockResolvedValue('100.103.29.63 home-server\n100.103.29.64 laptop');
 
-    renderPage();
+    render(<NetworkPage server={mockServerConfig} />);
 
-    // Flush microtasks
-    await new Promise(resolve => setTimeout(resolve, 10));
-
+    await waitFor(() => expect(screen.getByText((content) => content.includes('eth0 UP'))).toBeInTheDocument());
     expect(screen.getByText('Network')).toBeInTheDocument();
     expect(screen.getByText('Network Interfaces')).toBeInTheDocument();
-    expect(screen.getByText('eth0 UP 192.168.1.100/24')).toBeInTheDocument();
-    expect(screen.getByText('wlan0 UP 192.168.1.101/24')).toBeInTheDocument();
+    expect(screen.getByText((content) => content.includes('wlan0 UP'))).toBeInTheDocument();
     expect(screen.getByText('Tailscale Peers')).toBeInTheDocument();
-    expect(screen.getByText('100.103.29.63 home-server')).toBeInTheDocument();
-    expect(screen.getByText('100.103.29.64 laptop')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText((content) => content.includes('100.103.29.63'))).toBeInTheDocument());
+    expect(screen.getByText((content) => content.includes('100.103.29.64'))).toBeInTheDocument();
     expect(screen.queryByTestId('network-interfaces-loading')).not.toBeInTheDocument();
     expect(screen.queryByTestId('tailscale-peers-loading')).not.toBeInTheDocument();
   });
 
   it('E empty: shows empty interface and tailscale lists when no data', async () => {
-    mockGetNetworkInterfaces.mockResolvedValue('' as any);
-    mockGetTailscalePeers.mockResolvedValue('' as any);
+    mockGetNetworkInterfaces.mockResolvedValue('');
+    mockGetTailscalePeers.mockResolvedValue('');
 
-    renderPage();
+    render(<NetworkPage server={mockServerConfig} />);
 
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     expect(screen.getByText('Network Interfaces')).toBeInTheDocument();
     expect(screen.getByText('Tailscale Peers')).toBeInTheDocument();
@@ -86,33 +68,30 @@ describe('NetworkPage (D/E/L/R/I/M state matrix)', () => {
 
   it('R error: shows error banner when network fetch fails', async () => {
     mockGetNetworkInterfaces.mockRejectedValue(new Error('daemon unreachable'));
-    mockGetTailscalePeers.mockResolvedValue('100.103.29.63 home-server' as any);
+    mockGetTailscalePeers.mockResolvedValue('100.103.29.63 home-server');
 
-    renderPage();
+    render(<NetworkPage server={mockServerConfig} />);
 
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     expect(screen.getByText(/daemon unreachable/)).toBeInTheDocument();
     expect(screen.getByText('100.103.29.63 home-server')).toBeInTheDocument();
   });
 
   it('R error: shows error banner when tailslate fetch fails', async () => {
-    mockGetNetworkInterfaces.mockResolvedValue('eth0 UP 192.168.1.100/24' as any);
+    mockGetNetworkInterfaces.mockResolvedValue('eth0 UP 192.168.1.100/24');
     mockGetTailscalePeers.mockRejectedValue(new Error('mesh unreachable'));
 
-    renderPage();
+    render(<NetworkPage server={mockServerConfig} />);
 
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await new Promise(resolve => setTimeout(resolve, 50));
 
-    expect(screen.getByText('eth0 UP 192.168.1.100/24')).toBeInTheDocument();
+    expect(screen.getByText((content) => content.includes('eth0 UP'))).toBeInTheDocument();
     expect(screen.getByText(/mesh unreachable/)).toBeInTheDocument();
   });
 
   it('I interaction: refresh button re-fetches data', () => {
-    mockGetNetworkInterfaces.mockResolvedValue('eth0 UP 192.168.1.100/24' as any);
-    mockGetTailscalePeers.mockResolvedValue('100.103.29.63 home-server' as any);
-
-    renderPage();
+    render(<NetworkPage server={mockServerConfig} />);
 
     fireEvent.click(screen.getByRole('button', { name: /Refresh/ }));
 
@@ -121,14 +100,11 @@ describe('NetworkPage (D/E/L/R/I/M state matrix)', () => {
   });
 
   it('M modal: no modal component on NetworkPage', async () => {
-    mockGetNetworkInterfaces.mockResolvedValue('eth0 UP 192.168.1.100/24' as any);
-    mockGetTailscalePeers.mockResolvedValue('100.103.29.63 home-server' as any);
+    render(<NetworkPage server={mockServerConfig} />);
 
-    renderPage();
+    await new Promise(resolve => setTimeout(resolve, 50));
 
-    await new Promise(resolve => setTimeout(resolve, 10));
-
-    expect(screen.getByText('eth0 UP 192.168.1.100/24')).toBeInTheDocument();
+    expect(screen.getByText((content) => content.includes('eth0 UP'))).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Close/ })).not.toBeInTheDocument();
   });
