@@ -38,8 +38,24 @@ interface TicketRow {
   total: number;
   invoice_number: string | null;
   no_charge: boolean;
-  created_at?: string;
-  updated_at?: string;
+  due_date?: string | null;
+  updated_at?: string | null;
+}
+
+/** Ascending date sort; nulls sort last. Stable for equal keys. */
+function compareDate(a: string | null, b: string | null): number {
+  if (a === null && b === null) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+  return a.localeCompare(b);
+}
+
+/** Descending date sort (newest first); nulls sort last. Stable for equal keys. */
+function compareDateDesc(a: string | null, b: string | null): number {
+  if (a === null && b === null) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+  return b.localeCompare(a);
 }
 
 interface TicketOverview {
@@ -188,10 +204,11 @@ export function TicketingPage() {
         return pa - pb;
       });
     } else if (sortBy === 'due') {
-      // No due-date field in the data model; sort by updated_at as a proxy.
-      result = result.sort((a, b) => (a.updated_at ?? '').localeCompare(b.updated_at ?? ''));
+      // Earliest due date first; undated tickets sort last.
+      result = result.sort((a, b) => compareDate(a.due_date ?? null, b.due_date ?? null));
     } else if (sortBy === 'updated') {
-      result = result.sort((a, b) => (a.updated_at ?? '').localeCompare(b.updated_at ?? ''));
+      // Most recently updated first; never-updated tickets sort last.
+      result = result.sort((a, b) => compareDateDesc(a.updated_at ?? null, b.updated_at ?? null));
     }
 
     return result;
@@ -221,6 +238,8 @@ export function TicketingPage() {
               status: t.status,
               client_id: t.client_name ?? '',
               priority: t.priority ?? 'medium',
+              due_date: t.due_date ?? null,
+              updated_at: t.updated_at ?? null,
               hours: 0,
               total: 0,
               invoice_number: null,

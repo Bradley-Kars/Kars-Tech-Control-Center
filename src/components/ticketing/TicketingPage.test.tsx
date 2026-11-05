@@ -351,4 +351,50 @@ describe('TicketingPage (with mocked bridge API)', () => {
     fireEvent.change(sortSelect, { target: { value: 'due' } });
     await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
   });
+
+  it('sorts by due date, earliest first with undated last', async () => {
+    const dated = [
+      { id: 'TKT-2026-001', title: 'Due later', status: 'open', client_name: 'CUS-000001', priority: 'low', due_date: '2026-11-10', updated_at: '2026-11-01T00:00:00Z' },
+      { id: 'TKT-2026-002', title: 'Due first', status: 'open', client_name: 'CUS-000001', priority: 'low', due_date: '2026-11-05', updated_at: '2026-11-01T00:00:00Z' },
+      { id: 'TKT-2026-003', title: 'No due date', status: 'open', client_name: 'CUS-000001', priority: 'low', due_date: null, updated_at: '2026-11-01T00:00:00Z' },
+      { id: 'TKT-2026-004', title: 'Due middle', status: 'open', client_name: 'CUS-000001', priority: 'low', due_date: '2026-11-08', updated_at: '2026-11-01T00:00:00Z' },
+    ];
+    mockListTickets.mockResolvedValue({ count: 4, tickets: dated });
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Due first')).toBeInTheDocument());
+    const sortSelect = screen.getAllByRole('combobox')[0];
+    fireEvent.change(sortSelect, { target: { value: 'due' } });
+    await waitFor(() => expect(screen.getByText('Due first')).toBeInTheDocument());
+    const table = screen.getByTestId('ticket-table');
+    const rows = Array.from(table.querySelectorAll('[data-testid^="ticket-row-"]'));
+    expect(rows.map((r) => r.getAttribute('data-testid'))).toEqual([
+      'ticket-row-TKT-2026-002', // 2026-11-05
+      'ticket-row-TKT-2026-004', // 2026-11-08
+      'ticket-row-TKT-2026-001', // 2026-11-10
+      'ticket-row-TKT-2026-003', // no due date, last
+    ]);
+  });
+
+  it('sorts by updated date, newest first with undated last', async () => {
+    const stamped = [
+      { id: 'TKT-2026-001', title: 'Stale', status: 'open', client_name: 'CUS-000001', priority: 'low', due_date: null, updated_at: '2026-11-01T00:00:00Z' },
+      { id: 'TKT-2026-002', title: 'Fresh', status: 'open', client_name: 'CUS-000001', priority: 'low', due_date: null, updated_at: '2026-11-03T00:00:00Z' },
+      { id: 'TKT-2026-003', title: 'Never updated', status: 'open', client_name: 'CUS-000001', priority: 'low', due_date: null, updated_at: null },
+      { id: 'TKT-2026-004', title: 'Mid', status: 'open', client_name: 'CUS-000001', priority: 'low', due_date: null, updated_at: '2026-11-02T00:00:00Z' },
+    ];
+    mockListTickets.mockResolvedValue({ count: 4, tickets: stamped });
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Fresh')).toBeInTheDocument());
+    const sortSelect = screen.getAllByRole('combobox')[0];
+    fireEvent.change(sortSelect, { target: { value: 'updated' } });
+    await waitFor(() => expect(screen.getByText('Fresh')).toBeInTheDocument());
+    const table = screen.getByTestId('ticket-table');
+    const rows = Array.from(table.querySelectorAll('[data-testid^="ticket-row-"]'));
+    expect(rows.map((r) => r.getAttribute('data-testid'))).toEqual([
+      'ticket-row-TKT-2026-002', // 2026-11-03
+      'ticket-row-TKT-2026-004', // 2026-11-02
+      'ticket-row-TKT-2026-001', // 2026-11-01
+      'ticket-row-TKT-2026-003', // never updated, last
+    ]);
+  });
 });

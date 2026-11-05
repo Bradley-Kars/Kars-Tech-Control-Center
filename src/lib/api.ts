@@ -114,6 +114,8 @@ export interface TicketSummary {
   status: string;
   client_name?: string;
   priority?: string;
+  due_date?: string;
+  updated_at?: string;
 }
 
 export interface TicketsResponse {
