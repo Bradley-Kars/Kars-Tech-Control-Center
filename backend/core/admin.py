@@ -1,14 +1,19 @@
-"""backend/core/admin.py — admin identity enforcement (T2).
+"""backend/core/admin.py — admin identity enforcement (C3).
 
-Until logins exist, admits the identities listed in config
-(default: every authenticated tailnet identity).
+Until logins exist, admits ONLY the identities listed in config, in this
+order (first wins):
 
-Config: ~/.config/master-control/admins.json (overridable via KTS_ADMINS_FILE)
-  - a JSON list of identity strings (token labels or tailscale logins), or
-  - an object {"identities": [...]}
+  1. KTS_ADMIN_IDENTITIES env var — comma-separated identity list
+     (present-but-empty is an explicit empty list -> deny all).
+  2. KTS_ADMINS_FILE -> admins.json — a JSON list of identity strings, or
+     an object {"identities": [...]}.
+  3. admin_identities key in backend/config/local.yaml.
 
-An empty or missing list means every authenticated identity is admitted —
-the "all tailnet identities" default until logins exist.
+Nothing configured -> empty list -> DENY ALL.  The old "every authenticated
+tailnet identity is an admin" default is gone: C3 is default-deny.
+
+The real ~/.config/master-control/admins.json is never read by tests —
+they point KTS_ADMINS_FILE / KTS_ADMIN_CONFIG at temp files.
 """
 
 from __future__ import annotations
@@ -17,6 +22,8 @@ import json
 import os
 from pathlib import Path
 from typing import Optional
+
+import yaml
 
 from fastapi import HTTPException, Request, status
 
@@ -29,24 +36,63 @@ def get_admins_path() -> Path:
     return Path.home() / ".config" / "master-control" / "admins.json"
 
 
-def load_admin_identities(path: Optional[Path] = None) -> list[str]:
-    """Return the list of configured admin identities.
+def get_admin_config_path() -> Path:
+    """Resolve the local.yaml path from KTS_ADMIN_CONFIG or the default."""
+    env = os.environ.get("KTS_ADMIN_CONFIG")
+    if env:
+        return Path(env)
+    return Path(__file__).resolve().parent.parent / "config" / "local.yaml"
 
-    Missing/unreadable file -> empty list (everyone admitted).
-    """
-    if path is None:
-        path = get_admins_path()
+
+def _env_admin_identities() -> Optional[list[str]]:
+    env = os.environ.get("KTS_ADMIN_IDENTITIES")
+    if env is None:
+        return None
+    return [ident.strip() for ident in env.split(",") if ident.strip()]
+
+
+def _yaml_admin_identities(path: Path) -> list[str]:
     if not path.exists():
         return []
     try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return []
+    if not isinstance(data, dict):
+        return []
+    identities = data.get("admin_identities")
+    if not isinstance(identities, list):
+        return []
+    return [str(x) for x in identities]
+
+
+def load_admin_identities(path: Optional[Path] = None) -> list[str]:
+    """Return the list of configured admin identities.
+
+    Sources, first wins:
+      1. KTS_ADMIN_IDENTITIES env var (comma-separated).
+      2. KTS_ADMINS_FILE -> admins.json.
+      3. backend/config/local.yaml key admin_identities.
+
+    Nothing configured -> empty list -> every authenticated identity is
+    denied (C3 default-deny).
+    """
+    env_identities = _env_admin_identities()
+    if env_identities is not None:
+        return env_identities
+    if path is None:
+        path = get_admins_path()
+    if not path.exists():
+        return _yaml_admin_identities(get_admin_config_path())
+    try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return []
+        return _yaml_admin_identities(get_admin_config_path())
     if isinstance(data, list):
         return [str(x) for x in data]
     if isinstance(data, dict) and isinstance(data.get("identities"), list):
         return [str(x) for x in data["identities"]]
-    return []
+    return _yaml_admin_identities(get_admin_config_path())
 
 
 def is_admin(
@@ -54,16 +100,14 @@ def is_admin(
 ) -> bool:
     """True if `identity` is an admin.
 
-    With no configured identities (default), every authenticated identity
-    is admitted — the "all tailnet identities" default until logins exist.
+    C3 default-deny: with no configured identities, nobody is admitted —
+    the old "all authenticated identities" default is gone.
     """
     if identity is None:
         return False
     if admin_identities is None:
         admin_identities = load_admin_identities()
-    if not admin_identities:
-        return True
-    return identity in admin_identities
+    return bool(admin_identities) and identity in admin_identities
 
 
 def _request_identity(request: Request) -> Optional[str]:
@@ -93,6 +137,7 @@ def require_admin(request: Request) -> str:
 
 __all__ = [
     "get_admins_path",
+    "get_admin_config_path",
     "load_admin_identities",
     "is_admin",
     "require_admin",

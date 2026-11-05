@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AppProvider } from '../context/AppContext';
 import { ChatPage } from './ChatPage';
@@ -73,7 +73,7 @@ function originWs(): string {
   return (window.location.origin as string).replace(/^http/, 'ws');
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   created.length = 0;
   latest = null;
   vi.useFakeTimers();
@@ -83,9 +83,19 @@ beforeEach(() => {
     unobserve: vi.fn(),
     disconnect: vi.fn(),
   }));
+  // C3: EmbeddedTerminal connects with a one-time ticket from
+  // POST /api/terminal/ticket.
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ ticket: 'tkt-test', expires_in: 300 }),
+    } as unknown as Response)
+  );
 });
 
-afterEach(() => {
+afterEach(async () => {
   vi.useRealTimers();
   (globalThis as any).WebSocket = origWebSocket;
   (globalThis as any).ResizeObserver = origResizeObserver;
@@ -95,13 +105,21 @@ function closeWith(code: number): void {
   latest!.onclose!({ code, wasClean: false, reason: '' } as unknown as CloseEvent);
 }
 
+// C3: EmbeddedTerminal connects with a one-time ticket from POST
+// /api/terminal/ticket; flush that promise before asserting on the socket.
+async function flushTicket(): Promise<void> {
+  await act(async () => {
+    await Promise.resolve();
+  });
+}
+
 const localStorageStore: Record<string, string> = {};
 Object.defineProperty(window, 'localStorage', {
   value: {
     getItem: (k: string) => localStorageStore[k] ?? null,
     setItem: (k: string, v: string) => { localStorageStore[k] = v; },
     removeItem: (k: string) => { delete localStorageStore[k]; },
-    clear: () => { Object.keys(localStorageStore).forEach((k) => delete localStorageStore[k]); },
+    clear: async () => { Object.keys(localStorageStore).forEach((k) => delete localStorageStore[k]); },
   },
   writable: true,
 });
@@ -114,17 +132,19 @@ const wrap = () => (
   </AppProvider>
 );
 
-describe('ChatPage terminal state matrix (T5)', () => {
-  it('connecting: renders the page shell and opens the opencode profile websocket', () => {
+describe('ChatPage terminal state matrix (T5)', async () => {
+  it('connecting: renders the page shell and opens the opencode profile websocket', async () => {
     render(wrap());
+    await flushTicket();
     expect(screen.getByTestId('chat-page')).toBeInTheDocument();
     expect(created.length).toBe(1);
-    expect(created[0]!.url).toBe(`${originWs()}/ws/pty/opencode?token=`);
+    expect(created[0]!.url).toBe(`${originWs()}/ws/pty/opencode?ticket=tkt-test`);
     expect(created[0]!.readyState).toBe(FakeWebSocket.CONNECTING);
   });
 
-  it('connected: once the socket opens the terminal is initialised', () => {
+  it('connected: once the socket opens the terminal is initialised', async () => {
     render(wrap());
+    await flushTicket();
     const ws = created[0]!;
     ws.setOpen();
     expect(ws.readyState).toBe(FakeWebSocket.OPEN);
@@ -132,8 +152,9 @@ describe('ChatPage terminal state matrix (T5)', () => {
     expect(term.open).toHaveBeenCalled();
   });
 
-  it('disconnected: an abnormal close ends the current session', () => {
+  it('disconnected: an abnormal close ends the current session', async () => {
     render(wrap());
+    await flushTicket();
     const ws = created[0]!;
     ws.setOpen();
     closeWith(1006); // abnormal closure → scheduleReconnect with backoff
@@ -141,8 +162,9 @@ describe('ChatPage terminal state matrix (T5)', () => {
     expect(created.length).toBe(2); // reconnect attempted after disconnect
   });
 
-  it('denied: a 4403 close does not reconnect (authentication required)', () => {
+  it('denied: a 4403 close does not reconnect (authentication required)', async () => {
     render(wrap());
+    await flushTicket();
     closeWith(4403);
     vi.advanceTimersByTime(60_000);
     expect(created.length).toBe(1); // no reconnect after auth denial

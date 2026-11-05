@@ -4,7 +4,8 @@ Real pseudo-terminal backend for the web terminal (Phase 3).
 
 Profiles come from config:
   - default profile "opencode" (argv ["opencode"], cwd configurable via
-    KTS_TERM_OPencode_CWD, env inherited from the backend process)
+    KTS_TERM_OPencode_CWD, env inherited from the backend process through the
+    child allowlist below)
   - "ssh:<server_id>" derived from servers.json — one profile per registered
     server, running ssh to that host's hostname.
 
@@ -15,7 +16,7 @@ Supports:
   - client→server input messages (typed into the pty)
   - client→server resize messages (TIOCSWINSZ)
   - server→client output messages (pty output)
-  - clean child cleanup (process killed, fds closed on disconnect)
+  - clean child cleanup (process killed, fds closed) on disconnect
 
 Message protocol (JSON text frames):
   client → server:
@@ -26,8 +27,20 @@ Message protocol (JSON text frames):
     {"type": "exit",   "code": <int>}
     {"type": "error",  "message": "<string>"}
 
-Auth: a valid X-API-Token (as ?token= query param) is required.  The token is
-verified against the TokenTable; read scope is sufficient to connect.
+Auth (C3): the old ?token= query mechanism is NOT accepted.  A connection
+is authenticated by EITHER:
+  - a short-lived one-time ticket (?ticket=) minted by POST
+    /api/terminal/ticket and bound to an authenticated identity, or
+  - the X-API-Token identity header.
+Every connection also requires an admin identity (core.admin.is_admin) —
+default-deny: with no admin identities configured, nobody is admitted.
+
+Query strings are never logged: only the ?ticket parameter is parsed, and
+nothing in this module logs the websocket URL or its query string.
+
+The child process environment is stripped to a small allowlist
+(PATH, HOME, TERM, LANG plus the profile's own env) so no secrets reach
+the shell.
 """
 
 from __future__ import annotations
@@ -36,22 +49,72 @@ import asyncio
 import fcntl
 import os
 import pty
+import secrets
 import struct
 import subprocess
 import termios
+import time
 from dataclasses import dataclass, field
 
-from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from starlette.websockets import WebSocketState
 
 from core.admin import is_admin
-from core.auth import TokenTable
+from core.auth import HEADER, TokenTable
 from fleet.config import ServerConfig, load_servers
 
 
 IDLE_TIMEOUT_SEC = 300  # seconds of inactivity before the websocket is closed
 DEFAULT_PROFILE_NAME = "opencode"
 DEFAULT_PROFILE_ARGV = ["opencode"]
+
+# Child-process environment allowlist: only these variables are copied from
+# the backend process into the pty child, plus the profile's own env.  Tokens,
+# keys, passwords and every other secret stay out of the child environment.
+CHILD_ENV_ALLOWLIST = ("PATH", "HOME", "TERM", "LANG")
+
+# One-time terminal tickets: ticket -> {"label": str, "expires_at": float}.
+# Minted by POST /api/terminal/ticket (bridge.py), consumed once by the
+# /ws/pty/{profile} endpoint.  Short TTL: a ticket unused for 5 minutes is
+# refused.
+TICKET_TTL_SEC = 300
+_TICKETS: dict[str, dict] = {}
+
+
+def mint_ticket(label: str) -> str:
+    """Mint a short-lived one-time ticket bound to `label`."""
+    ticket = "tkt_" + secrets.token_urlsafe(18)
+    _TICKETS[ticket] = {"label": label, "expires_at": time.time() + TICKET_TTL_SEC}
+    return ticket
+
+
+def consume_ticket(ticket: str) -> str | None:
+    """Consume a one-time ticket, returning the bound label or None.
+
+    Unknown, already-consumed, or expired tickets return None.
+    """
+    rec = _TICKETS.pop(ticket, None)
+    if rec is None:
+        return None
+    if time.time() > rec["expires_at"]:
+        return None
+    return rec["label"]
+
+
+def _child_env(profile: TerminalProfile) -> dict[str, str]:
+    """Build the child process environment: allowlist plus profile env.
+
+    Only PATH, HOME, TERM, LANG are copied from the backend process; the
+    profile's own env is added on top.  Nothing else (no tokens, keys,
+    passwords) reaches the child.
+    """
+    env = {
+        key: value
+        for key, value in os.environ.items()
+        if key in CHILD_ENV_ALLOWLIST and value
+    }
+    env.update(profile.env)
+    return env
 
 
 @dataclass
@@ -126,8 +189,7 @@ class PtySession:
         """Fork a child process attached to a new pty pair."""
         master_fd, slave_fd = pty.openpty()
         try:
-            env = dict(os.environ)
-            env.update(self.profile.env)
+            env = _child_env(self.profile)
             self.proc = subprocess.Popen(
                 self.profile.argv,
                 stdin=slave_fd,
@@ -253,22 +315,35 @@ def create_router(
     async def pty_websocket(
         profile_name: str,
         websocket: WebSocket,
-        token: str | None = Query(default=None),
     ) -> None:
         """WebSocket endpoint: real pty for the given profile.
 
-        Auth via ?token= query param (websockets cannot easily send custom
-        headers).  Unknown profile -> close 4401.  Bad/missing token -> close
-        4403.
+        Auth: a one-time ticket (?ticket=) or the X-API-Token identity
+        header.  The old ?token= query param is rejected outright.  Then
+        enforce admin: every /ws/pty route requires an admin identity (C3
+        default-deny).  Unknown profile -> close.
         """
-        # Authenticate before accepting: an unauthenticated connection must
-        # never be upgraded to an open websocket.  Then enforce admin:
-        # every /ws/pty route requires an admin identity (T2).
-        rec = token_table.verify(token)
-        if rec is None:
+        # The ?token= query mechanism is not accepted anymore.
+        if websocket.query_params.get("token") is not None:
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
-        if not is_admin(rec["label"]):
+
+        ticket = websocket.query_params.get("ticket")
+        if ticket is not None:
+            label = consume_ticket(ticket)
+            if label is None:
+                await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+                return
+            identity = label
+        else:
+            presented = websocket.headers.get(HEADER)
+            rec = token_table.verify(presented) if presented else None
+            if rec is None:
+                await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+                return
+            identity = rec["label"]
+
+        if not is_admin(identity):
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
 
@@ -333,5 +408,9 @@ __all__ = [
     "TerminalProfile",
     "PtySession",
     "create_router",
+    "mint_ticket",
+    "consume_ticket",
+    "_child_env",
     "IDLE_TIMEOUT_SEC",
+    "TICKET_TTL_SEC",
 ]

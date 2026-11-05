@@ -70,6 +70,8 @@ def _mock_client(monkeypatch):
 def app_client(tmp_path, monkeypatch):
     servers_file = tmp_path / "servers.json"
     monkeypatch.setenv("KTS_SERVERS_FILE", str(servers_file))
+    # C3 default-deny: the minted tokens must be listed admin identities.
+    monkeypatch.setenv("KTS_ADMIN_IDENTITIES", "fleet-client")
     table_dir = tmp_path / "auth"
     table = TokenTable(table_dir / "token-table.json")
     _, read_secret = table.mint("fleet-client", actor_id="fleet-actor", scope="read")

@@ -1,9 +1,15 @@
-"""backend/core/admin.py tests — require_admin dependency (T2).
+"""backend/core/admin.py tests — require_admin dependency (C3).
 
-Fixture-only: admin identities live in a temp file via KTS_ADMINS_FILE — the
-real ~/.config/master-control/admins.json is never touched.
+Admin identity sources (first wins):
+  1. KTS_ADMIN_IDENTITIES env var — comma-separated identity list
+  2. KTS_ADMINS_FILE -> admins.json (list or {"identities": [...]})
+  3. backend/config/local.yaml key admin_identities (list)
 
-Placeholder values only — no real hostnames, emails, or tokens.
+Nothing configured -> empty list -> DENY ALL (C3 default-deny).
+The real ~/.config/master-control/admins.json is never touched.
+
+Fixture-only: temp files via KTS_ADMINS_FILE / KTS_ADMIN_CONFIG — no real
+hostnames, emails, or tokens.
 """
 
 import json
@@ -19,10 +25,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 from core.admin import is_admin, load_admin_identities, require_admin  # noqa: E402
 
 
-def _write_admins(tmp_path, identities):
-    p = tmp_path / "admins.json"
-    p.write_text(json.dumps(identities))
-    return p
+def _write(path: Path, data) -> Path:
+    path.write_text(data if isinstance(data, str) else json.dumps(data))
+    return path
 
 
 # ---------------------------------------------------------------------------
@@ -30,29 +35,56 @@ def _write_admins(tmp_path, identities):
 # ---------------------------------------------------------------------------
 
 
-def test_load_admin_identities_missing_file(tmp_path, monkeypatch):
-    missing = tmp_path / "does-not-exist.json"
-    monkeypatch.setenv("KTS_ADMINS_FILE", str(missing))
+def test_load_admin_identities_from_env(tmp_path, monkeypatch):
+    monkeypatch.setenv("KTS_ADMIN_IDENTITIES", "alice, bob ,carol")
+    assert load_admin_identities() == ["alice", "bob", "carol"]
+
+
+def test_load_admin_identities_env_empty_denies_all(tmp_path, monkeypatch):
+    monkeypatch.setenv("KTS_ADMIN_IDENTITIES", "")
     assert load_admin_identities() == []
 
 
-def test_load_admin_identities_list_format(tmp_path, monkeypatch):
-    p = _write_admins(tmp_path, ["alice", "bob"])
-    monkeypatch.setenv("KTS_ADMINS_FILE", str(p))
+def test_load_admin_identities_env_wins_over_file(tmp_path, monkeypatch):
+    admins = tmp_path / "admins.json"
+    _write(admins, ["from-file"])
+    monkeypatch.setenv("KTS_ADMINS_FILE", str(admins))
+    monkeypatch.setenv("KTS_ADMIN_IDENTITIES", "from-env")
+    assert load_admin_identities() == ["from-env"]
+
+
+def test_load_admin_identities_from_admins_file(tmp_path, monkeypatch):
+    admins = tmp_path / "admins.json"
+    _write(admins, ["alice", "bob"])
+    monkeypatch.setenv("KTS_ADMINS_FILE", str(admins))
     assert load_admin_identities() == ["alice", "bob"]
 
 
-def test_load_admin_identities_object_format(tmp_path, monkeypatch):
-    p = tmp_path / "admins.json"
-    p.write_text(json.dumps({"identities": ["alice", "bob"]}))
-    monkeypatch.setenv("KTS_ADMINS_FILE", str(p))
+def test_load_admin_identities_from_admins_file_object(tmp_path, monkeypatch):
+    admins = tmp_path / "admins.json"
+    _write(admins, {"identities": ["alice"]})
+    monkeypatch.setenv("KTS_ADMINS_FILE", str(admins))
+    assert load_admin_identities() == ["alice"]
+
+
+def test_load_admin_identities_from_local_yaml(tmp_path, monkeypatch):
+    cfg = tmp_path / "local.yaml"
+    cfg.write_text("admin_identities:\n  - alice\n  - bob\n")
+    monkeypatch.setenv("KTS_ADMIN_CONFIG", str(cfg))
     assert load_admin_identities() == ["alice", "bob"]
 
 
-def test_load_admin_identities_malformed(tmp_path, monkeypatch):
-    p = tmp_path / "admins.json"
-    p.write_text("not json {")
-    monkeypatch.setenv("KTS_ADMINS_FILE", str(p))
+def test_load_admin_identities_local_yaml_missing_key(tmp_path, monkeypatch):
+    cfg = tmp_path / "local.yaml"
+    cfg.write_text("other_section: true\n")
+    monkeypatch.setenv("KTS_ADMIN_CONFIG", str(cfg))
+    assert load_admin_identities() == []
+
+
+def test_load_admin_identities_nothing_configured(tmp_path, monkeypatch):
+    monkeypatch.delenv("KTS_ADMIN_IDENTITIES", raising=False)
+    monkeypatch.delenv("KTS_ADMINS_FILE", raising=False)
+    monkeypatch.delenv("KTS_ADMIN_CONFIG", raising=False)
     assert load_admin_identities() == []
 
 
@@ -61,32 +93,27 @@ def test_load_admin_identities_malformed(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_empty_config_admits_any_identity(tmp_path, monkeypatch):
-    """Default (no admins configured): every authenticated identity is admin."""
-    p = _write_admins(tmp_path, [])
-    monkeypatch.setenv("KTS_ADMINS_FILE", str(p))
-    assert is_admin("anyone-at-all") is True
-    assert is_admin("fleet-client") is True
-
-
-def test_none_identity_denied(tmp_path, monkeypatch):
-    p = _write_admins(tmp_path, [])
-    monkeypatch.setenv("KTS_ADMINS_FILE", str(p))
+def test_is_admin_none_denied(tmp_path, monkeypatch):
+    monkeypatch.setenv("KTS_ADMIN_IDENTITIES", "alice")
     assert is_admin(None) is False
 
 
-def test_listed_identities_only(tmp_path, monkeypatch):
-    p = _write_admins(tmp_path, ["alice", "bob"])
-    monkeypatch.setenv("KTS_ADMINS_FILE", str(p))
+def test_is_admin_nothing_configured_denies_everyone(tmp_path, monkeypatch):
+    monkeypatch.delenv("KTS_ADMIN_IDENTITIES", raising=False)
+    assert is_admin("whoever") is False
+
+
+def test_is_admin_listed_only(tmp_path, monkeypatch):
+    monkeypatch.setenv("KTS_ADMIN_IDENTITIES", "alice,bob")
     assert is_admin("alice") is True
     assert is_admin("bob") is True
     assert is_admin("carol") is False
 
 
-def test_injected_path(tmp_path):
-    """load_admin_identities accepts an explicit path (no env var needed)."""
-    p = _write_admins(tmp_path, ["injected"])
-    assert load_admin_identities(path=p) == ["injected"]
+def test_is_admin_explicit_list_overrides_env(tmp_path, monkeypatch):
+    monkeypatch.setenv("KTS_ADMIN_IDENTITIES", "env-admin")
+    assert is_admin("someone", ["someone"]) is True
+    assert is_admin("env-admin", ["someone"]) is False
 
 
 # ---------------------------------------------------------------------------
@@ -99,28 +126,27 @@ def _fake_request(actor_name):
 
 
 def test_require_admin_allows_admin(tmp_path, monkeypatch):
-    p = _write_admins(tmp_path, ["alice"])
-    monkeypatch.setenv("KTS_ADMINS_FILE", str(p))
+    monkeypatch.setenv("KTS_ADMIN_IDENTITIES", "alice")
     assert require_admin(_fake_request("alice")) == "alice"
 
 
 def test_require_admin_denies_non_admin(tmp_path, monkeypatch):
-    p = _write_admins(tmp_path, ["alice"])
-    monkeypatch.setenv("KTS_ADMINS_FILE", str(p))
+    monkeypatch.setenv("KTS_ADMIN_IDENTITIES", "alice")
     with pytest.raises(Exception) as exc:
         require_admin(_fake_request("carol"))
     assert exc.value.status_code == 403
 
 
-def test_require_admin_default_admits_all(tmp_path, monkeypatch):
-    p = _write_admins(tmp_path, [])
-    monkeypatch.setenv("KTS_ADMINS_FILE", str(p))
-    assert require_admin(_fake_request("whoever")) == "whoever"
+def test_require_admin_default_denies_all(tmp_path, monkeypatch):
+    """C3 default-deny: no admin identities configured -> nobody admitted."""
+    monkeypatch.delenv("KTS_ADMIN_IDENTITIES", raising=False)
+    with pytest.raises(Exception) as exc:
+        require_admin(_fake_request("whoever"))
+    assert exc.value.status_code == 403
 
 
 def test_require_admin_denies_none(tmp_path, monkeypatch):
-    p = _write_admins(tmp_path, [])
-    monkeypatch.setenv("KTS_ADMINS_FILE", str(p))
+    monkeypatch.setenv("KTS_ADMIN_IDENTITIES", "alice")
     with pytest.raises(Exception) as exc:
         require_admin(_fake_request(None))
     assert exc.value.status_code == 403

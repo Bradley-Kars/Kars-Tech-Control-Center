@@ -1493,9 +1493,22 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
     # --- Phase 3: websocket PTY terminal ---
     # /ws/pty/{profile_name} — real pty per profile ("opencode" default,
     # "ssh:<server_id>" per registered server). Auth is handled inside the
-    # endpoint (?token= query param) because websockets bypass the /api
-    # middleware.
+    # endpoint (ticket or identity header) because websockets bypass the /api
+    # middleware; ?token= is not accepted (C3).
     app.include_router(create_router(table))
+
+    # POST /api/terminal/ticket — mint a short-lived one-time ticket bound to
+    # the authenticated identity, to be used as ?ticket= on /ws/pty/{profile}.
+    # Requires scope=write (enforced by the require_token middleware).  The
+    # ticket is consumed once by the websocket endpoint, which still applies
+    # its own admin check (C3 default-deny).
+    @app.post("/api/terminal/ticket")
+    async def terminal_ticket(request: Request) -> dict[str, object]:
+        from fleet.terminal import TICKET_TTL_SEC, mint_ticket
+
+        identity = request.state.actor_name or request.state.label or "unknown"
+        ticket = mint_ticket(identity)
+        return {"ticket": ticket, "expires_in": TICKET_TTL_SEC}
 
     # TrustedHostMiddleware runs outermost (added last), so a forged Host
     # header is rejected with 400 before authentication runs (W5.3).

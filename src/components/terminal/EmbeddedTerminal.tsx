@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
-import { getAuthToken } from '../../lib/fleet-api';
+import { terminalTicket } from '../../lib/fleet-api';
 
 interface EmbeddedTerminalProps {
   /** Named PTY profile (e.g. "opencode"). Mutually exclusive with serverId. */
@@ -22,12 +22,13 @@ function ptyPath(profile?: string, serverId?: string): string {
   return `/ws/pty/ssh/${encodeURIComponent(serverId ?? '')}`;
 }
 
-/** Same-origin websocket URL for the /ws/pty/{profile} endpoint (Phase 3). */
-function terminalUrl(path: string): string {
+/** Same-origin websocket URL for the /ws/pty/{profile} endpoint (Phase 3).
+ *  C3: auth is a one-time ticket (?ticket=), never ?token=. */
+function terminalUrl(path: string, ticket?: string): string {
   const base = (import.meta.env.VITE_API_BASE ?? window.location.origin)
     .replace(/\/$/, '')
     .replace(/^http/, 'ws');
-  return `${base}${path}?token=${encodeURIComponent(getAuthToken())}`;
+  return ticket ? `${base}${path}?ticket=${encodeURIComponent(ticket)}` : `${base}${path}`;
 }
 
 /**
@@ -49,6 +50,19 @@ export function EmbeddedTerminal({ profile, serverId, height = 460 }: EmbeddedTe
   const backoffRef = useRef(BACKOFF_BASE_MS);
   const disposedRef = useRef(false);
   const connectRef = useRef<(() => void) | null>(null);
+  const [ticket, setTicket] = useState<string | null>(null);
+
+  // C3: mint a one-time ticket for the websocket; the old ?token= auth is
+  // rejected by the backend.  The terminal connects once the ticket arrives.
+  useEffect(() => {
+    let cancelled = false;
+    terminalTicket().then(({ ticket: t }) => {
+      if (!cancelled) setTicket(t);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const scheduleReconnect = useCallback(() => {
     if (disposedRef.current) return;
@@ -63,7 +77,7 @@ export function EmbeddedTerminal({ profile, serverId, height = 460 }: EmbeddedTe
     disposedRef.current = false;
     backoffRef.current = BACKOFF_BASE_MS;
     const host = hostRef.current;
-    if (!host) return;
+    if (!host || !ticket) return;
 
     const term = new Terminal({
       fontFamily: 'ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, monospace',
@@ -98,7 +112,7 @@ export function EmbeddedTerminal({ profile, serverId, height = 460 }: EmbeddedTe
 
     const connect = () => {
       if (disposedRef.current) return;
-      const ws = new WebSocket(terminalUrl(ptyPath(profile, serverId)));
+      const ws = new WebSocket(terminalUrl(ptyPath(profile, serverId), ticket));
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -197,7 +211,7 @@ export function EmbeddedTerminal({ profile, serverId, height = 460 }: EmbeddedTe
       termRef.current = null;
       wsRef.current = null;
     };
-  }, [profile, serverId, scheduleReconnect]);
+  }, [profile, serverId, ticket, scheduleReconnect]);
 
   return (
     <div

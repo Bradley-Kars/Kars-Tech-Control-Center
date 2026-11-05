@@ -4,6 +4,12 @@
 
 contact_email: "owner@example.com"
 
+# Terminal hardening (C3): identities allowed to open a shell via
+# /ws/pty/{profile}. Nothing configured -> nobody is admitted (default
+# deny). Alternative sources: KTS_ADMIN_IDENTITIES env var
+# (comma-separated) or ~/.config/master-control/admins.json (KTS_ADMINS_FILE).
+admin_identities: []  # e.g. ["owner"]
+
 # Terminal PTY profiles served over /ws/pty/{profile} (Phase 3).
 # Unknown profile names are rejected by the backend.
 terminal_profiles:

@@ -98,6 +98,17 @@ export function getAuthToken(): string {
   return authToken;
 }
 
+/** POST /api/terminal/ticket — mint a one-time ticket for /ws/pty/{profile} (C3). */
+export async function terminalTicket(token?: string): Promise<{
+  ticket: string;
+  expires_in: number;
+}> {
+  return request<{ ticket: string; expires_in: number }>('/terminal/ticket', {
+    method: 'POST',
+    token,
+  });
+}
+
 export interface FleetApiError extends Error {
   status: number;
   detail: string;
