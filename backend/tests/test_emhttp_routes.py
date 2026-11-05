@@ -19,6 +19,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 
 from core.auth import TokenTable  # noqa: E402
 from core.bridge import create_app  # noqa: E402
+from fleet.router import SshHelper  # noqa: E402
+from fleet.transport import SshResult, SshCommandError, TransportError  # noqa: E402
 
 FIXTURE_SERVER = {
     "id": "unraid-main",
@@ -70,6 +72,22 @@ def _patch_emhttp(monkeypatch, responses: dict[str, dict]):
 
     monkeypatch.setattr("fleet.router.RealEmhttpClient", fake_factory)
     return mock_client
+
+
+def _patch_ssh(monkeypatch, responses: dict[str, str]):
+    """Respond to SSH commands by matching the command string against keys."""
+    counters: dict[str, int] = {}
+
+    async def fake_run(self, command, timeout=60.0):  # noqa: ARG001
+        for key, value in responses.items():
+            if command == key or command.startswith(key):
+                idx = counters.get(key, 0)
+                counters[key] = idx + 1
+                return SshResult(exit_code=0, stdout=value, stderr="")
+        raise SshCommandError(f"unexpected command: {command}")
+
+    monkeypatch.setattr(SshHelper, "run", fake_run)
+    return counters
 
 
 # ---------------------------------------------------------------------------
@@ -189,3 +207,456 @@ def test_get_disks_success(app_client, monkeypatch):
     )
     assert r.status_code == 200, r.text
     assert r.json() == DISKS
+
+
+# ---------------------------------------------------------------------------
+# C1: Unraid deferred commands ported from the original Rust command module.
+# All run over SSH (SshHelper) — the web backend has no GraphQL, so
+# get_plugins lists the plugin directory over SSH. Placeholder values only.
+# ---------------------------------------------------------------------------
+
+PS_OUTPUT = "PID USER COMMAND\n1 root init\n123 root ps aux\n"
+SYSLOG_OUTPUT = "Jan 1 00:00:00 kernel boot\nJan 1 00:01:00 sshd start\n"
+USER_SCRIPTS_OUTPUT = "backup.sh\nmonitor.sh\n"
+PLUGINS_OUTPUT = "docker\nnvidia\n"
+NETWORK_OUTPUT = "eth0 192.168.1.10/24\n"
+TAILSCALE_OUTPUT = "100.64.0.1 unraid-main active\n"
+
+
+def _unraid_headers(secret):
+    return {"X-API-Token": secret}
+
+
+# ---------------------------------------------------------------------------
+# GET /api/fleet/unraid/get_processes
+# ---------------------------------------------------------------------------
+
+
+def test_get_processes_success(app_client, monkeypatch):
+    client, secret, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+    _patch_ssh(monkeypatch, {"ps aux --sort=-%cpu | head -25": PS_OUTPUT})
+
+    r = client.get(
+        "/api/fleet/unraid/get_processes?server_id=unraid-main",
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 200, r.text
+    assert r.json() == PS_OUTPUT
+
+
+def test_get_processes_not_found(app_client, monkeypatch):
+    client, secret, _ = app_client
+    _patch_ssh(monkeypatch, {})
+
+    r = client.get(
+        "/api/fleet/unraid/get_processes?server_id=missing",
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 404
+
+
+def test_get_processes_no_token(app_client, monkeypatch):
+    client, _, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+    _patch_ssh(monkeypatch, {})
+
+    r = client.get("/api/fleet/unraid/get_processes?server_id=unraid-main")
+    assert r.status_code == 401
+
+
+def test_get_processes_ssh_error_redacted(app_client, monkeypatch):
+    client, secret, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+
+    def failing_run(self, command, timeout=60.0):  # noqa: ARG001
+        raise SshCommandError("connection refused: not-a-real-password")
+
+    monkeypatch.setattr(SshHelper, "run", failing_run)
+
+    r = client.get(
+        "/api/fleet/unraid/get_processes?server_id=unraid-main",
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 502, r.text
+    body = str(r.json())
+    assert "not-a-real-password" not in body
+    assert "[REDACTED]" in body
+
+
+# ---------------------------------------------------------------------------
+# GET /api/fleet/unraid/get_syslog
+# ---------------------------------------------------------------------------
+
+
+def test_get_syslog_success(app_client, monkeypatch):
+    client, secret, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+    _patch_ssh(monkeypatch, {"tail -50 /var/log/syslog": SYSLOG_OUTPUT})
+
+    r = client.get(
+        "/api/fleet/unraid/get_syslog?server_id=unraid-main&lines=50",
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 200, r.text
+    assert r.json() == SYSLOG_OUTPUT
+
+
+def test_get_syslog_not_found(app_client, monkeypatch):
+    client, secret, _ = app_client
+    _patch_ssh(monkeypatch, {})
+
+    r = client.get(
+        "/api/fleet/unraid/get_syslog?server_id=missing",
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 404
+
+
+def test_get_syslog_no_token(app_client, monkeypatch):
+    client, _, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+    _patch_ssh(monkeypatch, {})
+
+    r = client.get("/api/fleet/unraid/get_syslog?server_id=unraid-main&lines=50")
+    assert r.status_code == 401
+
+
+def test_get_syslog_invalid_lines(app_client, monkeypatch):
+    client, secret, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+    _patch_ssh(monkeypatch, {})
+
+    r = client.get(
+        "/api/fleet/unraid/get_syslog?server_id=unraid-main&lines=notanumber",
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 422
+
+
+def test_get_syslog_ssh_error_redacted(app_client, monkeypatch):
+    client, secret, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+
+    def failing_run(self, command, timeout=60.0):  # noqa: ARG001
+        raise SshCommandError("connection refused: not-a-real-password")
+
+    monkeypatch.setattr(SshHelper, "run", failing_run)
+
+    r = client.get(
+        "/api/fleet/unraid/get_syslog?server_id=unraid-main&lines=50",
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 502, r.text
+    body = str(r.json())
+    assert "not-a-real-password" not in body
+    assert "[REDACTED]" in body
+
+
+# ---------------------------------------------------------------------------
+# GET /api/fleet/unraid/get_user_scripts
+# ---------------------------------------------------------------------------
+
+
+def test_get_user_scripts_success(app_client, monkeypatch):
+    client, secret, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+    _patch_ssh(
+        monkeypatch, {"ls /boot/config/plugins/user.scripts/scripts/": USER_SCRIPTS_OUTPUT}
+    )
+
+    r = client.get(
+        "/api/fleet/unraid/get_user_scripts?server_id=unraid-main",
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 200, r.text
+    assert r.json() == USER_SCRIPTS_OUTPUT
+
+
+def test_get_user_scripts_not_found(app_client, monkeypatch):
+    client, secret, _ = app_client
+    _patch_ssh(monkeypatch, {})
+
+    r = client.get(
+        "/api/fleet/unraid/get_user_scripts?server_id=missing",
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 404
+
+
+def test_get_user_scripts_no_token(app_client, monkeypatch):
+    client, _, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+    _patch_ssh(monkeypatch, {})
+
+    r = client.get("/api/fleet/unraid/get_user_scripts?server_id=unraid-main")
+    assert r.status_code == 401
+
+
+def test_get_user_scripts_ssh_error_redacted(app_client, monkeypatch):
+    client, secret, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+
+    def failing_run(self, command, timeout=60.0):  # noqa: ARG001
+        raise SshCommandError("connection refused: not-a-real-password")
+
+    monkeypatch.setattr(SshHelper, "run", failing_run)
+
+    r = client.get(
+        "/api/fleet/unraid/get_user_scripts?server_id=unraid-main",
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 502, r.text
+    body = str(r.json())
+    assert "not-a-real-password" not in body
+    assert "[REDACTED]" in body
+
+
+# ---------------------------------------------------------------------------
+# POST /api/fleet/unraid/run_user_script
+# ---------------------------------------------------------------------------
+
+
+def test_run_user_script_success(app_client, monkeypatch):
+    client, secret, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+    _patch_ssh(
+        monkeypatch,
+        {"/boot/config/plugins/user.scripts/scripts/backup.sh/run_script.sh": "script done\n"},
+    )
+
+    r = client.post(
+        "/api/fleet/unraid/run_user_script",
+        json={"server_id": "unraid-main", "script": "backup.sh"},
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 200, r.text
+    assert r.json() == "script done\n"
+
+
+def test_run_user_script_not_found(app_client, monkeypatch):
+    client, secret, _ = app_client
+    _patch_ssh(monkeypatch, {})
+
+    r = client.post(
+        "/api/fleet/unraid/run_user_script",
+        json={"server_id": "missing", "script": "backup.sh"},
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 404
+
+
+def test_run_user_script_no_token(app_client, monkeypatch):
+    client, _, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+    _patch_ssh(monkeypatch, {})
+
+    r = client.post(
+        "/api/fleet/unraid/run_user_script",
+        json={"server_id": "unraid-main", "script": "backup.sh"},
+    )
+    assert r.status_code == 401
+
+
+def test_run_user_script_missing_fields(app_client, monkeypatch):
+    client, secret, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+    _patch_ssh(monkeypatch, {})
+
+    r = client.post(
+        "/api/fleet/unraid/run_user_script",
+        json={"server_id": "unraid-main"},
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 422
+
+
+def test_run_user_script_ssh_error_redacted(app_client, monkeypatch):
+    client, secret, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+
+    def failing_run(self, command, timeout=60.0):  # noqa: ARG001
+        raise SshCommandError("connection refused: not-a-real-password")
+
+    monkeypatch.setattr(SshHelper, "run", failing_run)
+
+    r = client.post(
+        "/api/fleet/unraid/run_user_script",
+        json={"server_id": "unraid-main", "script": "backup.sh"},
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 502, r.text
+    body = str(r.json())
+    assert "not-a-real-password" not in body
+    assert "[REDACTED]" in body
+
+
+# ---------------------------------------------------------------------------
+# GET /api/fleet/unraid/get_plugins
+# ---------------------------------------------------------------------------
+
+
+def test_get_plugins_success(app_client, monkeypatch):
+    client, secret, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+    _patch_ssh(monkeypatch, {"ls /usr/local/emhttp/plugins": PLUGINS_OUTPUT})
+
+    r = client.get(
+        "/api/fleet/unraid/get_plugins?server_id=unraid-main",
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 200, r.text
+    assert r.json() == ["docker", "nvidia"]
+
+
+def test_get_plugins_not_found(app_client, monkeypatch):
+    client, secret, _ = app_client
+    _patch_ssh(monkeypatch, {})
+
+    r = client.get(
+        "/api/fleet/unraid/get_plugins?server_id=missing",
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 404
+
+
+def test_get_plugins_no_token(app_client, monkeypatch):
+    client, _, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+    _patch_ssh(monkeypatch, {})
+
+    r = client.get("/api/fleet/unraid/get_plugins?server_id=unraid-main")
+    assert r.status_code == 401
+
+
+def test_get_plugins_ssh_error_redacted(app_client, monkeypatch):
+    client, secret, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+
+    def failing_run(self, command, timeout=60.0):  # noqa: ARG001
+        raise SshCommandError("connection refused: not-a-real-password")
+
+    monkeypatch.setattr(SshHelper, "run", failing_run)
+
+    r = client.get(
+        "/api/fleet/unraid/get_plugins?server_id=unraid-main",
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 502, r.text
+    body = str(r.json())
+    assert "not-a-real-password" not in body
+    assert "[REDACTED]" in body
+
+
+# ---------------------------------------------------------------------------
+# GET /api/fleet/unraid/get_network_interfaces
+# ---------------------------------------------------------------------------
+
+
+def test_get_network_interfaces_success(app_client, monkeypatch):
+    client, secret, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+    _patch_ssh(monkeypatch, {"ip -br addr show": NETWORK_OUTPUT})
+
+    r = client.get(
+        "/api/fleet/unraid/get_network_interfaces?server_id=unraid-main",
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 200, r.text
+    assert r.json() == NETWORK_OUTPUT
+
+
+def test_get_network_interfaces_not_found(app_client, monkeypatch):
+    client, secret, _ = app_client
+    _patch_ssh(monkeypatch, {})
+
+    r = client.get(
+        "/api/fleet/unraid/get_network_interfaces?server_id=missing",
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 404
+
+
+def test_get_network_interfaces_no_token(app_client, monkeypatch):
+    client, _, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+    _patch_ssh(monkeypatch, {})
+
+    r = client.get("/api/fleet/unraid/get_network_interfaces?server_id=unraid-main")
+    assert r.status_code == 401
+
+
+def test_get_network_interfaces_ssh_error_redacted(app_client, monkeypatch):
+    client, secret, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+
+    def failing_run(self, command, timeout=60.0):  # noqa: ARG001
+        raise SshCommandError("connection refused: not-a-real-password")
+
+    monkeypatch.setattr(SshHelper, "run", failing_run)
+
+    r = client.get(
+        "/api/fleet/unraid/get_network_interfaces?server_id=unraid-main",
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 502, r.text
+    body = str(r.json())
+    assert "not-a-real-password" not in body
+    assert "[REDACTED]" in body
+
+
+# ---------------------------------------------------------------------------
+# GET /api/fleet/unraid/get_tailscale_peers
+# ---------------------------------------------------------------------------
+
+
+def test_get_tailscale_peers_success(app_client, monkeypatch):
+    client, secret, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+    _patch_ssh(monkeypatch, {"tailscale status": TAILSCALE_OUTPUT})
+
+    r = client.get(
+        "/api/fleet/unraid/get_tailscale_peers?server_id=unraid-main",
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 200, r.text
+    assert r.json() == TAILSCALE_OUTPUT
+
+
+def test_get_tailscale_peers_not_found(app_client, monkeypatch):
+    client, secret, _ = app_client
+    _patch_ssh(monkeypatch, {})
+
+    r = client.get(
+        "/api/fleet/unraid/get_tailscale_peers?server_id=missing",
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 404
+
+
+def test_get_tailscale_peers_no_token(app_client, monkeypatch):
+    client, _, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+    _patch_ssh(monkeypatch, {})
+
+    r = client.get("/api/fleet/unraid/get_tailscale_peers?server_id=unraid-main")
+    assert r.status_code == 401
+
+
+def test_get_tailscale_peers_ssh_error_redacted(app_client, monkeypatch):
+    client, secret, servers_file = app_client
+    _seed(servers_file, FIXTURE_SERVER)
+
+    def failing_run(self, command, timeout=60.0):  # noqa: ARG001
+        raise SshCommandError("connection refused: not-a-real-password")
+
+    monkeypatch.setattr(SshHelper, "run", failing_run)
+
+    r = client.get(
+        "/api/fleet/unraid/get_tailscale_peers?server_id=unraid-main",
+        headers=_unraid_headers(secret),
+    )
+    assert r.status_code == 502, r.text
+    body = str(r.json())
+    assert "not-a-real-password" not in body
+    assert "[REDACTED]" in body

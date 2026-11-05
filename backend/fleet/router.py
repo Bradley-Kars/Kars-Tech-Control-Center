@@ -765,6 +765,190 @@ async def unraid_get_disks(request: Request, server_id: str) -> Any:
 
 
 # ---------------------------------------------------------------------------
+# C1: Unraid deferred commands over SSH (processes, syslog, user scripts,
+# plugins, network interfaces, tailscale peers). Mirrors the original Rust
+# command module but runs each command over SSH via SshHelper — the web
+# backend has no GraphQL, so e.g. get_plugins lists the plugin directory
+# over SSH. Unknown server -> 404; SSH/transport failure -> redacted 502
+# so secrets never reach logs or error messages.
+# ---------------------------------------------------------------------------
+
+
+@router.get("/unraid/get_processes")
+async def unraid_get_processes(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/unraid/get_processes?server_id=X — process list over SSH.
+
+    Mirrors the ``get_processes`` command: runs ``ps aux --sort=-%cpu |
+    head -25`` over SSH and returns the raw output.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        helper = SshHelper.from_config(server)
+        output = (await helper.run("ps aux --sort=-%cpu | head -25")).stdout
+    except (SshCommandError, TransportError, OSError) as exc:
+        return _probe_error(exc, server)
+    return JSONResponse(content=output)
+
+
+@router.get("/unraid/get_syslog")
+async def unraid_get_syslog(
+    request: Request, server_id: str, lines: str = "50"
+) -> Any:
+    """GET /api/fleet/unraid/get_syslog?server_id=X&lines=N — syslog tail over SSH.
+
+    Mirrors the ``get_syslog`` command: runs ``tail -N /var/log/syslog``
+    over SSH (default 50 lines) and returns the raw output. A non-integer
+    ``lines`` is a 422.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        lines_int = int(lines)
+    except (TypeError, ValueError):
+        return JSONResponse(
+            {"detail": "field 'lines' must be an integer"}, status_code=422
+        )
+    if lines_int < 1:
+        return JSONResponse(
+            {"detail": "field 'lines' must be a positive integer"}, status_code=422
+        )
+    try:
+        helper = SshHelper.from_config(server)
+        output = (await helper.run(f"tail -{lines_int} /var/log/syslog")).stdout
+    except (SshCommandError, TransportError, OSError) as exc:
+        return _probe_error(exc, server)
+    return JSONResponse(content=output)
+
+
+@router.get("/unraid/get_user_scripts")
+async def unraid_get_user_scripts(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/unraid/get_user_scripts?server_id=X — user scripts over SSH.
+
+    Mirrors the ``get_user_scripts`` command: lists
+    /boot/config/plugins/user.scripts/scripts/ over SSH.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        helper = SshHelper.from_config(server)
+        output = (
+            await helper.run("ls /boot/config/plugins/user.scripts/scripts/")
+        ).stdout
+    except (SshCommandError, TransportError, OSError) as exc:
+        return _probe_error(exc, server)
+    return JSONResponse(content=output)
+
+
+@router.post("/unraid/run_user_script")
+async def unraid_run_user_script(request: Request, body: dict) -> Any:
+    """POST /api/fleet/unraid/run_user_script — run a user script over SSH.
+
+    Body: {server_id, script}. Runs
+    /boot/config/plugins/user.scripts/scripts/<script>/run_script.sh over SSH
+    and returns its output. Requires scope=write (create_app middleware).
+    """
+    if not isinstance(body, dict) or not body:
+        return JSONResponse(
+            {"detail": "body must be a non-empty object"}, status_code=422
+        )
+    server_id = body.get("server_id")
+    script = body.get("script")
+    if not isinstance(server_id, str) or not server_id.strip():
+        return JSONResponse(
+            {"detail": "field 'server_id' is required"}, status_code=422
+        )
+    if not isinstance(script, str) or not script.strip():
+        return JSONResponse(
+            {"detail": "field 'script' is required"}, status_code=422
+        )
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        helper = SshHelper.from_config(server)
+        output = (
+            await helper.run(
+                f"/boot/config/plugins/user.scripts/scripts/{script}/run_script.sh"
+            )
+        ).stdout
+    except (SshCommandError, TransportError, OSError) as exc:
+        return _probe_error(exc, server)
+    return JSONResponse(content=output)
+
+
+@router.get("/unraid/get_plugins")
+async def unraid_get_plugins(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/unraid/get_plugins?server_id=X — installed plugins over SSH.
+
+    Mirrors the ``get_plugins`` command: lists /usr/local/emhttp/plugins over
+    SSH and returns the plugin names as a string array.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        helper = SshHelper.from_config(server)
+        output = (await helper.run("ls /usr/local/emhttp/plugins")).stdout
+    except (SshCommandError, TransportError, OSError) as exc:
+        return _probe_error(exc, server)
+    return JSONResponse(content=output.splitlines())
+
+
+@router.get("/unraid/get_network_interfaces")
+async def unraid_get_network_interfaces(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/unraid/get_network_interfaces?server_id=X — interfaces over SSH.
+
+    Mirrors the ``get_network_interfaces`` command: runs ``ip -br addr show``
+    over SSH and returns the raw output.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        helper = SshHelper.from_config(server)
+        output = (await helper.run("ip -br addr show")).stdout
+    except (SshCommandError, TransportError, OSError) as exc:
+        return _probe_error(exc, server)
+    return JSONResponse(content=output)
+
+
+@router.get("/unraid/get_tailscale_peers")
+async def unraid_get_tailscale_peers(request: Request, server_id: str) -> Any:
+    """GET /api/fleet/unraid/get_tailscale_peers?server_id=X — Tailscale peers over SSH.
+
+    Mirrors the ``get_tailscale_peers`` command: runs ``tailscale status``
+    over SSH and returns the raw output.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        helper = SshHelper.from_config(server)
+        output = (await helper.run("tailscale status")).stdout
+    except (SshCommandError, TransportError, OSError) as exc:
+        return _probe_error(exc, server)
+    return JSONResponse(content=output)
+
+
+# ---------------------------------------------------------------------------
 # P5: Plex + generic REST health (HTTP probes)
 # ---------------------------------------------------------------------------
 

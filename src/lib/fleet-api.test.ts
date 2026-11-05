@@ -67,6 +67,13 @@ import {
   getArrayInfo,
   getDisks,
   getShares,
+  getProcesses,
+  getSyslog,
+  getUserScripts,
+  runUserScript,
+  getPlugins,
+  getNetworkInterfaces,
+  getTailscalePeers,
   dockerStart,
   dockerStop,
   dockerRestart,
@@ -551,6 +558,167 @@ describe('getShares', () => {
     setAuthToken('fleet-secret');
     fetchMock.mockResolvedValue(jsonResponse([]));
     await getShares('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getProcesses', () => {
+  it('GETs /fleet/unraid/get_processes?server_id=X and returns the process list', async () => {
+    fetchMock.mockResolvedValue(jsonResponse('PID USER COMMAND\n1 root init\n'));
+    const result = await getProcesses('s1');
+    expect(result).toBe('PID USER COMMAND\n1 root init\n');
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/unraid/get_processes?server_id=s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('GET');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(''));
+    await getProcesses('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getSyslog', () => {
+  it('GETs /fleet/unraid/get_syslog?server_id=X&lines=N and returns the syslog tail', async () => {
+    fetchMock.mockResolvedValue(jsonResponse('Jan 1 00:00:00 kernel boot\n'));
+    const result = await getSyslog('s1', 50);
+    expect(result).toBe('Jan 1 00:00:00 kernel boot\n');
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/unraid/get_syslog?server_id=s1&lines=50',
+    );
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('GET');
+  });
+
+  it('defaults lines to 100', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(''));
+    await getSyslog('s1');
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/unraid/get_syslog?server_id=s1&lines=100',
+    );
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(''));
+    await getSyslog('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getUserScripts', () => {
+  it('GETs /fleet/unraid/get_user_scripts?server_id=X and returns the script list', async () => {
+    fetchMock.mockResolvedValue(jsonResponse('backup.sh\nmonitor.sh\n'));
+    const result = await getUserScripts('s1');
+    expect(result).toBe('backup.sh\nmonitor.sh\n');
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/unraid/get_user_scripts?server_id=s1',
+    );
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('GET');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(''));
+    await getUserScripts('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('runUserScript', () => {
+  it('POSTs /fleet/unraid/run_user_script with {server_id, script} and returns the output', async () => {
+    fetchMock.mockResolvedValue(jsonResponse('script done\n'));
+    const result = await runUserScript('s1', 'backup.sh');
+    expect(result).toBe('script done\n');
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/unraid/run_user_script');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('POST');
+    expect(JSON.parse(String(init?.body))).toEqual({
+      server_id: 's1',
+      script: 'backup.sh',
+    });
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(''));
+    await runUserScript('s1', 'backup.sh');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getPlugins', () => {
+  it('GETs /fleet/unraid/get_plugins?server_id=X and returns the plugin list', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(['docker', 'nvidia']));
+    const result = await getPlugins('s1');
+    expect(result).toEqual(['docker', 'nvidia']);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/unraid/get_plugins?server_id=s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('GET');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse([]));
+    await getPlugins('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getNetworkInterfaces', () => {
+  it('GETs /fleet/unraid/get_network_interfaces?server_id=X and returns the interfaces', async () => {
+    fetchMock.mockResolvedValue(jsonResponse('eth0 192.168.1.10/24\n'));
+    const result = await getNetworkInterfaces('s1');
+    expect(result).toBe('eth0 192.168.1.10/24\n');
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/unraid/get_network_interfaces?server_id=s1',
+    );
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('GET');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(''));
+    await getNetworkInterfaces('s1');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getTailscalePeers', () => {
+  it('GETs /fleet/unraid/get_tailscale_peers?server_id=X and returns the peers', async () => {
+    fetchMock.mockResolvedValue(jsonResponse('100.64.0.1 unraid-main active\n'));
+    const result = await getTailscalePeers('s1');
+    expect(result).toBe('100.64.0.1 unraid-main active\n');
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(
+      '/api/fleet/unraid/get_tailscale_peers?server_id=s1',
+    );
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('GET');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(''));
+    await getTailscalePeers('s1');
     const [, init] = fetchMock.mock.calls[0];
     expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
   });

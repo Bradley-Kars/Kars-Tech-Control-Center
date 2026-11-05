@@ -1223,42 +1223,86 @@ export async function meshcentralShellFleet(
   return [];
 }
 
-/** Web stub: not ported. Returns an empty string. */
-export async function getNetworkInterfaces(_serverId: string): Promise<string> {
-  return '';
-}
-
-/** Web stub: not ported. Returns an empty string. */
-export async function getTailscalePeers(_serverId: string): Promise<string> {
-  return '';
-}
-
-/** Web stub: not ported. Returns an empty string. */
-export async function getProcesses(_serverId: string): Promise<string> {
-  return '';
-}
-
-/** Web stub: not ported. Returns an empty string. */
-export async function getSyslog(_serverId: string, _lines: number): Promise<string> {
-  return '';
-}
-
-/** Web stub: not ported. Returns an empty string. */
-export async function getUserScripts(_serverId: string): Promise<string> {
-  return '';
-}
-
-/** Web stub: not ported. Returns an empty array. */
-export async function getPlugins(_serverId: string): Promise<string[]> {
-  return [];
-}
-
-/** Web stub: not ported. Resolves without effect. */
-export async function runUserScript(
-  _serverId: string,
-  _script: string,
+/** GET /api/fleet/unraid/get_processes?server_id=X — process list over SSH. */
+export async function getProcesses(
+  serverId: string,
+  token?: string,
 ): Promise<string> {
-  return '';
+  return request<string>(
+    `/fleet/unraid/get_processes?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/unraid/get_syslog?server_id=X&lines=N — syslog tail over SSH. */
+export async function getSyslog(
+  serverId: string,
+  lines = 100,
+  token?: string,
+): Promise<string> {
+  return request<string>(
+    `/fleet/unraid/get_syslog?server_id=${encodeURIComponent(serverId)}&lines=${encodeURIComponent(
+      String(lines),
+    )}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/unraid/get_user_scripts?server_id=X — user scripts over SSH. */
+export async function getUserScripts(
+  serverId: string,
+  token?: string,
+): Promise<string> {
+  return request<string>(
+    `/fleet/unraid/get_user_scripts?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** POST /api/fleet/unraid/run_user_script — run a user script over SSH. */
+export async function runUserScript(
+  serverId: string,
+  script: string,
+  token?: string,
+): Promise<string> {
+  return request<string>('/fleet/unraid/run_user_script', {
+    method: 'POST',
+    body: { server_id: serverId, script },
+    token,
+  });
+}
+
+/** GET /api/fleet/unraid/get_plugins?server_id=X — installed plugins over SSH. */
+export async function getPlugins(
+  serverId: string,
+  token?: string,
+): Promise<string[]> {
+  return request<string[]>(
+    `/fleet/unraid/get_plugins?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/unraid/get_network_interfaces?server_id=X — network interfaces over SSH. */
+export async function getNetworkInterfaces(
+  serverId: string,
+  token?: string,
+): Promise<string> {
+  return request<string>(
+    `/fleet/unraid/get_network_interfaces?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/unraid/get_tailscale_peers?server_id=X — Tailscale peers over SSH. */
+export async function getTailscalePeers(
+  serverId: string,
+  token?: string,
+): Promise<string> {
+  return request<string>(
+    `/fleet/unraid/get_tailscale_peers?server_id=${encodeURIComponent(serverId)}`,
+    { token },
+  );
 }
 
 /** Web stub: not ported. Resolves without effect. */
