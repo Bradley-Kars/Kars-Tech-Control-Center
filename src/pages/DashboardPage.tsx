@@ -9,7 +9,7 @@ import { Skeleton, SkeletonCard } from '../components/ui/Skeleton';
 import { Tooltip } from '../components/ui/Tooltip';
 import { Link, useNavigate } from 'react-router-dom';
 import GridLayout, { useContainerWidth } from 'react-grid-layout';
-import { alertList, alertCreate, meshcentralShellFleet } from '../lib/fleet-api';
+import { alertList, alertCreate, alertAcknowledge, meshcentralShellFleet } from '../lib/fleet-api';
 import { ToastManager, useToast } from '../components/ui/Toast';
 import type { Alert } from '../lib/types';
 
@@ -135,6 +135,18 @@ export function DashboardPage() {
     window.dispatchEvent(new CustomEvent('kts:refresh'));
   };
 
+  // Acknowledge an open alert from the Alert Center DB: ack it server-side,
+  // toast the result, then re-list so the acknowledged row drops out of the card.
+  const handleAcknowledge = async (id: number, title: string) => {
+    try {
+      await alertAcknowledge(id, 'user');
+      addToast({ type: 'success', title: 'Acknowledged', message: `"${title}" acknowledged` });
+      await refreshDbAlerts();
+    } catch (e) {
+      addToast({ type: 'error', title: 'Failed to acknowledge', message: e instanceof Error ? e.message : 'Unknown error' });
+    }
+  };
+
   const { toasts, removeToast, addToast } = useToast();
 
   // Fleet-wide health check over MeshCentral (primary transport)
@@ -249,11 +261,18 @@ export function DashboardPage() {
 
   // Merge open Alert Center rows not already represented by a computed breach
   const alertsWithDb = useMemo(() => {
-    const items = [...alerts];
+    const items: Array<{
+      id?: number;
+      type: 'warning' | 'error' | 'info';
+      title: string;
+      message: string;
+      device?: string;
+    }> = [...alerts];
     dbAlerts.forEach((a) => {
       const key = `${a.device_id ?? ''}|${a.title}`;
       if (items.every((it) => `${it.device ?? ''}|${it.title}` !== key)) {
         items.push({
+          id: a.id,
           type: a.severity === 'critical' ? 'error' : a.severity === 'warning' ? 'warning' : 'info',
           title: a.title,
           message: a.message,
@@ -355,8 +374,10 @@ export function DashboardPage() {
               <Badge variant="danger" size="sm" dot>{alertsWithDb.length}</Badge>
             }>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {alertsWithDb.map((alert, i) => (
-                  <div
+                {alertsWithDb.map((alert, i) => {
+                  const ackId = alert.id;
+                  return (
+                    <div
                     key={i}
                     className="flex items-start gap-3 p-3 rounded-[var(--kts-radius-base)]"
                     style={{ background: 'var(--kts-bg-tertiary)', border: `1px solid var(--kts-border-${alert.type})` }}
@@ -379,8 +400,14 @@ export function DashboardPage() {
                         View
                       </Button>
                     )}
+                    {ackId != null && (
+                      <Button variant="ghost" size="xs" onClick={() => handleAcknowledge(ackId, alert.title)}>
+                        Acknowledge
+                      </Button>
+                    )}
                   </div>
-                ))}
+                );
+              })}
               </div>
             </CardSection>
           </Card>

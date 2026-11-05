@@ -28,12 +28,14 @@ vi.mock('../hooks', () => ({
 vi.mock('../lib/fleet-api', () => ({
   alertList: vi.fn(),
   alertCreate: vi.fn(),
+  alertAcknowledge: vi.fn(),
   meshcentralShellFleet: vi.fn(),
 }));
 
-import { alertList, alertCreate, meshcentralShellFleet } from '../lib/fleet-api';
+import { alertList, alertCreate, alertAcknowledge, meshcentralShellFleet } from '../lib/fleet-api';
 const mockAlertList = vi.mocked(alertList);
 const mockAlertCreate = vi.mocked(alertCreate);
+const mockAlertAcknowledge = vi.mocked(alertAcknowledge);
 const mockMeshcentralShellFleet = vi.mocked(meshcentralShellFleet);
 
 const localStorageStore: Record<string, string> = {};
@@ -95,6 +97,7 @@ beforeEach(() => {
   localStorageMock.clear();
   mockAlertList.mockResolvedValue([]);
   mockAlertCreate.mockResolvedValue({} as any);
+  mockAlertAcknowledge.mockResolvedValue({ id: 1, acknowledged: true } as any);
   mockMeshcentralShellFleet.mockResolvedValue([]);
 });
 
@@ -286,5 +289,79 @@ describe('DashboardPage (D/E/L/R/I state matrix)', () => {
   it('M modal: dashboard surfaces no dialogs (M not applicable on this route)', () => {
     renderPage();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});
+
+describe('Critical Alerts acknowledge (audit DASH-002 P2)', () => {
+  const openAlert = {
+    id: 1,
+    severity: 'critical',
+    title: 'Critical CPU',
+    message: '96% usage',
+    device_id: 'unraid',
+    source: 'dashboard-threshold',
+    acknowledged: false,
+    created_at: '2026-01-15T10:30:00Z',
+    updated_at: '2026-01-15T10:30:00Z',
+  } as const;
+
+  // Toasts render into a portal on document.body; clear leftovers between tests.
+  const clearToasts = () => {
+    document.body.querySelectorAll('[role="alert"]').forEach((el) => el.remove());
+  };
+
+  const expectToast = (re: RegExp) => {
+    const el = Array.from(document.body.querySelectorAll<HTMLElement>('[role="alert"]'))
+      .find((e) => re.test(e.textContent ?? ''));
+    expect(el).not.toBeNull();
+  };
+
+  beforeEach(() => {
+    clearToasts();
+    mockAlertList.mockResolvedValue([openAlert]);
+    mockAlertAcknowledge.mockResolvedValue({ ...openAlert, acknowledged: true });
+  });
+
+  // D — populated: open alerts render with an acknowledge action on each row
+  it('D populated: renders an Acknowledge button on each open alert row', async () => {
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Acknowledge' })).toBeInTheDocument(),
+    );
+  });
+
+  // I — acknowledge: alertAcknowledge is called, a success toast shows, the list refreshes
+  it('I acknowledge: calls alertAcknowledge(id, "user"), toasts, and refreshes', async () => {
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Acknowledge' })).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Acknowledge' }));
+    await waitFor(() => expect(mockAlertAcknowledge).toHaveBeenCalledWith(1, 'user'));
+    await waitFor(() => expectToast(/Acknowledged/));
+    await waitFor(() => expect(mockAlertList).toHaveBeenCalledTimes(2));
+  });
+
+  // I — acknowledge removal: the acknowledged row drops out of the card
+  it('I acknowledge: acknowledged alert disappears after the refresh', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Critical CPU')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Acknowledge' }));
+    mockAlertList.mockResolvedValueOnce([]);
+    await waitFor(() => expect(mockAlertList).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByText('Critical CPU')).not.toBeInTheDocument());
+  });
+
+  // R — error: acknowledge failure shows an error toast and the row stays
+  it('R error: acknowledge failure toasts and keeps the alert row', async () => {
+    clearToasts();
+    mockAlertAcknowledge.mockRejectedValue(new Error('boom'));
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Critical CPU')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Acknowledge' }));
+    await waitFor(() => expect(mockAlertAcknowledge).toHaveBeenCalledWith(1, 'user'));
+    await waitFor(() => expectToast(/Failed to acknowledge/));
+    expect(screen.getByText('Critical CPU')).toBeInTheDocument();
+    expect(mockAlertList).toHaveBeenCalledTimes(1);
   });
 });
