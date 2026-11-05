@@ -8,6 +8,11 @@ const mocks = vi.hoisted(() => ({
   getEnrollmentInfo: vi.fn(),
   syncFleet: vi.fn(),
   executeBatch: vi.fn(),
+  useServers: vi.fn(),
+}));
+
+vi.mock('../hooks', () => ({
+  useServers: mocks.useServers,
 }));
 
 vi.mock('../lib/fleet-api', () => ({
@@ -60,6 +65,7 @@ const batchResults: BatchResult[] = [
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.useServers.mockReturnValue({ servers: [], loading: false, error: null } as any);
   Object.defineProperty(navigator, 'clipboard', {
     writable: true,
     value: { writeText: vi.fn() },
@@ -125,6 +131,11 @@ describe('MeshCentralPage (MESH-001, MESH-002, MESH-003)', () => {
   });
 
   it('enroll: opens the enrollment modal with install commands and copies the command to clipboard', async () => {
+    mocks.useServers.mockReturnValue({
+      servers: [{ id: 'mc', name: 'MeshCentral Server', meshcentral_device_id: 'mc-1' }],
+      loading: false,
+      error: null,
+    } as any);
     mockListDevices.mockResolvedValue(devices);
     mockGetEnrollmentInfo.mockResolvedValue(enrollmentInfo);
     const writeText = vi.mocked(navigator.clipboard.writeText);
@@ -133,7 +144,7 @@ describe('MeshCentralPage (MESH-001, MESH-002, MESH-003)', () => {
     await waitFor(() => expect(screen.getByText('unraid-main')).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: /^Linux \(Bazzite\/Fedora\)$/i }));
 
-    await waitFor(() => expect(mockGetEnrollmentInfo).toHaveBeenCalledWith('', 'linux'));
+    await waitFor(() => expect(mockGetEnrollmentInfo).toHaveBeenCalledWith('mc', 'linux'));
     await waitFor(() => expect(screen.getByText('Enroll linux Device')).toBeInTheDocument());
     expect(screen.getByText(enrollmentInfo.install_command_linux)).toBeInTheDocument();
     expect(screen.getByText(enrollmentInfo.install_command_windows)).toBeInTheDocument();
@@ -177,5 +188,36 @@ describe('MeshCentralPage (MESH-001, MESH-002, MESH-003)', () => {
     expect(screen.getByText('FAILED')).toBeInTheDocument();
     expect(screen.getByText('Device: mc-1')).toBeInTheDocument();
     expect(screen.getByText('Device: mc-2')).toBeInTheDocument();
+  });
+
+  it('G3 prerequisite: no MeshCentral server configured → shows the prerequisite banner and gates the enrollment buttons', async () => {
+    mockListDevices.mockResolvedValue([]);
+    render(<MeshCentralPage />);
+
+    await waitFor(() => expect(screen.getByText('No devices found in MeshCentral')).toBeInTheDocument());
+    expect(screen.getByText('MeshCentral server not configured')).toBeInTheDocument();
+    const linuxBtn = screen.getByRole('button', { name: /^Linux \(Bazzite\/Fedora\)$/i });
+    expect(linuxBtn).toBeDisabled();
+
+    fireEvent.click(linuxBtn);
+    expect(mockGetEnrollmentInfo).not.toHaveBeenCalled();
+  });
+
+  it('G3 prerequisite: configured MeshCentral server → no banner, enrollment buttons enabled', async () => {
+    mocks.useServers.mockReturnValue({
+      servers: [{ id: 'mc', name: 'MeshCentral Server', device_type: 'unraid', meshcentral_device_id: 'mc-1', service_keys: { meshcentral_url: 'https://mesh.<tailnet>.ts.net' } }],
+      loading: false,
+      error: null,
+    } as any);
+    mockListDevices.mockResolvedValue([]);
+    render(<MeshCentralPage />);
+
+    await waitFor(() => expect(screen.getByText('No devices found in MeshCentral')).toBeInTheDocument());
+    expect(screen.queryByText('MeshCentral server not configured')).not.toBeInTheDocument();
+    const linuxBtn = screen.getByRole('button', { name: /^Linux \(Bazzite\/Fedora\)$/i });
+    expect(linuxBtn).not.toBeDisabled();
+
+    fireEvent.click(linuxBtn);
+    await waitFor(() => expect(mockGetEnrollmentInfo).toHaveBeenCalledWith('mc', 'linux'));
   });
 });

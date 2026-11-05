@@ -70,6 +70,7 @@ export function MeshCentralPage() {
     );
   }, [servers]);
   const serverId = mcServer?.id ?? '';
+  const noMeshCentralServer = !mcServer;
 
   const loadDevices = async () => {
     setLoading(true);
@@ -268,6 +269,17 @@ export function MeshCentralPage() {
           </Tooltip>
         </div>
       </div>
+
+      {/* MeshCentral prerequisite banner */}
+      {!loading && noMeshCentralServer && (
+        <Card variant="amber" className="animate-fade-in">
+          <CardSection title="MeshCentral server not configured">
+            <p className="text-[var(--kts-text-secondary)] text-sm">
+              Enrollment requires a configured MeshCentral server. Add a server with a MeshCentral URL in Settings, then the enrollment buttons below will generate install commands for each platform.
+            </p>
+          </CardSection>
+        </Card>
+      )}
 
       {/* Sync Result Banner */}
       {syncResult && (
@@ -514,22 +526,22 @@ export function MeshCentralPage() {
         <CardSection title="Enroll New Devices" subtitle="Generate installation commands for each platform">
           <div className="flex flex-wrap gap-3">
             <Tooltip content="Enroll Linux device (Bazzite, Fedora, Ubuntu, Debian)" position="top">
-              <Button variant="outline" leftIcon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>} onClick={() => handleEnroll('linux')} loading={enrolling === 'linux'}>
+              <Button variant="outline" leftIcon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>} onClick={() => handleEnroll('linux')} loading={enrolling === 'linux'} disabled={noMeshCentralServer}>
                 Linux (Bazzite/Fedora)
               </Button>
             </Tooltip>
             <Tooltip content="Enroll Windows device" position="top">
-              <Button variant="outline" leftIcon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>} onClick={() => handleEnroll('windows')} loading={enrolling === 'windows'}>
+              <Button variant="outline" leftIcon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>} onClick={() => handleEnroll('windows')} loading={enrolling === 'windows'} disabled={noMeshCentralServer}>
                 Windows
               </Button>
             </Tooltip>
             <Tooltip content="Enroll HTPC (Linux)" position="top">
-              <Button variant="outline" leftIcon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 17h10"/><path d="M12 12v7"/><path d="M18 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/></svg>} onClick={() => handleEnroll('htpc')} loading={enrolling === 'htpc'}>
+              <Button variant="outline" leftIcon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 17h10"/><path d="M12 12v7"/><path d="M18 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/></svg>} onClick={() => handleEnroll('htpc')} loading={enrolling === 'htpc'} disabled={noMeshCentralServer}>
                 HTPC (Linux)
               </Button>
             </Tooltip>
             <Tooltip content="Enroll Laptop (Linux)" position="top">
-              <Button variant="outline" leftIcon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="17" x2="16" y2="17"/></svg>} onClick={() => handleEnroll('laptop')} loading={enrolling === 'laptop'}>
+              <Button variant="outline" leftIcon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="17" x2="16" y2="17"/></svg>} onClick={() => handleEnroll('laptop')} loading={enrolling === 'laptop'} disabled={noMeshCentralServer}>
                 Laptop (Linux)
               </Button>
             </Tooltip>
