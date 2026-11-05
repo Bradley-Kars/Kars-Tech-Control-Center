@@ -282,6 +282,10 @@ export interface SwitchProps extends Omit<InputHTMLAttributes<HTMLInputElement>,
   label?: string;
   description?: string;
   size?: 'sm' | 'base' | 'lg';
+  // When true, the label reads "<label>: on"/"<label>: off" and takes the
+  // brand color while on, so the toggle state is legible without reading
+  // the switch position alone (audit SETTINGS-002).
+  showState?: boolean;
 }
 
 // Track is the OUTER box; with border-2 + border-box, content = w-4 × h-4.
@@ -294,7 +298,7 @@ const switchSizeStyles = {
 };
 
 export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
-  ({ label, description, size = 'base', className = '', style, disabled, checked, onChange, id, ...props }, ref) => {
+  ({ label, description, size = 'base', className = '', style, disabled, checked, onChange, id, showState = false, ...props }, ref) => {
     const s = switchSizeStyles[size];
     const generatedId = useId();
     const inputId = id ?? generatedId;
@@ -343,9 +347,13 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
             {label && (
               <span
                 className="font-medium truncate"
-                style={{ fontSize: s.labelSize, color: 'var(--kts-text-primary)', fontFamily: 'var(--kts-font-sans)' }}
+                style={{
+                  fontSize: s.labelSize,
+                  color: showState && checked ? 'var(--kts-brand-primary)' : 'var(--kts-text-primary)',
+                  fontFamily: 'var(--kts-font-sans)',
+                }}
               >
-                {label}
+                {label}{showState ? `: ${checked ? 'on' : 'off'}` : ''}
               </span>
             )}
             {description && (

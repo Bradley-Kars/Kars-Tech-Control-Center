@@ -170,6 +170,7 @@ export function SettingsPage() {
                 description="Disable animations and transitions"
                 checked={reducedMotion}
                 onChange={(e) => setReducedMotion(e.target.checked)}
+                showState
               />
             </div>
           </CardSection>

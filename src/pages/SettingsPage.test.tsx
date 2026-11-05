@@ -59,7 +59,7 @@ describe('SettingsPage', () => {
     render(wrap(<SettingsPage />));
     expect(screen.getByText('Theme')).toBeInTheDocument();
     expect(screen.getByText('Density')).toBeInTheDocument();
-    expect(screen.getByText('Reduce motion')).toBeInTheDocument();
+    expect(screen.getByText(/Reduce motion/)).toBeInTheDocument();
     // Switch to Notifications and verify its content renders
     fireEvent.click(firstBtn('Notifications'));
     expect(screen.getByText('Enable notifications')).toBeInTheDocument();
@@ -98,5 +98,22 @@ describe('SettingsPage', () => {
     fireEvent.click(screen.getByText('Light'));
     // Theme change triggers AppContext update; verify the radio reflects the change
     expect(screen.getByText('Light')).toBeInTheDocument();
+  });
+
+  it('reduce motion switch shows on/off state and brand color when on (SETTINGS-002)', () => {
+    render(wrap(<SettingsPage />));
+    const switchEl = screen.getByRole('switch', { name: /Reduce motion/ });
+    expect(switchEl).not.toBeChecked();
+    // Off state shows the "off" value text
+    expect(screen.getByText('Reduce motion: off')).toBeInTheDocument();
+
+    fireEvent.click(switchEl);
+    expect(switchEl).toBeChecked();
+    // On state shows the "on" value text
+    expect(screen.getByText('Reduce motion: on')).toBeInTheDocument();
+    // Label is brand color when on
+    const labelSpan = switchEl.closest('label')!.querySelector('span');
+    expect(labelSpan).not.toBeNull();
+    expect(labelSpan!.style.color).toBe('var(--kts-brand-primary)');
   });
 });
