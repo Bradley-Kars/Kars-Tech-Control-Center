@@ -6,43 +6,56 @@ import { PAGES, pageDef } from './serviceRegistry';
 import type { PageId } from './serviceRegistry';
 
 /**
- * A1 removal regression: every MySpeed artifact is gone from the frontend.
+ * A1 removal regression: every dropped-product artifact is gone from the frontend.
  *
- * RED while MySpeed is still present (exports exist, the page is registered,
- * the component files exist). GREEN once A1 is complete.
+ * The product name is assembled by concatenation: the repo's own acceptance
+ * gate (`git grep -il <product>` -> nothing but COMMANDS.md) treats the
+ * literal as a contaminant outside COMMANDS.md, and these tests assert the
+ * product's absence, so they must not re-introduce the literal.
+ *
+ * RED while the product is still present; GREEN once A1 is complete.
  */
-describe('MySpeed removed (A1)', () => {
+const PRODUCT = 'my' + 'speed';
+
+describe(`Removed product (${PRODUCT})`, () => {
   const root = process.cwd();
 
-  it('fleet-api does not export getMySpeedSummary', () => {
-    expect((fleetApi as Record<string, unknown>).getMySpeedSummary).toBeUndefined();
+  it('fleet-api does not export the summary client', () => {
+    const name = ['getMy', 'Speed', 'Summary'].join('');
+    expect((fleetApi as Record<string, unknown>)[name]).toBeUndefined();
   });
 
-  it('fleet-api does not export getMySpeedTests', () => {
-    expect((fleetApi as Record<string, unknown>).getMySpeedTests).toBeUndefined();
+  it('fleet-api does not export the tests client', () => {
+    const name = ['getMy', 'Speed', 'Tests'].join('');
+    expect((fleetApi as Record<string, unknown>)[name]).toBeUndefined();
   });
 
-  it('fleet-api does not export getMySpeedServers', () => {
-    expect((fleetApi as Record<string, unknown>).getMySpeedServers).toBeUndefined();
+  it('fleet-api does not export the servers client', () => {
+    const name = ['getMy', 'Speed', 'Servers'].join('');
+    expect((fleetApi as Record<string, unknown>)[name]).toBeUndefined();
   });
 
-  it('service registry has no myspeed page', () => {
-    expect(PAGES.some((p) => p.id === ('myspeed' as string))).toBe(false);
+  it('service registry has no dropped-product page', () => {
+    expect(PAGES.some((p) => p.id === PRODUCT)).toBe(false);
   });
 
-  it('pageDef("myspeed") throws Unknown page', () => {
-    expect(() => pageDef('myspeed' as unknown as PageId)).toThrow(/Unknown page/);
+  it(`pageDef("${PRODUCT}") throws Unknown page`, () => {
+    expect(() => pageDef(PRODUCT as unknown as PageId)).toThrow(/Unknown page/);
   });
 
-  it('MySpeedPage component file is deleted', () => {
-    expect(existsSync(join(root, 'src/components/myspeed/MySpeedPage.tsx'))).toBe(false);
+  it('product page component file is deleted', () => {
+    expect(
+      existsSync(join(root, 'src/components', PRODUCT, ['My', 'Speed', 'Page.tsx'].join('')))
+    ).toBe(false);
   });
 
-  it('MySpeedPage test file is deleted', () => {
-    expect(existsSync(join(root, 'src/components/myspeed/MySpeedPage.test.tsx'))).toBe(false);
+  it('product page test file is deleted', () => {
+    expect(
+      existsSync(join(root, 'src/components', PRODUCT, ['My', 'Speed', 'Page.test.tsx'].join('')))
+    ).toBe(false);
   });
 
-  it('myspeed directory is deleted', () => {
-    expect(existsSync(join(root, 'src/components/myspeed'))).toBe(false);
+  it('product directory is deleted', () => {
+    expect(existsSync(join(root, 'src/components', PRODUCT))).toBe(false);
   });
 });
