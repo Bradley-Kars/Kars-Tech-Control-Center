@@ -6,6 +6,7 @@ Placeholder values only — no real hostnames, emails, or tokens.
 """
 
 import json
+import logging
 import os
 import stat
 import tempfile
@@ -63,6 +64,24 @@ FIXTURE_SERVER_WITH_KEYS = {
         "adb_serial": "ABC123",
         "kdeconnect_device_id": "kc-device-id",
     },
+}
+
+# Nulls on optional / defaulted fields: load_servers must treat null as
+# missing (default applies) and never crash the whole file over it.
+FIXTURE_SERVER_WITH_NULLS = {
+    "id": "null-server",
+    "name": "Null Server",
+    "hostname": "<device>.<tailnet>.ts.net",
+    "port": None,
+    "username": None,
+    "device_type": None,
+    "api_key": None,
+    "meshcentral_device_id": None,
+    "meshcentral_enrolled_at": None,
+    "meshcentral_status": None,
+    "connection_priority": None,
+    "service_keys": {},
+    "auth": {"type": "password", "password": "pw"},
 }
 
 
@@ -147,12 +166,13 @@ class TestLoadServers:
         with pytest.raises((json.JSONDecodeError, ValueError)):
             load_servers()
 
-    def test_missing_required_field_raises(self, monkeypatch, tmp_path):
+    def test_missing_required_field_skips_entry(self, monkeypatch, tmp_path):
         p = tmp_path / "servers.json"
         p.write_text(json.dumps([{"id": "x"}]), encoding="utf-8")
         monkeypatch.setenv("KTS_SERVERS_FILE", str(p))
-        with pytest.raises(Exception):
-            load_servers()
+        servers = load_servers()
+        # Missing required field: entry is skipped, not raised
+        assert servers == []
 
     def test_explicit_path_argument(self, tmp_path):
         p = tmp_path / "servers.json"
@@ -184,6 +204,58 @@ class TestLoadServers:
         # default not in servers.json is kept
         extra = next(s for s in servers if s.id == "extra-server")
         assert extra.name == "Extra"
+
+    def test_null_optional_fields_treated_as_missing(self, monkeypatch, tmp_path):
+        """Null on a field with a default falls back to the default ("null
+        treated as missing"); null on an Optional field stays None. The whole
+        file must load, not crash."""
+        p = tmp_path / "servers.json"
+        _write_fixture(p, FIXTURE_SERVER_WITH_NULLS)
+        monkeypatch.setenv("KTS_SERVERS_FILE", str(p))
+        servers = load_servers()
+        assert len(servers) == 1
+        s = servers[0]
+        assert s.id == "null-server"
+        # defaulted fields: null -> default
+        assert s.port == 22
+        assert s.username == "root"
+        assert s.device_type == "generic"
+        assert s.api_key is None
+        # Optional-without-default fields: null -> None
+        assert s.meshcentral_device_id is None
+        assert s.meshcentral_enrolled_at is None
+        assert s.meshcentral_status is None
+        assert s.connection_priority is None
+        assert isinstance(s.auth, AuthPassword)
+        assert s.auth.password == "pw"
+
+    def test_bad_entry_skipped_reported_by_id_and_field_only(self, monkeypatch, tmp_path, caplog):
+        """A malformed server entry is skipped; the rest of the file still
+        loads. The report names id and field only — never input values."""
+        p = tmp_path / "servers.json"
+        p.write_text(json.dumps([
+            FIXTURE_SERVER_PW,
+            {**FIXTURE_SERVER_PW, "id": "bad-one", "port": "not-a-port"},
+        ]), encoding="utf-8")
+        monkeypatch.setenv("KTS_SERVERS_FILE", str(p))
+        with caplog.at_level(logging.WARNING, logger="fleet.config"):
+            servers = load_servers()
+        assert [s.id for s in servers] == ["unraid-main"]
+        messages = [rec.getMessage() for rec in caplog.records]
+        assert any("bad-one" in m and "port" in m for m in messages), messages
+        assert "not-a-port" not in caplog.text
+
+    def test_missing_required_field_skipped_and_reported(self, monkeypatch, tmp_path, caplog):
+        """Missing a required field (was: raised) now skips the entry and
+        reports id + field name, no input values."""
+        p = tmp_path / "servers.json"
+        p.write_text(json.dumps([{"id": "x"}]), encoding="utf-8")
+        monkeypatch.setenv("KTS_SERVERS_FILE", str(p))
+        with caplog.at_level(logging.WARNING, logger="fleet.config"):
+            servers = load_servers()
+        assert servers == []
+        messages = [rec.getMessage() for rec in caplog.records]
+        assert any("x" in m and "invalid field" in m for m in messages), messages
 
 
 class TestSaveServers:

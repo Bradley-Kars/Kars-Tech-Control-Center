@@ -9,13 +9,16 @@ via the KTS_SERVERS_FILE env override.
 """
 
 import json
+import logging
 import os
 import stat
 import tempfile
 from pathlib import Path
 from typing import Any, ClassVar, Union
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, ValidationError, model_validator
+
+logger = logging.getLogger(__name__)
 
 
 class AuthPassword(BaseModel):
@@ -206,7 +209,41 @@ def load_servers(
             by_id[entry["id"]] = entry
         data = list(by_id.values())
 
-    return [ServerConfig(**entry) for entry in data]
+    servers: list[ServerConfig] = []
+    for entry in data:
+        if not isinstance(entry, dict):
+            logger.warning("Skipping server entry: not a mapping")
+            continue
+        sid = entry.get("id", "<unknown>")
+        # Drop None-valued keys so Pydantic uses field defaults for them
+        # (treating null as "missing"). Required fields that are None will
+        # still fail validation below and be skipped.
+        cleaned = {k: v for k, v in entry.items() if v is not None}
+        try:
+            servers.append(ServerConfig(**cleaned))
+        except ValidationError as exc:
+            # Skip the bad entry; report by id and field name only, never
+            # include input values in the message.
+            field = _first_invalid_field(exc)
+            logger.warning(
+                "Skipping server %s: invalid field %s", sid, field
+            )
+            continue
+    return servers
+
+
+def _first_invalid_field(exc: ValidationError) -> str:
+    """Return the first field name from a Pydantic validation error.
+
+    Only the field name is returned; never the input value.
+    """
+    errors = exc.errors()
+    if errors:
+        loc = errors[0].get("loc", ())
+        for part in loc:
+            if isinstance(part, str):
+                return part
+    return "unknown"
 
 
 def save_servers(
