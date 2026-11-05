@@ -7,84 +7,74 @@ test.describe('Smoke - every route against stub backend', () => {
   });
 
   test('Dashboard route loads', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.getByText('Dashboard')).toBeVisible();
-    await expect(page.getByText('CPU')).toBeVisible();
+    await page.goto('/dashboard');
+    await expect(page.getByRole('heading', { name: 'Fleet Overview' })).toBeVisible();
+    await expect(page.getByText('CPU').first()).toBeVisible();
   });
 
   test('Network route loads', async ({ page }) => {
-    await page.goto('/network');
-    await expect(page.getByText('Network')).toBeVisible();
+    await page.goto('/service/network');
+    await expect(page.getByRole('heading', { name: 'Network' }).first()).toBeVisible();
   });
 
   test('System route loads', async ({ page }) => {
-    await page.goto('/system');
-    await expect(page.getByText('System')).toBeVisible();
+    await page.goto('/service/system');
+    await expect(page.getByRole('heading', { name: 'System' }).first()).toBeVisible();
   });
 
   test('Storage route loads', async ({ page }) => {
-    await page.goto('/storage');
-    await expect(page.getByText('Storage')).toBeVisible();
+    await page.goto('/service/storage');
+    await expect(page.getByRole('heading', { name: 'Storage' }).first()).toBeVisible();
   });
 
   test('Nextcloud route loads', async ({ page }) => {
-    await page.goto('/nextcloud');
-    await expect(page.getByText('Nextcloud')).toBeVisible();
+    await page.goto('/service/nextcloud');
+    await expect(page.getByRole('heading', { name: 'Nextcloud' })).toBeVisible();
   });
 
   test('AdGuard route loads', async ({ page }) => {
-    await page.goto('/adguard');
-    await expect(page.getByText('AdGuard')).toBeVisible();
+    await page.goto('/service/adguard');
+    await expect(page.getByRole('heading', { name: 'AdGuard Home' })).toBeVisible();
   });
 
   test('Home Assistant route loads', async ({ page }) => {
-    await page.goto('/homeassistant');
-    await expect(page.getByText('Home Assistant')).toBeVisible();
+    await page.goto('/service/homeassistant');
+    await expect(page.getByRole('heading', { name: 'Home Assistant' })).toBeVisible();
   });
 
   test('Docker route loads', async ({ page }) => {
-    await page.goto('/docker');
-    await expect(page.getByText('Docker')).toBeVisible();
+    await page.goto('/service/docker');
+    await expect(page.getByText('Docker Containers')).toBeVisible();
   });
 
   test('MeshCentral route loads', async ({ page }) => {
-    await page.goto('/mesh-central');
-    await expect(page.getByText('MeshCentral')).toBeVisible();
+    await page.goto('/meshcentral');
+    await expect(page.getByRole('heading', { name: 'MeshCentral Fleet' }).first()).toBeVisible();
   });
 
   test('Phone route loads', async ({ page }) => {
-    await page.goto('/phone');
-    await expect(page.getByText('Phone')).toBeVisible();
+    await page.goto('/device/phone');
+    await expect(page.getByRole('heading', { name: 'Galaxy S24' })).toBeVisible();
   });
 
   test('Settings route loads', async ({ page }) => {
     await page.goto('/settings');
-    await expect(page.getByText('Settings')).toBeVisible();
-  });
-
-  test('Settings route loads', async ({ page }) => {
-    await page.goto('/settings');
-    await expect(page.getByText('Settings')).toBeVisible();
-  });
-
-  test('Service page loads', async ({ page }) => {
-    await page.goto('/service/docker');
-    await expect(page.getByText('Service')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
   });
 
   test('Ticketing route loads', async ({ page }) => {
     await page.goto('/ticketing');
-    await expect(page.getByText('Ticketing')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Ticketing' })).toBeVisible();
   });
 
   test('FleetCommand route loads', async ({ page }) => {
     await page.goto('/fleet-command');
-    await expect(page.getByText('Fleet')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Fleet Command' })).toBeVisible();
   });
 
   test('Compliance route loads', async ({ page }) => {
     await page.goto('/compliance');
-    await expect(page.getByText('Compliance')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Patch Compliance' })).toBeVisible();
   });
 
   test('Chat route loads', async ({ page }) => {
