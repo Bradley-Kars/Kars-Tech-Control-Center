@@ -24,7 +24,7 @@ export type PageId =
   | 'system'
   | 'network'
   | 'nextcloud'
-  | 'lidarr'
+  | 'arr'
   | 'homeassistant'
   | 'adguard'
   | 'meshcentral';
@@ -147,15 +147,15 @@ export const PAGES: PageDef[] = [
     description: 'Nextcloud: status, storage quota, users, activity',
   },
   {
-    id: 'lidarr',
+    id: 'arr',
     nav: false,
-    label: 'Lidarr',
-    icon: '♪',
+    label: 'Arr',
+    icon: '🎵',
     group: 'services',
     deviceRole: 'unraid',
-    requiredKeys: ['lidarr_api_key'],
+    requiredKeys: ['lidarr_api_key', 'sonarr_api_key', 'radarr_api_key'],
     pollMs: 30000,
-    description: 'Lidarr: health, artists, albums, wanted, queue, diskspace',
+    description: 'Arr stack: Lidarr, Sonarr and Radarr status, health, queue and missing',
   },
   {
     id: 'homeassistant',

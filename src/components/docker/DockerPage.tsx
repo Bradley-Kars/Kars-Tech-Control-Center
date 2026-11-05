@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { ServerConfig } from '../../lib/types';
 import { getDockerContainers, dockerStart, dockerStop, dockerRestart, dockerLogs, dockerRemove } from '../../lib/fleet-api';
 
-type Page = 'dashboard' | 'docker' | 'storage' | 'system' | 'network' | 'nextcloud' | 'lidarr' | 'homeassistant' | 'adguard';
+type Page = 'dashboard' | 'docker' | 'storage' | 'system' | 'network' | 'nextcloud' | 'arr' | 'homeassistant' | 'adguard';
 
 interface Props {
   server: ServerConfig;
@@ -19,7 +19,7 @@ const getServiceInfo = (name: string) => {
 
 const SERVICE_MAP: Record<string, { page: Page; icon: string; color: string }> = {
   'nextcloud': { page: 'nextcloud', icon: '☁', color: 'bg-blue-500' },
-  'lidarr': { page: 'lidarr', icon: '♪', color: 'bg-purple-500' },
+  'arr': { page: 'arr', icon: '♪', color: 'bg-purple-500' },
   'homeassistant': { page: 'homeassistant', icon: '🏠', color: 'bg-blue-500' },
   'home-assistant': { page: 'homeassistant', icon: '🔗', color: 'bg-blue-500' },
   'adguard': { page: 'adguard', icon: '🛡', color: 'bg-green-500' },

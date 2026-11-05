@@ -503,7 +503,7 @@ export function DashboardPage() {
                 { id: 'nextcloud', label: 'Nextcloud', icon: '☁', path: '/service/nextcloud' },
                 { id: 'homeassistant', label: 'Home Assistant', icon: '🏠', path: '/service/homeassistant' },
                 { id: 'adguard', label: 'AdGuard', icon: '🛡', path: '/service/adguard' },
-                { id: 'lidarr', label: 'Lidarr', icon: '🎵', path: '/service/lidarr' },
+                { id: 'arr', label: 'Arr', icon: '🎵', path: '/service/arr' },
               ].map((svc) => (
                 <Link key={svc.id} to={svc.path} className="group">
                   <div className="flex items-center gap-3 p-3 rounded-[var(--kts-radius-base)] transition-all duration-[var(--kts-motion-fast)] hover:bg-[var(--kts-interactive-hover)]">

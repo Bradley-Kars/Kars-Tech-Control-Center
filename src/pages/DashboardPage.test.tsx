@@ -119,7 +119,7 @@ describe('DashboardPage (D/E/L/R/I state matrix)', () => {
     // Service overview still renders
     expect(screen.getByText('Service Health')).toBeInTheDocument();
     expect(screen.getByText('Docker')).toBeInTheDocument();
-    expect(screen.getByText('Lidarr')).toBeInTheDocument();
+    expect(screen.getByText('Arr')).toBeInTheDocument();
   });
 
   it('D populated: fleet header, three online device cards with gauges, full quick actions, service overview', () => {
@@ -153,7 +153,7 @@ describe('DashboardPage (D/E/L/R/I state matrix)', () => {
     }
 
     expect(screen.getByText('Service Health')).toBeInTheDocument();
-    for (const label of ['Docker', 'Storage', 'System', 'Network', 'Nextcloud', 'Home Assistant', 'AdGuard', 'Lidarr']) {
+    for (const label of ['Docker', 'Storage', 'System', 'Network', 'Nextcloud', 'Home Assistant', 'AdGuard', 'Arr']) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
   });

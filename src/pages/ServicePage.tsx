@@ -9,7 +9,7 @@ import { StoragePage } from '../components/storage/StoragePage';
 import { SystemPage } from '../components/system/SystemPage';
 import { NetworkPage } from '../components/network/NetworkPage';
 import { NextcloudPage } from '../components/nextcloud/NextcloudPage';
-import { LidarrPage } from '../components/lidarr/LidarrPage';
+import { ArrPage } from '../components/arr/ArrPage';
 import { HomeAssistantPage } from '../components/homeassistant/HomeAssistantPage';
 import { AdGuardPage } from '../components/adguard/AdGuardPage';
 import { useNavigate } from 'react-router-dom';
@@ -21,7 +21,7 @@ const SERVICE_META: Record<string, { label: string; icon: string; description: s
   system: { label: 'System', icon: '⚙', description: 'CPU, memory & processes' },
   network: { label: 'Network', icon: '🌐', description: 'Interfaces & Tailscale' },
   nextcloud: { label: 'Nextcloud', icon: '☁', description: 'File sync & share' },
-  lidarr: { label: 'Lidarr', icon: '🎵', description: 'Music collection' },
+  arr: { label: 'Arr', icon: '🎵', description: 'Lidarr, Sonarr & Radarr' },
   homeassistant: { label: 'Home Assistant', icon: '🏠', description: 'Home automation' },
   adguard: { label: 'AdGuard Home', icon: '🛡', description: 'DNS filtering' },
 };
@@ -104,8 +104,8 @@ export function ServicePage() {
     case 'nextcloud':
       body = <NextcloudPage server={unraidServer} />;
       break;
-    case 'lidarr':
-      body = <LidarrPage server={unraidServer} />;
+    case 'arr':
+      body = <ArrPage server={unraidServer} />;
       break;
     case 'homeassistant':
       body = <HomeAssistantPage server={unraidServer} />;

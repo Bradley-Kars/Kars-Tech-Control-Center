@@ -23,7 +23,7 @@ import {
   getLocalSystemStats,
 } from '../../lib/fleet-api';
 
-type Page = 'dashboard' | 'phone' | 'steamdeck' | 'docker' | 'storage' | 'system' | 'network' | 'nextcloud' | 'lidarr' | 'homeassistant' | 'adguard';
+type Page = 'dashboard' | 'phone' | 'steamdeck' | 'docker' | 'storage' | 'system' | 'network' | 'nextcloud' | 'arr' | 'homeassistant' | 'adguard';
 
 interface Props {
   servers: ServerConfig[];

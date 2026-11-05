@@ -56,7 +56,7 @@ export const SERVICE_LABELS: Readonly<Record<string, string>> = {
   storage: 'Storage',
   system: 'System',
   network: 'Network',
-  lidarr: 'Lidarr',
+  arr: 'Arr',
   homeassistant: 'Home Assistant',
   nextcloud: 'Nextcloud',
   adguard: 'AdGuard',

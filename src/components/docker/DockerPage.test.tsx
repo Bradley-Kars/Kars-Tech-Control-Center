@@ -86,7 +86,7 @@ describe('DockerPage (D/E/L/R/I/M state matrix)', () => {
 
     await waitForContainers();
     expect(screen.getByText('☁')).toBeInTheDocument();
-    expect(screen.getByText('♪')).toBeInTheDocument();
+    expect(screen.getAllByText('♪')).toHaveLength(3);
     expect(screen.getByText('🏠')).toBeInTheDocument();
     expect(screen.getByText('🛡')).toBeInTheDocument();
   });
@@ -139,8 +139,8 @@ describe('DockerPage (D/E/L/R/I/M state matrix)', () => {
     render(<DockerPage {...defaultProps} setPage={setPage} />);
 
     await waitForContainers();
-    fireEvent.click(screen.getByText('♪').closest('[title]')!);
-    expect(setPage).toHaveBeenCalledWith('lidarr');
+    fireEvent.click(screen.getAllByText('♪')[0].closest('[title]')!);
+    expect(setPage).toHaveBeenCalledWith('arr');
   });
 
   it('E empty: shows zero counts and no container rows when there are no containers', async () => {
