@@ -1,27 +1,44 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { LidarrPage } from './LidarrPage';
-import { mockServerConfig, mockLidarrStatus, mockLidarrArtists, mockLidarrAlbums, mockLidarrWanted, mockLidarrDiskspace } from '../../test/mock-data';
+import {
+  mockServerConfig,
+  mockArrStatus,
+  mockArrArtists,
+  mockArrAlbums,
+  mockArrWanted,
+  mockArrDiskspace,
+} from '../../test/mock-data';
 
 vi.mock('../../lib/fleet-api', () => ({
-  getLidarrStatus: vi.fn(),
-  getLidarrArtists: vi.fn(),
-  getLidarrAlbums: vi.fn(),
-  getLidarrWanted: vi.fn(),
-  getLidarrDiskspace: vi.fn(),
-  lidarrRefreshArtist: vi.fn(),
-  lidarrSearchMissing: vi.fn(),
+  getArrStatus: vi.fn(),
+  getArrArtists: vi.fn(),
+  getArrAlbums: vi.fn(),
+  getArrWanted: vi.fn(),
+  getArrDiskspace: vi.fn(),
+  arrRefreshSeries: vi.fn(),
+  arrSearchMissing: vi.fn(),
 }));
 
-import { getLidarrStatus, getLidarrArtists, getLidarrAlbums, getLidarrWanted, getLidarrDiskspace } from '../../lib/fleet-api';
+import {
+  getArrStatus,
+  getArrArtists,
+  getArrAlbums,
+  getArrWanted,
+  getArrDiskspace,
+  arrRefreshSeries,
+  arrSearchMissing,
+} from '../../lib/fleet-api';
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(getLidarrStatus).mockResolvedValue(mockLidarrStatus as any);
-  vi.mocked(getLidarrArtists).mockResolvedValue(mockLidarrArtists as any);
-  vi.mocked(getLidarrAlbums).mockResolvedValue(mockLidarrAlbums as any);
-  vi.mocked(getLidarrWanted).mockResolvedValue(mockLidarrWanted as any);
-  vi.mocked(getLidarrDiskspace).mockResolvedValue(mockLidarrDiskspace as any);
+  vi.mocked(getArrStatus).mockResolvedValue(mockArrStatus as any);
+  vi.mocked(getArrArtists).mockResolvedValue(mockArrArtists as any);
+  vi.mocked(getArrAlbums).mockResolvedValue(mockArrAlbums as any);
+  vi.mocked(getArrWanted).mockResolvedValue(mockArrWanted as any);
+  vi.mocked(getArrDiskspace).mockResolvedValue(mockArrDiskspace as any);
+  vi.mocked(arrRefreshSeries).mockResolvedValue(undefined);
+  vi.mocked(arrSearchMissing).mockResolvedValue(undefined);
 });
 
 describe('LidarrPage', () => {
@@ -113,6 +130,36 @@ describe('LidarrPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'diskspace' }));
     await waitFor(() => {
       expect(screen.getByText('/mnt/user/media/music')).toBeInTheDocument();
+    });
+  });
+
+  it('refreshes an artist via arrRefreshSeries', async () => {
+    render(<LidarrPage server={mockServerConfig} />);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'artists' })).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'artists' }));
+    await waitFor(() => {
+      expect(screen.getByText('Pink Floyd')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getAllByText('Refresh')[0]);
+    await waitFor(() => {
+      expect(arrRefreshSeries).toHaveBeenCalledWith('test-server-1', 'lidarr', 1);
+    });
+  });
+
+  it('searches missing albums via arrSearchMissing', async () => {
+    render(<LidarrPage server={mockServerConfig} />);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'artists' })).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'artists' }));
+    await waitFor(() => {
+      expect(screen.getByText('Pink Floyd')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getAllByText('Search')[0]);
+    await waitFor(() => {
+      expect(arrSearchMissing).toHaveBeenCalledWith('test-server-1', 'lidarr', 1);
     });
   });
 });

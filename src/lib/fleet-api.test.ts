@@ -23,13 +23,15 @@ import type {
   HomeAssistantArea,
   HomeAssistantDevice,
   HomeAssistantEntity,
-  LidarrStatus,
-  LidarrHealthIssue,
-  LidarrArtist,
-  LidarrAlbum,
-  LidarrWantedMissing,
-  LidarrQueue,
-  LidarrDiskSpace,
+  ArrStatus,
+  ArrHealthIssue,
+  ArrArtist,
+  ArrAlbum,
+  ArrWantedMissing,
+  ArrQueue,
+  ArrDiskSpace,
+  ArrCalendarEvent,
+  ArrLibraryTotal,
   MeshDevice,
   DeviceStatus,
   BatchResult,
@@ -93,15 +95,17 @@ import {
   homeAssistantToggle,
   homeAssistantTurnOn,
   homeAssistantTurnOff,
-  getLidarrStatus,
-  getLidarrHealth,
-  getLidarrArtists,
-  getLidarrAlbums,
-  getLidarrWanted,
-  getLidarrQueue,
-  getLidarrDiskspace,
-  lidarrRefreshArtist,
-  lidarrSearchMissing,
+  getArrStatus,
+  getArrHealth,
+  getArrArtists,
+  getArrAlbums,
+  getArrWanted,
+  getArrQueue,
+  getArrDiskspace,
+  getArrCalendar,
+  getArrLibraryTotal,
+  arrRefreshSeries,
+  arrSearchMissing,
   meshcentralListDevices,
   meshcentralGetDeviceStatus,
   meshcentralExecuteBatch,
@@ -1358,8 +1362,8 @@ describe('homeAssistantTurnOff', () => {
   });
 });
 
-describe('getLidarrStatus', () => {
-  const status: LidarrStatus = {
+describe('getArrStatus', () => {
+  const status: ArrStatus = {
     app_name: 'Lidarr',
     instance_name: 'Music',
     version: '2.0.0.1234',
@@ -1379,47 +1383,47 @@ describe('getLidarrStatus', () => {
     url_base: '/lidarr',
   };
 
-  it('GETs /api/fleet/lidarr/get_lidarr_status?server_id=X and returns status', async () => {
+  it('GETs /api/fleet/arr/status?server_id=X&app=X and returns status', async () => {
     fetchMock.mockResolvedValue(jsonResponse(status));
-    const result = await getLidarrStatus('s1');
+    const result = await getArrStatus('s1', 'lidarr');
     expect(result).toEqual(status);
     const [input] = fetchMock.mock.calls[0];
-    expect(String(input)).toBe('/api/fleet/lidarr/get_lidarr_status?server_id=s1');
+    expect(String(input)).toBe('/api/fleet/arr/status?server_id=s1&app=lidarr');
   });
 
   it('sends X-API-Token when one is set', async () => {
     setAuthToken('fleet-secret');
     fetchMock.mockResolvedValue(jsonResponse(status));
-    await getLidarrStatus('s1');
+    await getArrStatus('s1', 'sonarr');
     const [, init] = fetchMock.mock.calls[0];
     expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
   });
 });
 
-describe('getLidarrHealth', () => {
-  const health: LidarrHealthIssue[] = [
+describe('getArrHealth', () => {
+  const health: ArrHealthIssue[] = [
     { source: 'DiskSpace', issue_type: 'Warning', message: 'Disk space low', wiki_url: null },
   ];
 
-  it('GETs /api/fleet/lidarr/get_lidarr_health?server_id=X and returns health', async () => {
+  it('GETs /api/fleet/arr/health?server_id=X&app=X and returns health', async () => {
     fetchMock.mockResolvedValue(jsonResponse(health));
-    const result = await getLidarrHealth('s1');
+    const result = await getArrHealth('s1', 'radarr');
     expect(result).toEqual(health);
     const [input] = fetchMock.mock.calls[0];
-    expect(String(input)).toBe('/api/fleet/lidarr/get_lidarr_health?server_id=s1');
+    expect(String(input)).toBe('/api/fleet/arr/health?server_id=s1&app=radarr');
   });
 
   it('sends X-API-Token when one is set', async () => {
     setAuthToken('fleet-secret');
     fetchMock.mockResolvedValue(jsonResponse(health));
-    await getLidarrHealth('s1');
+    await getArrHealth('s1', 'lidarr');
     const [, init] = fetchMock.mock.calls[0];
     expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
   });
 });
 
-describe('getLidarrArtists', () => {
-  const artists: LidarrArtist[] = [
+describe('getArrArtists', () => {
+  const artists: ArrArtist[] = [
     {
       id: 1,
       foreign_artist_id: 'foreign-1',
@@ -1433,25 +1437,25 @@ describe('getLidarrArtists', () => {
     },
   ];
 
-  it('GETs /api/fleet/lidarr/get_lidarr_artists?server_id=X and returns artists', async () => {
+  it('GETs /api/fleet/arr/artists?server_id=X&app=X and returns artists', async () => {
     fetchMock.mockResolvedValue(jsonResponse(artists));
-    const result = await getLidarrArtists('s1');
+    const result = await getArrArtists('s1', 'lidarr');
     expect(result).toEqual(artists);
     const [input] = fetchMock.mock.calls[0];
-    expect(String(input)).toBe('/api/fleet/lidarr/get_lidarr_artists?server_id=s1');
+    expect(String(input)).toBe('/api/fleet/arr/artists?server_id=s1&app=lidarr');
   });
 
   it('sends X-API-Token when one is set', async () => {
     setAuthToken('fleet-secret');
     fetchMock.mockResolvedValue(jsonResponse(artists));
-    await getLidarrArtists('s1');
+    await getArrArtists('s1', 'sonarr');
     const [, init] = fetchMock.mock.calls[0];
     expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
   });
 });
 
-describe('getLidarrAlbums', () => {
-  const albums: LidarrAlbum[] = [
+describe('getArrAlbums', () => {
+  const albums: ArrAlbum[] = [
     {
       id: 10,
       foreign_album_id: 'foreign-album-1',
@@ -1466,34 +1470,34 @@ describe('getLidarrAlbums', () => {
     },
   ];
 
-  it('GETs /api/fleet/lidarr/get_lidarr_albums?server_id=X&artist_id=X&monitored=X and returns albums', async () => {
+  it('GETs /api/fleet/arr/albums?server_id=X&app=X&artist_id=X&monitored=X and returns albums', async () => {
     fetchMock.mockResolvedValue(jsonResponse(albums));
-    const result = await getLidarrAlbums('s1', 1, true);
+    const result = await getArrAlbums('s1', 'lidarr', 1, true);
     expect(result).toEqual(albums);
     const [input] = fetchMock.mock.calls[0];
     expect(String(input)).toBe(
-      '/api/fleet/lidarr/get_lidarr_albums?server_id=s1&artist_id=1&monitored=true',
+      '/api/fleet/arr/albums?server_id=s1&app=lidarr&artist_id=1&monitored=true',
     );
   });
 
   it('omits optional query params when not provided', async () => {
     fetchMock.mockResolvedValue(jsonResponse(albums));
-    await getLidarrAlbums('s1');
+    await getArrAlbums('s1', 'radarr');
     const [input] = fetchMock.mock.calls[0];
-    expect(String(input)).toBe('/api/fleet/lidarr/get_lidarr_albums?server_id=s1');
+    expect(String(input)).toBe('/api/fleet/arr/albums?server_id=s1&app=radarr');
   });
 
   it('sends X-API-Token when one is set', async () => {
     setAuthToken('fleet-secret');
     fetchMock.mockResolvedValue(jsonResponse(albums));
-    await getLidarrAlbums('s1');
+    await getArrAlbums('s1', 'lidarr');
     const [, init] = fetchMock.mock.calls[0];
     expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
   });
 });
 
-describe('getLidarrWanted', () => {
-  const wanted: LidarrWantedMissing = {
+describe('getArrWanted', () => {
+  const wanted: ArrWantedMissing = {
     page: 1,
     page_size: 25,
     sort_key: 'title',
@@ -1502,27 +1506,27 @@ describe('getLidarrWanted', () => {
     records: [],
   };
 
-  it('GETs /api/fleet/lidarr/get_lidarr_wanted?server_id=X&page=X&pageSize=X', async () => {
+  it('GETs /api/fleet/arr/wanted?server_id=X&app=X&page=X&page_size=X', async () => {
     fetchMock.mockResolvedValue(jsonResponse(wanted));
-    const result = await getLidarrWanted('s1', 1, 25);
+    const result = await getArrWanted('s1', 'lidarr', 1, 25);
     expect(result).toEqual(wanted);
     const [input] = fetchMock.mock.calls[0];
     expect(String(input)).toBe(
-      '/api/fleet/lidarr/get_lidarr_wanted?server_id=s1&page=1&pageSize=25',
+      '/api/fleet/arr/wanted?server_id=s1&app=lidarr&page=1&page_size=25',
     );
   });
 
   it('sends X-API-Token when one is set', async () => {
     setAuthToken('fleet-secret');
     fetchMock.mockResolvedValue(jsonResponse(wanted));
-    await getLidarrWanted('s1');
+    await getArrWanted('s1', 'sonarr');
     const [, init] = fetchMock.mock.calls[0];
     expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
   });
 });
 
-describe('getLidarrQueue', () => {
-  const queue: LidarrQueue = {
+describe('getArrQueue', () => {
+  const queue: ArrQueue = {
     page: 1,
     page_size: 25,
     sort_key: 'title',
@@ -1531,54 +1535,96 @@ describe('getLidarrQueue', () => {
     records: [],
   };
 
-  it('GETs /api/fleet/lidarr/get_lidarr_queue?server_id=X&page=X&pageSize=X', async () => {
+  it('GETs /api/fleet/arr/queue?server_id=X&app=X&page=X&page_size=X', async () => {
     fetchMock.mockResolvedValue(jsonResponse(queue));
-    const result = await getLidarrQueue('s1', 1, 25);
+    const result = await getArrQueue('s1', 'lidarr', 1, 25);
     expect(result).toEqual(queue);
     const [input] = fetchMock.mock.calls[0];
     expect(String(input)).toBe(
-      '/api/fleet/lidarr/get_lidarr_queue?server_id=s1&page=1&pageSize=25',
+      '/api/fleet/arr/queue?server_id=s1&app=lidarr&page=1&page_size=25',
     );
   });
 
   it('sends X-API-Token when one is set', async () => {
     setAuthToken('fleet-secret');
     fetchMock.mockResolvedValue(jsonResponse(queue));
-    await getLidarrQueue('s1');
+    await getArrQueue('s1', 'radarr');
     const [, init] = fetchMock.mock.calls[0];
     expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
   });
 });
 
-describe('getLidarrDiskspace', () => {
-  const diskspace: LidarrDiskSpace[] = [
+describe('getArrDiskspace', () => {
+  const diskspace: ArrDiskSpace[] = [
     { path: '/music', label: 'Music', free_space: 500, total_space: 1000 },
   ];
 
-  it('GETs /api/fleet/lidarr/get_lidarr_diskspace?server_id=X and returns disk space', async () => {
+  it('GETs /api/fleet/arr/diskspace?server_id=X&app=X and returns disk space', async () => {
     fetchMock.mockResolvedValue(jsonResponse(diskspace));
-    const result = await getLidarrDiskspace('s1');
+    const result = await getArrDiskspace('s1', 'lidarr');
     expect(result).toEqual(diskspace);
     const [input] = fetchMock.mock.calls[0];
-    expect(String(input)).toBe('/api/fleet/lidarr/get_lidarr_diskspace?server_id=s1');
+    expect(String(input)).toBe('/api/fleet/arr/diskspace?server_id=s1&app=lidarr');
   });
 
   it('sends X-API-Token when one is set', async () => {
     setAuthToken('fleet-secret');
     fetchMock.mockResolvedValue(jsonResponse(diskspace));
-    await getLidarrDiskspace('s1');
+    await getArrDiskspace('s1', 'sonarr');
     const [, init] = fetchMock.mock.calls[0];
     expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
   });
 });
 
-describe('lidarrRefreshArtist', () => {
-  it('POSTs /api/fleet/lidarr/lidarr_refresh_artist?server_id=X&artist_id=X and returns void', async () => {
+describe('getArrCalendar', () => {
+  const calendar: ArrCalendarEvent[] = [
+    { title: 'New Release', start: '2026-11-04', end: '2026-11-04' },
+  ];
+
+  it('GETs /api/fleet/arr/calendar?server_id=X&app=X&days=X and returns calendar', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(calendar));
+    const result = await getArrCalendar('s1', 'lidarr', 7);
+    expect(result).toEqual(calendar);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/arr/calendar?server_id=s1&app=lidarr&days=7');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(calendar));
+    await getArrCalendar('s1', 'radarr', 7);
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('getArrLibraryTotal', () => {
+  const total: ArrLibraryTotal = { count: 42 };
+
+  it('GETs /api/fleet/arr/library_total?server_id=X&app=X and returns total', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(total));
+    const result = await getArrLibraryTotal('s1', 'lidarr');
+    expect(result).toEqual(total);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/arr/library_total?server_id=s1&app=lidarr');
+  });
+
+  it('sends X-API-Token when one is set', async () => {
+    setAuthToken('fleet-secret');
+    fetchMock.mockResolvedValue(jsonResponse(total));
+    await getArrLibraryTotal('s1', 'sonarr');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
+  });
+});
+
+describe('arrRefreshSeries', () => {
+  it('POSTs /api/fleet/arr/refresh_series?server_id=X&app=X&artist_id=X and returns void', async () => {
     fetchMock.mockResolvedValue(jsonResponse({}));
-    await lidarrRefreshArtist('s1', 1);
+    await arrRefreshSeries('s1', 'lidarr', 1);
     const [input] = fetchMock.mock.calls[0];
     expect(String(input)).toBe(
-      '/api/fleet/lidarr/lidarr_refresh_artist?server_id=s1&artist_id=1',
+      '/api/fleet/arr/refresh_series?server_id=s1&app=lidarr&artist_id=1',
     );
     const [, init] = fetchMock.mock.calls[0];
     expect(init?.method).toBe('POST');
@@ -1587,19 +1633,19 @@ describe('lidarrRefreshArtist', () => {
   it('sends X-API-Token when one is set', async () => {
     setAuthToken('fleet-secret');
     fetchMock.mockResolvedValue(jsonResponse({}));
-    await lidarrRefreshArtist('s1', 1);
+    await arrRefreshSeries('s1', 'sonarr', 1);
     const [, init] = fetchMock.mock.calls[0];
     expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
   });
 });
 
-describe('lidarrSearchMissing', () => {
-  it('POSTs /api/fleet/lidarr/lidarr_search_missing?server_id=X&artist_id=X and returns void', async () => {
+describe('arrSearchMissing', () => {
+  it('POSTs /api/fleet/arr/search_missing?server_id=X&app=X&artist_id=X and returns void', async () => {
     fetchMock.mockResolvedValue(jsonResponse({}));
-    await lidarrSearchMissing('s1', 1);
+    await arrSearchMissing('s1', 'lidarr', 1);
     const [input] = fetchMock.mock.calls[0];
     expect(String(input)).toBe(
-      '/api/fleet/lidarr/lidarr_search_missing?server_id=s1&artist_id=1',
+      '/api/fleet/arr/search_missing?server_id=s1&app=lidarr&artist_id=1',
     );
     const [, init] = fetchMock.mock.calls[0];
     expect(init?.method).toBe('POST');
@@ -1608,7 +1654,7 @@ describe('lidarrSearchMissing', () => {
   it('sends X-API-Token when one is set', async () => {
     setAuthToken('fleet-secret');
     fetchMock.mockResolvedValue(jsonResponse({}));
-    await lidarrSearchMissing('s1', 1);
+    await arrSearchMissing('s1', 'radarr', 1);
     const [, init] = fetchMock.mock.calls[0];
     expect(init?.headers).toMatchObject({ 'X-API-Token': 'fleet-secret' });
   });

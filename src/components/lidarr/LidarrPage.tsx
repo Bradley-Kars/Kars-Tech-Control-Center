@@ -1,28 +1,30 @@
 import { useState, useEffect } from 'react';
 import {
-  getLidarrStatus,
-  getLidarrArtists,
-  getLidarrAlbums,
-  getLidarrWanted,
-  getLidarrDiskspace,
-  lidarrRefreshArtist,
-  lidarrSearchMissing,
+  getArrStatus,
+  getArrArtists,
+  getArrAlbums,
+  getArrWanted,
+  getArrDiskspace,
+  arrRefreshSeries,
+  arrSearchMissing,
 } from '../../lib/fleet-api';
 import type {
   ServerConfig,
-  LidarrStatus,
-  LidarrArtist,
-  LidarrAlbum,
-  LidarrWantedMissing,
-  LidarrDiskSpace,
+  ArrStatus,
+  ArrArtist,
+  ArrAlbum,
+  ArrWantedMissing,
+  ArrDiskSpace,
+  ArrApp,
 } from '../../lib/types';
 
 export function LidarrPage({ server }: { server: ServerConfig }) {
-  const [status, setStatus] = useState<LidarrStatus | null>(null);
-  const [artists, setArtists] = useState<LidarrArtist[]>([]);
-  const [albums, setAlbums] = useState<LidarrAlbum[]>([]);
-  const [wanted, setWanted] = useState<LidarrWantedMissing | null>(null);
-  const [diskspace, setDiskspace] = useState<LidarrDiskSpace[]>([]);
+  const [status, setStatus] = useState<ArrStatus | null>(null);
+  const [artists, setArtists] = useState<ArrArtist[]>([]);
+  const [albums, setAlbums] = useState<ArrAlbum[]>([]);
+  const [wanted, setWanted] = useState<ArrWantedMissing | null>(null);
+  const [diskspace, setDiskspace] = useState<ArrDiskSpace[]>([]);
+  const APP: ArrApp = 'lidarr';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'artists' | 'albums' | 'wanted' | 'diskspace'>('overview');
@@ -32,11 +34,11 @@ export function LidarrPage({ server }: { server: ServerConfig }) {
     setError(null);
     try {
       const [statusRes, artistsRes, albumsRes, wantedRes, diskspaceRes] = await Promise.allSettled([
-        getLidarrStatus(server.id),
-        getLidarrArtists(server.id),
-        getLidarrAlbums(server.id),
-        getLidarrWanted(server.id),
-        getLidarrDiskspace(server.id),
+        getArrStatus(server.id, APP),
+        getArrArtists(server.id, APP),
+        getArrAlbums(server.id, APP),
+        getArrWanted(server.id, APP),
+        getArrDiskspace(server.id, APP),
       ]);
       if (statusRes.status === 'fulfilled') setStatus(statusRes.value);
       if (artistsRes.status === 'fulfilled') setArtists(artistsRes.value);
@@ -66,7 +68,7 @@ export function LidarrPage({ server }: { server: ServerConfig }) {
 
   const handleRefreshArtist = async (artistId: number) => {
     try {
-      await lidarrRefreshArtist(server.id, artistId);
+      await arrRefreshSeries(server.id, APP, artistId);
       fetchData();
     } catch (err) {
       console.error('Failed to refresh artist:', err);
@@ -75,7 +77,7 @@ export function LidarrPage({ server }: { server: ServerConfig }) {
 
   const handleSearchMissing = async (artistId: number) => {
     try {
-      await lidarrSearchMissing(server.id, artistId);
+      await arrSearchMissing(server.id, APP, artistId);
       fetchData();
     } catch (err) {
       console.error('Failed to search missing albums:', err);

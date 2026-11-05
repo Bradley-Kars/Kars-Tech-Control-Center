@@ -49,13 +49,15 @@ import type {
   HomeAssistantArea,
   HomeAssistantDevice,
   HomeAssistantEntity,
-  LidarrStatus,
-  LidarrHealthIssue,
-  LidarrArtist,
-  LidarrAlbum,
-  LidarrWantedMissing,
-  LidarrQueue,
-  LidarrDiskSpace,
+  ArrStatus,
+  ArrHealthIssue,
+  ArrArtist,
+  ArrAlbum,
+  ArrWantedMissing,
+  ArrQueue,
+  ArrDiskSpace,
+  ArrCalendarEvent,
+  ArrLibraryTotal,
   MeshDevice,
   DeviceStatus,
   BatchCommand,
@@ -76,6 +78,7 @@ import type {
   PhoneMemory,
   KdeConnectBattery,
   KdeConnectConnectivity,
+  ArrApp,
 } from './types';
 
 export type { Alert, AlertFilter, AlertSeverity, MetricPoint, MetricSeries };
@@ -640,126 +643,161 @@ export async function homeAssistantTurnOff(
 }
 
 // ---------------------------------------------------------------------------
-// Lidarr (ported from the original command module)
+// Arr — one client for Lidarr (/api/v1), Sonarr and Radarr (/api/v3).
+// system status, health, artists, albums, wanted/missing, queue, disk space,
+// calendar and library total, plus "search missing" / "refresh series"
+// commands over the HTTP *arr API (X-Api-Key auth)
 // ---------------------------------------------------------------------------
 
-/** GET /api/fleet/lidarr/get_lidarr_status?server_id=X — Lidarr server status. */
-export async function getLidarrStatus(
+/** GET /api/fleet/arr/status?server_id=X&app=X — *arr system status. */
+export async function getArrStatus(
   serverId: string,
+  app: ArrApp,
   token?: string,
-): Promise<LidarrStatus> {
-  return request<LidarrStatus>(
-    `/fleet/lidarr/get_lidarr_status?server_id=${encodeURIComponent(serverId)}`,
+): Promise<ArrStatus> {
+  return request<ArrStatus>(
+    `/fleet/arr/status?server_id=${encodeURIComponent(serverId)}&app=${encodeURIComponent(app)}`,
     { token },
   );
 }
 
-/** GET /api/fleet/lidarr/get_lidarr_health?server_id=X — Lidarr health issues. */
-export async function getLidarrHealth(
+/** GET /api/fleet/arr/health?server_id=X&app=X — *arr health issues. */
+export async function getArrHealth(
   serverId: string,
+  app: ArrApp,
   token?: string,
-): Promise<LidarrHealthIssue[]> {
-  return request<LidarrHealthIssue[]>(
-    `/fleet/lidarr/get_lidarr_health?server_id=${encodeURIComponent(serverId)}`,
+): Promise<ArrHealthIssue[]> {
+  return request<ArrHealthIssue[]>(
+    `/fleet/arr/health?server_id=${encodeURIComponent(serverId)}&app=${encodeURIComponent(app)}`,
     { token },
   );
 }
 
-/** GET /api/fleet/lidarr/get_lidarr_artists?server_id=X — Lidarr artists. */
-export async function getLidarrArtists(
+/** GET /api/fleet/arr/artists?server_id=X&app=X — *arr artists. */
+export async function getArrArtists(
   serverId: string,
+  app: ArrApp,
   token?: string,
-): Promise<LidarrArtist[]> {
-  return request<LidarrArtist[]>(
-    `/fleet/lidarr/get_lidarr_artists?server_id=${encodeURIComponent(serverId)}`,
+): Promise<ArrArtist[]> {
+  return request<ArrArtist[]>(
+    `/fleet/arr/artists?server_id=${encodeURIComponent(serverId)}&app=${encodeURIComponent(app)}`,
     { token },
   );
 }
 
-/** GET /api/fleet/lidarr/get_lidarr_albums?server_id=X&artistId=X&monitored=X — Lidarr albums. */
-export async function getLidarrAlbums(
+/** GET /api/fleet/arr/albums?server_id=X&app=X&artist_id=X&monitored=X — *arr albums. */
+export async function getArrAlbums(
   serverId: string,
+  app: ArrApp,
   artistId?: number,
   monitored?: boolean,
   token?: string,
-): Promise<LidarrAlbum[]> {
-  const url = `/fleet/lidarr/get_lidarr_albums?server_id=${encodeURIComponent(
+): Promise<ArrAlbum[]> {
+  const url = `/fleet/arr/albums?server_id=${encodeURIComponent(
     serverId,
-  )}${artistId !== undefined ? `&artist_id=${encodeURIComponent(String(artistId))}` : ""}${
+  )}&app=${encodeURIComponent(app)}${artistId !== undefined ? `&artist_id=${encodeURIComponent(String(artistId))}` : ""}${
     monitored !== undefined ? `&monitored=${encodeURIComponent(String(monitored))}` : ""
   }`;
-  return request<LidarrAlbum[]>(url, { token });
+  return request<ArrAlbum[]>(url, { token });
 }
 
-/** GET /api/fleet/lidarr/get_lidarr_wanted?server_id=X&page=X&pageSize=X — wanted/missing. */
-export async function getLidarrWanted(
+/** GET /api/fleet/arr/wanted?server_id=X&app=X&page=X&page_size=X — wanted/missing. */
+export async function getArrWanted(
   serverId: string,
+  app: ArrApp,
   page?: number,
   pageSize?: number,
   token?: string,
-): Promise<LidarrWantedMissing> {
-  const url = `/fleet/lidarr/get_lidarr_wanted?server_id=${encodeURIComponent(
+): Promise<ArrWantedMissing> {
+  const url = `/fleet/arr/wanted?server_id=${encodeURIComponent(
     serverId,
-  )}${page !== undefined ? `&page=${encodeURIComponent(String(page))}` : ""}${
-    pageSize !== undefined
-      ? `&pageSize=${encodeURIComponent(String(pageSize))}`
-      : ""
+  )}&app=${encodeURIComponent(app)}${page !== undefined ? `&page=${encodeURIComponent(String(page))}` : ""}${
+    pageSize !== undefined ? `&page_size=${encodeURIComponent(String(pageSize))}` : ""
   }`;
-  return request<LidarrWantedMissing>(url, { token });
+  return request<ArrWantedMissing>(url, { token });
 }
 
-/** GET /api/fleet/lidarr/get_lidarr_queue?server_id=X&page=X&pageSize=X — download queue. */
-export async function getLidarrQueue(
+/** GET /api/fleet/arr/queue?server_id=X&app=X&page=X&page_size=X — download queue. */
+export async function getArrQueue(
   serverId: string,
+  app: ArrApp,
   page?: number,
   pageSize?: number,
   token?: string,
-): Promise<LidarrQueue> {
-  const url = `/fleet/lidarr/get_lidarr_queue?server_id=${encodeURIComponent(
+): Promise<ArrQueue> {
+  const url = `/fleet/arr/queue?server_id=${encodeURIComponent(
     serverId,
-  )}${page !== undefined ? `&page=${encodeURIComponent(String(page))}` : ""}${
-    pageSize !== undefined
-      ? `&pageSize=${encodeURIComponent(String(pageSize))}`
-      : ""
+  )}&app=${encodeURIComponent(app)}${page !== undefined ? `&page=${encodeURIComponent(String(page))}` : ""}${
+    pageSize !== undefined ? `&page_size=${encodeURIComponent(String(pageSize))}` : ""
   }`;
-  return request<LidarrQueue>(url, { token });
+  return request<ArrQueue>(url, { token });
 }
 
-/** GET /api/fleet/lidarr/get_lidarr_diskspace?server_id=X — Lidarr disk space. */
-export async function getLidarrDiskspace(
+/** GET /api/fleet/arr/diskspace?server_id=X&app=X — *arr disk space. */
+export async function getArrDiskspace(
   serverId: string,
+  app: ArrApp,
   token?: string,
-): Promise<LidarrDiskSpace[]> {
-  return request<LidarrDiskSpace[]>(
-    `/fleet/lidarr/get_lidarr_diskspace?server_id=${encodeURIComponent(serverId)}`,
+): Promise<ArrDiskSpace[]> {
+  return request<ArrDiskSpace[]>(
+    `/fleet/arr/diskspace?server_id=${encodeURIComponent(serverId)}&app=${encodeURIComponent(app)}`,
     { token },
   );
 }
 
-/** POST /api/fleet/lidarr/lidarr_refresh_artist?server_id=X&artistId=X — refresh an artist. */
-export async function lidarrRefreshArtist(
+/** GET /api/fleet/arr/calendar?server_id=X&app=X&days=X — *arr calendar. */
+export async function getArrCalendar(
   serverId: string,
+  app: ArrApp,
+  days = 7,
+  token?: string,
+): Promise<ArrCalendarEvent[]> {
+  return request<ArrCalendarEvent[]>(
+    `/fleet/arr/calendar?server_id=${encodeURIComponent(serverId)}&app=${encodeURIComponent(app)}&days=${encodeURIComponent(
+      String(days),
+    )}`,
+    { token },
+  );
+}
+
+/** GET /api/fleet/arr/library_total?server_id=X&app=X — *arr library total. */
+export async function getArrLibraryTotal(
+  serverId: string,
+  app: ArrApp,
+  token?: string,
+): Promise<ArrLibraryTotal> {
+  return request<ArrLibraryTotal>(
+    `/fleet/arr/library_total?server_id=${encodeURIComponent(serverId)}&app=${encodeURIComponent(app)}`,
+    { token },
+  );
+}
+
+/** POST /api/fleet/arr/refresh_series?server_id=X&app=X&artist_id=X — refresh an artist/series. */
+export async function arrRefreshSeries(
+  serverId: string,
+  app: ArrApp,
   artistId: number,
   token?: string,
 ): Promise<void> {
   return request<void>(
-    `/fleet/lidarr/lidarr_refresh_artist?server_id=${encodeURIComponent(
+    `/fleet/arr/refresh_series?server_id=${encodeURIComponent(
       serverId,
-    )}&artist_id=${encodeURIComponent(String(artistId))}`,
+    )}&app=${encodeURIComponent(app)}&artist_id=${encodeURIComponent(String(artistId))}`,
     { method: 'POST', token },
   );
 }
 
-/** POST /api/fleet/lidarr/lidarr_search_missing?server_id=X&artistId=X — search missing albums. */
-export async function lidarrSearchMissing(
+/** POST /api/fleet/arr/search_missing?server_id=X&app=X&artist_id=X — search missing. */
+export async function arrSearchMissing(
   serverId: string,
+  app: ArrApp,
   artistId: number,
   token?: string,
 ): Promise<void> {
   return request<void>(
-    `/fleet/lidarr/lidarr_search_missing?server_id=${encodeURIComponent(
+    `/fleet/arr/search_missing?server_id=${encodeURIComponent(
       serverId,
-    )}&artist_id=${encodeURIComponent(String(artistId))}`,
+    )}&app=${encodeURIComponent(app)}&artist_id=${encodeURIComponent(String(artistId))}`,
     { method: 'POST', token },
   );
 }

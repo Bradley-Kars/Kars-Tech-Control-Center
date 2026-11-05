@@ -62,16 +62,10 @@ from .homeassistant_service import (
     HomeAssistantState,
     RealHomeAssistantClient,
 )
-from .lidarr_service import (
-    LidarrAlbum,
-    LidarrArtist,
-    LidarrDiskSpace,
-    LidarrError,
-    LidarrHealthIssue,
-    LidarrQueue,
-    LidarrSystemStatus,
-    LidarrWantedMissing,
-    RealLidarrClient,
+from .arr_service import (  # noqa: E402 - A3
+    ArrApp,
+    ArrError,
+    RealArrClient,
 )
 from .meshcentral_service import (  # noqa: E402 - P11
     MeshCentralClient,
@@ -1373,28 +1367,33 @@ async def homeassistant_turn_off(request: Request, server_id: str, entity_id: st
 
 
 # ---------------------------------------------------------------------------
-# P9: Lidarr — system status, health, artists, albums, wanted/missing, queue,
-# disk space and commands (refresh artist / search missing) over the HTTP
-# /api/v1/ API (X-Api-Key auth)
+# A3: *arr — one client for Lidarr (/api/v1), Sonarr and Radarr (/api/v3).
+# system status, health, artists, albums, wanted/missing, queue, disk space,
+# calendar and library total, plus "search missing" / "refresh series"
+# commands over the HTTP *arr API (X-Api-Key auth)
 # ---------------------------------------------------------------------------
 
 
-def _lidarr_client(server: ServerConfig) -> RealLidarrClient:
-    """Build a RealLidarrClient from a server's service_keys."""
+def _arr_client(server: ServerConfig, app: str) -> RealArrClient:
+    """Build a RealArrClient from a server's service_keys for the given *arr app."""
+    try:
+        arr_app = ArrApp[app.capitalize()]
+    except KeyError:
+        raise ValueError(f"unknown *arr app {app!r}")
     keys = server.service_keys
-    base_url = keys.lidarr_url if keys else None
-    api_key = keys.lidarr_api_key if keys else None
+    base_url = getattr(keys, arr_app.url_field()) if keys else None
+    api_key = getattr(keys, arr_app.api_key_field()) if keys else None
     if not base_url or not base_url.strip():
-        raise ValueError("lidarr_url not configured")
-    return RealLidarrClient(base_url=base_url, api_key=api_key or "")
+        raise ValueError(f"{arr_app.value}_url not configured")
+    return RealArrClient(app=arr_app, base_url=base_url, api_key=api_key or "")
 
 
-@router.get("/lidarr/get_lidarr_status")
-async def lidarr_status(request: Request, server_id: str) -> Any:
-    """GET /api/fleet/lidarr/get_lidarr_status?server_id=X — Lidarr status.
+@router.get("/arr/status")
+async def arr_status(request: Request, server_id: str, app: str) -> Any:
+    """GET /api/fleet/arr/status?server_id=X&app=X — *arr system status.
 
-    Mirrors the ``get_lidarr_status`` command. A failed probe returns
-    a redacted 502.
+    Mirrors the ``get_lidarr_status`` command, generalised to any *arr app.
+    A failed probe returns a redacted 502.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1402,19 +1401,19 @@ async def lidarr_status(request: Request, server_id: str) -> Any:
             {"detail": f"server {server_id!r} not found"}, status_code=404
         )
     try:
-        client = _lidarr_client(server)
+        client = _arr_client(server, app)
         return await client.get_status()
-    except (ValueError, LidarrError, httpx.HTTPError) as exc:
+    except (ValueError, ArrError, httpx.HTTPError) as exc:
         return _probe_error(exc, server)
     except Exception as exc:  # pragma: no cover — secrets must never leak
         return _probe_error(exc, server)
 
 
-@router.get("/lidarr/get_lidarr_health")
-async def lidarr_health(request: Request, server_id: str) -> Any:
-    """GET /api/fleet/lidarr/get_lidarr_health?server_id=X — Lidarr health.
+@router.get("/arr/health")
+async def arr_health(request: Request, server_id: str, app: str) -> Any:
+    """GET /api/fleet/arr/health?server_id=X&app=X — *arr health issues.
 
-    Mirrors the ``get_lidarr_health`` command.
+    Mirrors the ``get_lidarr_health`` command, generalised to any *arr app.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1422,19 +1421,19 @@ async def lidarr_health(request: Request, server_id: str) -> Any:
             {"detail": f"server {server_id!r} not found"}, status_code=404
         )
     try:
-        client = _lidarr_client(server)
+        client = _arr_client(server, app)
         return await client.get_health()
-    except (ValueError, LidarrError, httpx.HTTPError) as exc:
+    except (ValueError, ArrError, httpx.HTTPError) as exc:
         return _probe_error(exc, server)
     except Exception as exc:  # pragma: no cover — secrets must never leak
         return _probe_error(exc, server)
 
 
-@router.get("/lidarr/get_lidarr_artists")
-async def lidarr_artists(request: Request, server_id: str) -> Any:
-    """GET /api/fleet/lidarr/get_lidarr_artists?server_id=X — Lidarr artists.
+@router.get("/arr/artists")
+async def arr_artists(request: Request, server_id: str, app: str) -> Any:
+    """GET /api/fleet/arr/artists?server_id=X&app=X — *arr artists.
 
-    Mirrors the ``get_lidarr_artists`` command.
+    Mirrors the ``get_lidarr_artists`` command, generalised to any *arr app.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1442,19 +1441,19 @@ async def lidarr_artists(request: Request, server_id: str) -> Any:
             {"detail": f"server {server_id!r} not found"}, status_code=404
         )
     try:
-        client = _lidarr_client(server)
+        client = _arr_client(server, app)
         return await client.get_artists()
-    except (ValueError, LidarrError, httpx.HTTPError) as exc:
+    except (ValueError, ArrError, httpx.HTTPError) as exc:
         return _probe_error(exc, server)
     except Exception as exc:  # pragma: no cover — secrets must never leak
         return _probe_error(exc, server)
 
 
-@router.get("/lidarr/get_lidarr_albums")
-async def lidarr_albums(request: Request, server_id: str) -> Any:
-    """GET /api/fleet/lidarr/get_lidarr_albums?server_id=X&artistId=X&monitored=X.
+@router.get("/arr/albums")
+async def arr_albums(request: Request, server_id: str, app: str) -> Any:
+    """GET /api/fleet/arr/albums?server_id=X&app=X&artist_id=X&monitored=X.
 
-    Mirrors the ``get_lidarr_albums`` command.
+    Mirrors the ``get_lidarr_albums`` command, generalised to any *arr app.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1462,7 +1461,7 @@ async def lidarr_albums(request: Request, server_id: str) -> Any:
             {"detail": f"server {server_id!r} not found"}, status_code=404
         )
     try:
-        client = _lidarr_client(server)
+        client = _arr_client(server, app)
         artist_id = request.query_params.get("artist_id")
         monitored = request.query_params.get("monitored")
         artist_id_int = int(artist_id) if artist_id else None
@@ -1470,17 +1469,17 @@ async def lidarr_albums(request: Request, server_id: str) -> Any:
         if monitored is not None:
             monitored_bool = monitored.lower() == "true"
         return await client.get_albums(artist_id=artist_id_int, monitored=monitored_bool)
-    except (ValueError, LidarrError, httpx.HTTPError) as exc:
+    except (ValueError, ArrError, httpx.HTTPError) as exc:
         return _probe_error(exc, server)
     except Exception as exc:  # pragma: no cover — secrets must never leak
         return _probe_error(exc, server)
 
 
-@router.get("/lidarr/get_lidarr_wanted")
-async def lidarr_wanted(request: Request, server_id: str) -> Any:
-    """GET /api/fleet/lidarr/get_lidarr_wanted?server_id=X&page=X&pageSize=X.
+@router.get("/arr/wanted")
+async def arr_wanted(request: Request, server_id: str, app: str) -> Any:
+    """GET /api/fleet/arr/wanted?server_id=X&app=X&page=X&page_size=X.
 
-    Mirrors the ``get_lidarr_wanted`` command.
+    Mirrors the ``get_lidarr_wanted`` command, generalised to any *arr app.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1488,21 +1487,21 @@ async def lidarr_wanted(request: Request, server_id: str) -> Any:
             {"detail": f"server {server_id!r} not found"}, status_code=404
         )
     try:
-        client = _lidarr_client(server)
+        client = _arr_client(server, app)
         page = int(request.query_params.get("page", 1))
-        page_size = int(request.query_params.get("pageSize", 20))
+        page_size = int(request.query_params.get("page_size", 20))
         return await client.get_wanted(page=page, page_size=page_size)
-    except (ValueError, LidarrError, httpx.HTTPError) as exc:
+    except (ValueError, ArrError, httpx.HTTPError) as exc:
         return _probe_error(exc, server)
     except Exception as exc:  # pragma: no cover — secrets must never leak
         return _probe_error(exc, server)
 
 
-@router.get("/lidarr/get_lidarr_queue")
-async def lidarr_queue(request: Request, server_id: str) -> Any:
-    """GET /api/fleet/lidarr/get_lidarr_queue?server_id=X&page=X&pageSize=X.
+@router.get("/arr/queue")
+async def arr_queue(request: Request, server_id: str, app: str) -> Any:
+    """GET /api/fleet/arr/queue?server_id=X&app=X&page=X&page_size=X.
 
-    Mirrors the ``get_lidarr_queue`` command.
+    Mirrors the ``get_lidarr_queue`` command, generalised to any *arr app.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1510,21 +1509,21 @@ async def lidarr_queue(request: Request, server_id: str) -> Any:
             {"detail": f"server {server_id!r} not found"}, status_code=404
         )
     try:
-        client = _lidarr_client(server)
+        client = _arr_client(server, app)
         page = int(request.query_params.get("page", 1))
-        page_size = int(request.query_params.get("pageSize", 20))
+        page_size = int(request.query_params.get("page_size", 20))
         return await client.get_queue(page=page, page_size=page_size)
-    except (ValueError, LidarrError, httpx.HTTPError) as exc:
+    except (ValueError, ArrError, httpx.HTTPError) as exc:
         return _probe_error(exc, server)
     except Exception as exc:  # pragma: no cover — secrets must never leak
         return _probe_error(exc, server)
 
 
-@router.get("/lidarr/get_lidarr_diskspace")
-async def lidarr_diskspace(request: Request, server_id: str) -> Any:
-    """GET /api/fleet/lidarr/get_lidarr_diskspace?server_id=X — Lidarr disk space.
+@router.get("/arr/diskspace")
+async def arr_diskspace(request: Request, server_id: str, app: str) -> Any:
+    """GET /api/fleet/arr/diskspace?server_id=X&app=X — *arr disk space.
 
-    Mirrors the ``get_lidarr_diskspace`` command.
+    Mirrors the ``get_lidarr_diskspace`` command, generalised to any *arr app.
     """
     server = _find_server(server_id)
     if server is None:
@@ -1532,60 +1531,109 @@ async def lidarr_diskspace(request: Request, server_id: str) -> Any:
             {"detail": f"server {server_id!r} not found"}, status_code=404
         )
     try:
-        client = _lidarr_client(server)
+        client = _arr_client(server, app)
         return await client.get_diskspace()
-    except (ValueError, LidarrError, httpx.HTTPError) as exc:
+    except (ValueError, ArrError, httpx.HTTPError) as exc:
         return _probe_error(exc, server)
     except Exception as exc:  # pragma: no cover — secrets must never leak
         return _probe_error(exc, server)
 
 
-@router.post("/lidarr/lidarr_refresh_artist")
-async def lidarr_refresh_artist(request: Request, server_id: str, artist_id: str) -> Any:
-    """POST /api/fleet/lidarr/lidarr_refresh_artist?server_id=X&artistId=X.
+@router.get("/arr/calendar")
+async def arr_calendar(request: Request, server_id: str, app: str) -> Any:
+    """GET /api/fleet/arr/calendar?server_id=X&app=X&days=X — *arr calendar.
 
-    Mirrors the ``lidarr_refresh_artist`` command. Requires scope=write
-    (enforced by the create_app middleware).
+    Mirrors the ``calendar`` endpoint, generalised to any *arr app.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _arr_client(server, app)
+        days = int(request.query_params.get("days", 7))
+        return await client.get_calendar(days=days)
+    except (ValueError, ArrError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.get("/arr/library_total")
+async def arr_library_total(request: Request, server_id: str, app: str) -> Any:
+    """GET /api/fleet/arr/library_total?server_id=X&app=X — *arr library total.
+
+    Mirrors the library count endpoint, generalised to any *arr app.
+    """
+    server = _find_server(server_id)
+    if server is None:
+        return JSONResponse(
+            {"detail": f"server {server_id!r} not found"}, status_code=404
+        )
+    try:
+        client = _arr_client(server, app)
+        return await client.get_library_total()
+    except (ValueError, ArrError, httpx.HTTPError) as exc:
+        return _probe_error(exc, server)
+    except Exception as exc:  # pragma: no cover — secrets must never leak
+        return _probe_error(exc, server)
+
+
+@router.post("/arr/refresh_series")
+async def arr_refresh_series(
+    request: Request, server_id: str, app: str, artist_id: str
+) -> Any:
+    """POST /api/fleet/arr/refresh_series?server_id=X&app=X&artist_id=X.
+
+    Mirrors the ``lidarr_refresh_artist`` command, generalised to any *arr app.
+    Requires scope=write (enforced by the create_app middleware).
     """
     if not isinstance(server_id, str) or not server_id.strip():
         raise ValueError("field 'server_id' is required")
+    if not isinstance(app, str) or not app.strip():
+        raise ValueError("field 'app' is required")
     if not isinstance(artist_id, str) or not artist_id.strip():
-        raise ValueError("field 'artistId' is required")
+        raise ValueError("field 'artist_id' is required")
     server = _find_server(server_id)
     if server is None:
         return JSONResponse(
             {"detail": f"server {server_id!r} not found"}, status_code=404
         )
     try:
-        client = _lidarr_client(server)
+        client = _arr_client(server, app)
         await client.refresh_series(int(artist_id))
-    except (ValueError, LidarrError, httpx.HTTPError) as exc:
+    except (ValueError, ArrError, httpx.HTTPError) as exc:
         return _probe_error(exc, server)
     except Exception as exc:  # pragma: no cover — secrets must never leak
         return _probe_error(exc, server)
     return {"status": "refreshed", "artist_id": artist_id}
 
 
-@router.post("/lidarr/lidarr_search_missing")
-async def lidarr_search_missing(request: Request, server_id: str, artist_id: str) -> Any:
-    """POST /api/fleet/lidarr/lidarr_search_missing?server_id=X&artistId=X.
+@router.post("/arr/search_missing")
+async def arr_search_missing(
+    request: Request, server_id: str, app: str, artist_id: str
+) -> Any:
+    """POST /api/fleet/arr/search_missing?server_id=X&app=X&artist_id=X.
 
-    Mirrors the ``lidarr_search_missing`` command. Requires scope=write
-    (enforced by the create_app middleware).
+    Mirrors the ``lidarr_search_missing`` command, generalised to any *arr app.
+    Requires scope=write (enforced by the create_app middleware).
     """
     if not isinstance(server_id, str) or not server_id.strip():
         raise ValueError("field 'server_id' is required")
+    if not isinstance(app, str) or not app.strip():
+        raise ValueError("field 'app' is required")
     if not isinstance(artist_id, str) or not artist_id.strip():
-        raise ValueError("field 'artistId' is required")
+        raise ValueError("field 'artist_id' is required")
     server = _find_server(server_id)
     if server is None:
         return JSONResponse(
             {"detail": f"server {server_id!r} not found"}, status_code=404
         )
     try:
-        client = _lidarr_client(server)
+        client = _arr_client(server, app)
         await client.search_missing(int(artist_id))
-    except (ValueError, LidarrError, httpx.HTTPError) as exc:
+    except (ValueError, ArrError, httpx.HTTPError) as exc:
         return _probe_error(exc, server)
     except Exception as exc:  # pragma: no cover — secrets must never leak
         return _probe_error(exc, server)

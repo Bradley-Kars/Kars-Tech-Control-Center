@@ -235,7 +235,7 @@ export const mockNextcloudActivity = {
   ],
 };
 
-export const mockLidarrStatus = {
+export const mockArrStatus = {
   app_name: 'Lidarr',
   instance_name: 'Lidarr',
   version: '3.1.0.4875',
@@ -255,22 +255,22 @@ export const mockLidarrStatus = {
   url_base: '',
 };
 
-export const mockLidarrArtists = [
+export const mockArrArtists = [
   { id: 1, foreign_artist_id: '83d91898-7763-47f7-af02-ce65d12154c4', artist_name: 'Pink Floyd', monitored: true, metadata_profile_id: 1, quality_profile_id: 1, root_folder_path: '/mnt/user/media/music', add_options: null, tags: [] },
   { id: 2, foreign_artist_id: '363d0f1c-c0e0-4a1f-b634-f7c68d23f2b2', artist_name: 'Led Zeppelin', monitored: true, metadata_profile_id: 1, quality_profile_id: 1, root_folder_path: '/mnt/user/media/music', add_options: null, tags: [] },
   { id: 3, foreign_artist_id: 'b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d', artist_name: 'The Beatles', monitored: true, metadata_profile_id: 1, quality_profile_id: 1, root_folder_path: '/mnt/user/media/music', add_options: null, tags: [] },
 ];
 
-export const mockLidarrHealth = [];
+export const mockArrHealth = [];
 
-export const mockLidarrAlbums = [
+export const mockArrAlbums = [
   { id: 1, foreign_album_id: 'album-1', artist_id: 1, title: 'The Dark Side of the Moon', album_type: 'album', status: 'released', monitored: true, release_date: '1973-03-01', genres: ['rock', 'progressive rock'], statistics: { track_count: 10, track_file_count: 10, size_on_disk: 536870912, percent_of_tracks: 100 } },
   { id: 2, foreign_album_id: 'album-2', artist_id: 2, title: 'Led Zeppelin IV', album_type: 'album', status: 'released', monitored: true, release_date: '1971-11-08', genres: ['rock', 'hard rock'], statistics: { track_count: 8, track_file_count: 8, size_on_disk: 429496729, percent_of_tracks: 100 } },
   { id: 3, foreign_album_id: 'album-3', artist_id: 3, title: 'Abbey Road', album_type: 'album', status: 'released', monitored: true, release_date: '1969-09-26', genres: ['rock', 'pop'], statistics: { track_count: 17, track_file_count: 17, size_on_disk: 644245094, percent_of_tracks: 100 } },
   { id: 4, foreign_album_id: 'album-4', artist_id: 1, title: 'Wish You Were Here', album_type: 'album', status: 'released', monitored: true, release_date: '1975-09-12', genres: ['rock'], statistics: { track_count: 5, track_file_count: 5, size_on_disk: 375809638, percent_of_tracks: 100 } },
 ];
 
-export const mockLidarrWanted = {
+export const mockArrWanted = {
   page: 1,
   page_size: 20,
   sort_key: 'release_date',
@@ -282,18 +282,18 @@ export const mockLidarrWanted = {
   ],
 };
 
-export const mockLidarrQueue = {
+export const mockArrQueue = {
   page: 1,
-  pageSize: 20,
-  sortKey: 'timeleft',
-  sortDirection: 'ascending',
-  totalRecords: 1,
+  page_size: 20,
+  sort_key: 'timeleft',
+  sort_direction: 'ascending',
+  total_records: 1,
   records: [
-    { id: 1, title: 'Pending Album', status: 'downloading', trackedDownloadStatus: 'ok', trackedDownloadState: 'downloading', size: 536870912, sizeleft: 214748364, timeleft: '00:15:30', estimatedCompletionTime: '2026-08-26T12:00:00Z', downloadId: 'dl-1', downloadClient: 'qBittorrent', indexer: 'RED', protocol: 'torrent' },
+    { id: 1, title: 'Pending Album', status: 'downloading', tracked_download_status: 'ok', tracked_download_state: 'downloading', size: 536870912, size_left: 214748364, time_left: '00:15:30', estimated_completion_time: '2026-08-26T12:00:00Z', download_id: 'dl-1', download_client: 'qBittorrent', indexer: 'RED', protocol: 'torrent' },
   ],
 };
 
-export const mockLidarrDiskspace = [
+export const mockArrDiskspace = [
   { path: '/mnt/user/media/music', label: 'media', free_space: 549755813888, total_space: 1099511627776 },
 ];
 
@@ -352,15 +352,15 @@ export function mockInvoke(command: string, _args?: Record<string, unknown>): Pr
     get_nextcloud_storage: async () => mockNextcloudStorage,
     get_nextcloud_users: async () => mockNextcloudUsers,
     get_nextcloud_activity: async () => mockNextcloudActivity,
-    get_lidarr_status: async () => mockLidarrStatus,
-    get_lidarr_artists: async () => mockLidarrArtists,
-    get_lidarr_health: async () => mockLidarrHealth,
-    get_lidarr_albums: async () => mockLidarrAlbums,
-    get_lidarr_wanted: async () => mockLidarrWanted,
-    get_lidarr_queue: async () => mockLidarrQueue,
-    get_lidarr_diskspace: async () => mockLidarrDiskspace,
-    lidarr_refresh_artist: async () => {},
-    lidarr_search_missing: async () => {},
+    get_arr_status: async () => mockArrStatus,
+    get_arr_artists: async () => mockArrArtists,
+    get_arr_health: async () => mockArrHealth,
+    get_arr_albums: async () => mockArrAlbums,
+    get_arr_wanted: async () => mockArrWanted,
+    get_arr_queue: async () => mockArrQueue,
+    get_arr_diskspace: async () => mockArrDiskspace,
+    arr_refresh_series: async () => {},
+    arr_search_missing: async () => {},
     get_homeassistant_states: async () => mockHomeAssistantStates,
     get_homeassistant_config: async () => mockHomeAssistantConfig,
     get_homeassistant_areas: async () => mockHomeAssistantAreas,

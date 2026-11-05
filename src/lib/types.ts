@@ -432,10 +432,13 @@ export interface HomeAssistantEntity {
 }
 
 // ---------------------------------------------------------------------------
-// Lidarr (ported from the original Rust service in P9)
+// Arr — one type for Lidarr (/api/v1), Sonarr and Radarr (/api/v3)
+// (ported from the original Rust *arr services in P9/A2)
 // ---------------------------------------------------------------------------
 
-export interface LidarrStatus {
+export type ArrApp = 'lidarr' | 'sonarr' | 'radarr';
+
+export interface ArrStatus {
   app_name: string;
   instance_name: string;
   version: string;
@@ -455,20 +458,20 @@ export interface LidarrStatus {
   url_base: string;
 }
 
-export interface LidarrHealthIssue {
+export interface ArrHealthIssue {
   source: string | null;
   issue_type: string;
   message: string;
   wiki_url: string | null;
 }
 
-export interface LidarrAddOptions {
+export interface ArrAddOptions {
   search_for_new_album: boolean;
   search_for_missing_album: boolean;
   search_for_cutoff_unmet_album: boolean;
 }
 
-export interface LidarrArtist {
+export interface ArrArtist {
   id: number;
   foreign_artist_id: string;
   artist_name: string;
@@ -476,18 +479,18 @@ export interface LidarrArtist {
   metadata_profile_id: number;
   quality_profile_id: number;
   root_folder_path: string;
-  add_options: LidarrAddOptions | null;
+  add_options: ArrAddOptions | null;
   tags: number[];
 }
 
-export interface LidarrAlbumStatistics {
+export interface ArrAlbumStatistics {
   track_count: number;
   track_file_count: number;
   size_on_disk: number;
   percent_of_tracks: number;
 }
 
-export interface LidarrAlbum {
+export interface ArrAlbum {
   id: number;
   foreign_album_id: string;
   artist_id: number;
@@ -497,10 +500,10 @@ export interface LidarrAlbum {
   monitored: boolean;
   release_date: string;
   genres: string[];
-  statistics: LidarrAlbumStatistics | null;
+  statistics: ArrAlbumStatistics | null;
 }
 
-export interface LidarrWantedMissing {
+export interface ArrWantedMissing {
   page: number;
   page_size: number;
   sort_key: string;
@@ -509,7 +512,7 @@ export interface LidarrWantedMissing {
   records: any[];
 }
 
-export interface LidarrQueue {
+export interface ArrQueue {
   page: number;
   page_size: number;
   sort_key: string;
@@ -518,25 +521,21 @@ export interface LidarrQueue {
   records: any[];
 }
 
-export interface LidarrDiskSpace {
+export interface ArrDiskSpace {
   path: string;
   label: string;
   free_space: number;
   total_space: number;
 }
 
-export interface LidarrIndexer {
-  id: number;
-  name: string;
-  implementation: string;
-  implementation_name: string;
-  config_contract: string;
-  info_link: string;
-  message: string | null;
-  priority: number;
-  protocol: string;
-  fields: any[];
-  tags: number[];
+export interface ArrCalendarEvent {
+  title: string;
+  start: string;
+  end: string;
+}
+
+export interface ArrLibraryTotal {
+  count: number;
 }
 
 // ---------------------------------------------------------------------------
