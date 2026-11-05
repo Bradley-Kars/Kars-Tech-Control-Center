@@ -508,7 +508,7 @@ export function DashboardPage() {
             {/* Additional info */}
             <div className="flex flex-wrap items-center gap-4 text-[var(--kts-font-size-xs)] text-[var(--kts-text-secondary)] font-[var(--kts-font-mono)]">
               {uptime && <span>Up: {uptime}</span>}
-              <span>Click for details →</span>
+              <span className="text-[var(--kts-brand-primary)] cursor-pointer hover:underline">Click for details →</span>
             </div>
           </Card>
         </div>

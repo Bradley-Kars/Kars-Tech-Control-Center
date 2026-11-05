@@ -365,3 +365,17 @@ describe('Critical Alerts acknowledge (audit DASH-002 P2)', () => {
     expect(mockAlertList).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('Dashboard details link (audit DASH-003 P3)', () => {
+  it('renders every "Click for details →" styled as a link: brand color, cursor-pointer, hover underline', () => {
+    renderPage();
+
+    const links = screen.getAllByText('Click for details →');
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) {
+      expect(link.className).toContain('text-[var(--kts-brand-primary)]');
+      expect(link.className).toContain('cursor-pointer');
+      expect(link.className).toContain('hover:underline');
+    }
+  });
+});
