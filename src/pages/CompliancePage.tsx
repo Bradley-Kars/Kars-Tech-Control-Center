@@ -278,7 +278,13 @@ export function CompliancePage() {
               : 'Check every device for pending OS/package updates, then apply them remotely.'}
           </p>
         </div>
-        <Button variant="primary" size="sm" loading={checkingAll} disabled={checkingAll} onClick={() => void checkAll()}>
+        <Button
+          variant="primary"
+          size="sm"
+          loading={checkingAll}
+          disabled={checkingAll || shellServers.length === 0}
+          onClick={() => void checkAll()}
+        >
           {checkingAll ? 'Checking fleet…' : 'Check all devices'}
         </Button>
       </div>

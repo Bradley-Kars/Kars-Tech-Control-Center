@@ -104,6 +104,26 @@ describe('CompliancePage (COMP-001, COMP-002)', () => {
     expect(screen.queryByText('Action')).not.toBeInTheDocument();
   });
 
+  it('COMP-002: "Check all devices" is disabled when there are zero devices to check', () => {
+    mockUseServers.mockReturnValue({ servers: [], loading: false, error: null } as any);
+    render(<CompliancePage />);
+
+    const checkAll = screen.getByRole('button', { name: /Check all devices/i });
+    expect(checkAll).toBeDisabled();
+  });
+
+  it('COMP-002: "Check all devices" is enabled when shell devices exist', async () => {
+    mockShellFleet.mockResolvedValue([
+      shellResult('s1', '2\n'),
+      shellResult('s2', '0\n'),
+    ]);
+    render(<CompliancePage />);
+
+    await waitFor(() => expect(screen.getByText('Patch Compliance')).toBeInTheDocument());
+    const checkAll = screen.getByRole('button', { name: /Check all devices/i });
+    expect(checkAll).toBeEnabled();
+  });
+
   it('interaction: Check all devices fans out meshcentralShellFleet to every shell server, disabled while in flight', async () => {
     let resolveCheck: (value: any[]) => void = () => {};
     const deferred = new Promise<any[]>((res) => { resolveCheck = res; });
