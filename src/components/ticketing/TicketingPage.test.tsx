@@ -205,6 +205,16 @@ describe('TicketingPage (with mocked bridge API)', () => {
     expect(screen.queryByTestId('ticket-table')).not.toBeInTheDocument();
   });
 
+  it('renders EmptyState component (not table) when zero tickets (TICKET-002)', async () => {
+    mockListTickets.mockResolvedValue({ count: 0, tickets: [] });
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByTestId('empty-state')).toBeInTheDocument());
+    // Table must not render when empty
+    expect(screen.queryByTestId('ticket-table')).not.toBeInTheDocument();
+    // Mobile cards must not render when empty
+    expect(screen.queryAllByTestId(/^ticket-row-/)).toHaveLength(0);
+  });
+
   it('search filters results by title', async () => {
     render(<TicketingPage />);
     await waitFor(() => expect(screen.getByText('Email deliverability remediation')).toBeInTheDocument());

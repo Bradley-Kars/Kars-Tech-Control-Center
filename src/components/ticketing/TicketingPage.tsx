@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '../layout/PageHeader';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
+import { EmptyState } from '../ui/EmptyState';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Label } from '../ui/Label';
@@ -683,9 +684,7 @@ export function TicketingPage() {
 
             {/* Empty state */}
             {!refetchError && filteredTickets.length === 0 && (
-              <div className="pt-6 pr-6 pb-6 pl-6 text-center py-8 text-[var(--kts-text-secondary)]">
-                No tickets found.
-              </div>
+              <EmptyState message="No tickets found." />
             )}
           </>
         )}
