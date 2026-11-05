@@ -161,7 +161,7 @@ export function Toast({ id, type, title, message, action, duration = 5000, onClo
 }
 
 // Toast Container & Manager
-interface ToastItem extends ToastProps {
+export interface ToastItem extends ToastProps {
   key: string;
 }
 
@@ -187,6 +187,24 @@ export function ToastManager({ toasts, onClose, position = 'top-right', maxToast
 
   if (visibleToasts.length === 0) return null;
 
+  const dismissAllToasts = () => {
+    toasts.forEach((t) => onClose(t.id));
+  };
+
+  const overlay = (
+    <div
+      data-testid="toast-overlay"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 'var(--kts-z-toast)',
+        background: 'rgba(0, 0, 0, 0.25)',
+      }}
+      onClick={dismissAllToasts}
+      aria-hidden="true"
+    />
+  );
+
   const container = (
     <div
       className="toast-container fixed z-[var(--kts-z-toast)] flex flex-col"
@@ -204,24 +222,49 @@ export function ToastManager({ toasts, onClose, position = 'top-right', maxToast
           <Toast {...toast} onClose={onClose} />
         </div>
       ))}
+      <button
+        data-testid="toast-dismiss-all"
+        onClick={dismissAllToasts}
+        style={{
+          marginTop: 'var(--kts-space-2)',
+          alignSelf: 'flex-end',
+          background: 'none',
+          border: 'none',
+          color: 'var(--kts-text-tertiary)',
+          cursor: 'pointer',
+          fontSize: 'var(--kts-font-size-sm)',
+          padding: 0,
+        }}
+      >
+        Dismiss all
+      </button>
     </div>
   );
 
   const portalRoot = typeof document !== 'undefined' ? document.getElementById('toast-portal') : null;
-  return createPortal(container, portalRoot ?? document.body);
+  return createPortal(<>{overlay}{container}</>, portalRoot ?? document.body);
 }
 
 // Toast Hook for easy usage
 export function useToast() {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
-  // useId() must run during render; addToast is called from event handlers
-  // (and async callbacks), where hooks are not allowed — the previous code
-  // crash-rendered with "Invalid hook call" every time a toast was added
+  // useId() must run during render; addToast/dismissAll are called from event
+  // handlers (and async callbacks), where hooks are not allowed — the previous
+  // code crash-rendered with "Invalid hook call" every time a toast was added
   // outside render (e.g. MeshCentral load/sync/enroll failures).
   const idBase = useId();
   const counter = useRef(0);
+  // Keeps addToast's identity stable while always reading the freshest toasts,
+  // so back-to-back addToast calls (no render between them) still dedupe.
+  const toastsRef = useRef(toasts);
+  toastsRef.current = toasts;
 
   const addToast = (toast: Omit<ToastProps, 'id' | 'onClose'>) => {
+    // Dedupe identical toasts by (type, title): a duplicate never lands in the
+    // list a second time, so repeated failures (e.g. MeshCentral load errors)
+    // show one toast instead of a stack of identical ones.
+    const existing = toastsRef.current.find((t) => t.type === toast.type && t.title === toast.title);
+    if (existing) return existing.id;
     counter.current += 1;
     const id = `${idBase}-${counter.current}`;
     const newToast: ToastItem = { ...toast, id, key: id, onClose: removeToast };
@@ -233,6 +276,8 @@ export function useToast() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
+  const dismissAll = () => setToasts([]);
+
   const success = (title: string, message?: string, options?: Partial<ToastProps>) =>
     addToast({ type: 'success', title, message, ...options });
   const error = (title: string, message?: string, options?: Partial<ToastProps>) =>
@@ -242,7 +287,7 @@ export function useToast() {
   const info = (title: string, message?: string, options?: Partial<ToastProps>) =>
     addToast({ type: 'info', title, message, ...options });
 
-  return { toasts, addToast, removeToast, success, error, warning, info };
+  return { toasts, addToast, removeToast, dismissAll, success, error, warning, info };
 }
 
 // Keyframes
