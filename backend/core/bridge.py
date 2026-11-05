@@ -885,6 +885,38 @@ def create_app(table: Optional[TokenTable] = None) -> FastAPI:
             "actor": request.state.actor_id,
         }
 
+    @app.post("/api/tickets/{ticket_id}/invoice")
+    def generate_ticket_invoice(request: Request, ticket_id: str):
+        """Generate an invoice from a ticket's worklog.
+
+        Builds the invoice from the ticket + its worklog entries and
+        persists it to the vault under Invoices/. Requires scope="write"
+        (enforced by middleware). Sandbox-aware via get_api — never touches
+        the real vault when KTS_SANDBOX=1 + KTS_VAULT + KTS_HOME are set.
+        """
+        from .api import get_api
+        from .models import EventActor
+
+        actor = EventActor(
+            id=request.state.actor_id,
+            type=request.state.actor_type,
+            name=request.state.actor_name or request.state.label or "bridge",
+        )
+        try:
+            invoice = get_api().generate_invoice(ticket_id, actor)
+        except ValueError as exc:
+            return JSONResponse(
+                {"detail": str(exc)},
+                status_code=404 if "not found" in str(exc).lower() else 422,
+            )
+        except PermissionError as exc:
+            return JSONResponse({"detail": str(exc)}, status_code=403)
+
+        return {
+            "invoice": invoice,
+            "actor": request.state.actor_id,
+        }
+
     @app.patch("/api/tickets/{ticket_id}")
     def update_ticket_fields(request: Request, ticket_id: str, body: dict):
         """T3 (MC-2): edit ticket fields via the real write path (update_ticket).
