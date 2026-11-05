@@ -91,3 +91,35 @@ describe('M1: MCP tools doc snapshots every cli tool', () => {
     }
   });
 });
+
+describe('M1b: MCP tools doc includes instructions and schemas with placeholders', () => {
+  it('every tool section has an Instructions paragraph copied from the contract', () => {
+    for (const t of TOOLS) {
+      const idx = doc.indexOf(`### ${t.name}`);
+      expect(idx, `${t.name} section found`).toBeGreaterThanOrEqual(0);
+      const end = doc.indexOf('\n### ', idx + 1);
+      const section = end === -1 ? doc.slice(idx) : doc.slice(idx, end);
+      expect(section, `${t.name} has an Instructions paragraph`).toContain(
+        '**Instructions:**',
+      );
+    }
+  });
+
+  it('every tool section has a Schema code block with valid JSON', () => {
+    for (const t of TOOLS) {
+      const idx = doc.indexOf(`### ${t.name}`);
+      expect(idx, `${t.name} section found`).toBeGreaterThanOrEqual(0);
+      const end = doc.indexOf('\n### ', idx + 1);
+      const section = end === -1 ? doc.slice(idx) : doc.slice(idx, end);
+      expect(section, `${t.name} has a Schema block`).toContain('**Schema:**');
+      const m = section.match(/```json\n([\s\S]*?)\n```/);
+      expect(m, `${t.name} schema is a fenced JSON block`).toBeTruthy();
+      expect(() => JSON.parse(m![1]), `${t.name} schema parses as JSON`).not.toThrow();
+    }
+  });
+
+  it('no real hostnames or device names appear in instructions or schemas', () => {
+    expect(doc).not.toContain('unraid-main');
+    expect(doc).not.toContain('hermes');
+  });
+});
