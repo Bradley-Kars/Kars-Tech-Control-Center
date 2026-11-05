@@ -397,4 +397,47 @@ describe('TicketingPage (with mocked bridge API)', () => {
       'ticket-row-TKT-2026-003', // never updated, last
     ]);
   });
+
+  it('refetch error shows error banner but not empty state (TICKET-001)', async () => {
+    mockListTickets
+      .mockResolvedValueOnce({ count: 3, tickets: baseTickets })
+      .mockRejectedValueOnce(new Error('Connection lost'));
+    mockCreateTicket.mockResolvedValue({ ticket_id: 'NEW-1', title: 'New ticket', status: 'new', version: 1 });
+
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Email deliverability remediation')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /New Ticket/i }));
+    const titleInput = screen.getByPlaceholderText('Ticket title');
+    fireEvent.input(titleInput, { target: { value: 'New ticket' } });
+    fireEvent.click(screen.getByRole('button', { name: /Create/i }));
+
+    await waitFor(() => expect(createTicket).toHaveBeenCalled());
+    // refetch failed after create: error banner shows
+    await waitFor(() => expect(screen.getByText(/unreachable/i)).toBeInTheDocument());
+    // but "No tickets found" must NOT show — data was not wiped
+    expect(screen.queryByText('No tickets found.')).not.toBeInTheDocument();
+    // the ticket rows are still visible
+    expect(screen.getByText('Email deliverability remediation')).toBeInTheDocument();
+  });
+
+  it('refetch error Retry button is labeled "Retry loading" (TICKET-001)', async () => {
+    mockListTickets
+      .mockResolvedValueOnce({ count: 3, tickets: baseTickets })
+      .mockRejectedValueOnce(new Error('Connection lost'));
+    mockCreateTicket.mockResolvedValue({ ticket_id: 'NEW-1', title: 'New ticket', status: 'new', version: 1 });
+
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Email deliverability remediation')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /New Ticket/i }));
+    const titleInput = screen.getByPlaceholderText('Ticket title');
+    fireEvent.input(titleInput, { target: { value: 'New ticket' } });
+    fireEvent.click(screen.getByRole('button', { name: /Create/i }));
+
+    await waitFor(() => expect(createTicket).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /Retry loading/i })).toBeInTheDocument(),
+    );
+  });
 });

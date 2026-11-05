@@ -102,7 +102,7 @@ function ErrorBanner({ error, onRetry }: { error: string; onRetry: () => void })
         <div className="flex-1">
           <div className="text-sm font-semibold">{error}</div>
           <Button className="min-h-[44px] min-w-[44px]" variant="outline" size="sm" onClick={onRetry}>
-            Retry
+            Retry loading
           </Button>
         </div>
       </div>
@@ -143,6 +143,7 @@ export function TicketingPage() {
   const [data, setData] = useState<TicketOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
+  const [refetchError, setRefetchError] = useState<string | null>(null);
   const [selected, setSelected] = useState<TicketRow | null>(null);
   const [creating, setCreating] = useState(false);
   const [createTitle, setCreateTitle] = useState('');
@@ -273,6 +274,8 @@ export function TicketingPage() {
           status: t.status,
           client_id: t.client_name ?? '',
           priority: t.priority ?? 'medium',
+          due_date: t.due_date ?? null,
+          updated_at: t.updated_at ?? null,
           hours: 0,
           total: 0,
           invoice_number: null,
@@ -280,13 +283,10 @@ export function TicketingPage() {
         })),
         offline_reason: 'none',
       });
+      setRefetchError(null);
     } catch (err) {
       console.error('[ticketing] refetch failed:', err);
-      const offline: TicketOverview = {
-        tickets: [],
-        offline_reason: (err as { status?: number }).status === 401 ? 'unauthorized' : 'unreachable',
-      };
-      setData(offline);
+      setRefetchError((err as { status?: number }).status === 401 ? 'Unauthorized' : 'Unreachable');
     }
   }, []);
 
@@ -503,8 +503,6 @@ export function TicketingPage() {
     return `${openCount} open`;
   }, [filteredTickets]);
 
-  const offline_reason = data?.offline_reason ?? 'none';
-
   return (
     <div className="flex flex-col h-full min-w-0" data-testid="ticketing-page">
       <PageHeader
@@ -528,9 +526,9 @@ export function TicketingPage() {
           </div>
         ) : (
           <>
-            {offline_reason !== 'none' && (
+            {refetchError && (
               <div className="pt-6 pr-6 pb-2 pl-6">
-                <ErrorBanner error={offline_reason} onRetry={() => refetch()} />
+                <ErrorBanner error={refetchError} onRetry={() => refetch()} />
               </div>
             )}
 
@@ -684,7 +682,7 @@ export function TicketingPage() {
             )}
 
             {/* Empty state */}
-            {filteredTickets.length === 0 && (
+            {!refetchError && filteredTickets.length === 0 && (
               <div className="pt-6 pr-6 pb-6 pl-6 text-center py-8 text-[var(--kts-text-secondary)]">
                 No tickets found.
               </div>
