@@ -217,6 +217,38 @@ describe('TicketingPage (with mocked bridge API)', () => {
     });
   });
 
+  it('search filters results by id substring (case-insensitive)', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
+
+    const searchInput = screen.getByPlaceholderText('Search id, title, client…');
+    fireEvent.input(searchInput, { target: { value: '2026-003' } });
+    await waitFor(() => {
+      expect(screen.getByText('Laptop repair')).toBeInTheDocument();
+      expect(screen.queryByText('Email deliverability remediation')).not.toBeInTheDocument();
+      expect(screen.queryByText('Microphone and speaker setup')).not.toBeInTheDocument();
+    });
+  });
+
+  it('empty search shows all tickets again', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
+
+    const searchInput = screen.getByPlaceholderText('Search id, title, client…');
+    fireEvent.input(searchInput, { target: { value: 'Laptop repair' } });
+    await waitFor(() => {
+      expect(screen.getByText('Laptop repair')).toBeInTheDocument();
+      expect(screen.queryByText('Email deliverability remediation')).not.toBeInTheDocument();
+    });
+
+    fireEvent.input(searchInput, { target: { value: '' } });
+    await waitFor(() => {
+      for (const t of baseTickets) {
+        expect(screen.getByText(t.title)).toBeInTheDocument();
+      }
+    });
+  });
+
   it('renders status filter chips: All, Open, Mine, Waiting, Closed', async () => {
     render(<TicketingPage />);
     await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
