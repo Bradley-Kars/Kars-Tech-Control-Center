@@ -569,20 +569,23 @@ export function TicketingPage() {
             <div className="flex flex-wrap gap-4 items-end pt-2 pr-6 pb-2 pl-6">
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-mono text-[var(--kts-text-secondary)]">Status</label>
-              <div className="relative">
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.currentTarget.value as any)}
-                  className="border rounded px-2 py-1 text-sm w-full pr-8"
-                >
-                  <option value="all">All</option>
-                  <option value="open">Open</option>
-                  <option value="mine">Mine</option>
-                  <option value="waiting">Waiting</option>
-                  <option value="closed">Closed</option>
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--kts-text-tertiary)] size-4 pointer-events-none" />
-              </div>
+                <div className="flex gap-2" role="group" aria-label="Status filter">
+                  {(['all', 'open', 'mine', 'waiting', 'closed'] as const).map((value) => (
+                    <button
+                      key={value}
+                      data-testid={`filter-chip-${value}`}
+                      aria-pressed={filterStatus === value}
+                      onClick={() => setFilterStatus(value)}
+                      className={`px-3 py-1 text-xs border border-[var(--kts-border-default)] rounded-md ${
+                        filterStatus === value
+                          ? 'bg-[var(--kts-bg-tertiary)] text-[var(--kts-text-secondary)] font-medium opacity-100'
+                          : 'bg-transparent text-[var(--kts-text-secondary)] opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      {value.charAt(0).toUpperCase() + value.slice(1)}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="flex flex-col gap-2 flex-1">
                 <label className="text-xs font-mono text-[var(--kts-text-secondary)]">Search</label>

@@ -217,32 +217,86 @@ describe('TicketingPage (with mocked bridge API)', () => {
     });
   });
 
-  it('filters by waiting status', async () => {
+  it('renders status filter chips: All, Open, Mine, Waiting, Closed', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
+    for (const value of ['all', 'open', 'mine', 'waiting', 'closed']) {
+      expect(screen.getByTestId(`filter-chip-${value}`)).toBeInTheDocument();
+    }
+  });
+
+  it('active chip is All with aria-pressed=true, the others are not', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
+    expect(screen.getByTestId('filter-chip-all')).toHaveAttribute('aria-pressed', 'true');
+    for (const value of ['open', 'mine', 'waiting', 'closed']) {
+      expect(screen.getByTestId(`filter-chip-${value}`)).toHaveAttribute('aria-pressed', 'false');
+    }
+  });
+
+  it('filters by open status shows only open tickets', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('filter-chip-open'));
+    await waitFor(() => {
+      expect(screen.getByText('Microphone and speaker setup')).toBeInTheDocument();
+      expect(screen.getByText('Laptop repair')).toBeInTheDocument();
+      expect(screen.queryByText('Email deliverability remediation')).not.toBeInTheDocument();
+    });
+  });
+
+  it('filters by closed status shows only closed tickets', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('filter-chip-closed'));
+    await waitFor(() => {
+      expect(screen.getByText('Email deliverability remediation')).toBeInTheDocument();
+      expect(screen.queryByText('Microphone and speaker setup')).not.toBeInTheDocument();
+      expect(screen.queryByText('Laptop repair')).not.toBeInTheDocument();
+    });
+  });
+
+  it('filters by mine status shows only open tickets', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Microphone and speaker setup')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('filter-chip-mine'));
+    await waitFor(() => {
+      expect(screen.getByText('Microphone and speaker setup')).toBeInTheDocument();
+      expect(screen.queryByText('Email deliverability remediation')).not.toBeInTheDocument();
+      expect(screen.getByText('Laptop repair')).toBeInTheDocument();
+    });
+  });
+
+  it('clearing the status filter (All) shows all tickets again', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('filter-chip-open'));
+    await waitFor(() => expect(screen.queryByText('Email deliverability remediation')).not.toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('filter-chip-all'));
+    await waitFor(() => {
+      for (const t of baseTickets) {
+        expect(screen.getByText(t.title)).toBeInTheDocument();
+      }
+    });
+  });
+
+  it('filters by waiting status shows only waiting tickets', async () => {
     const waiting = [{ id: 'W-1', title: 'Waiting on parts', status: 'waiting', client_name: 'CUS-000001', priority: 'low' }];
     mockListTickets.mockResolvedValue({ count: 1, tickets: waiting });
     render(<TicketingPage />);
     await waitFor(() => expect(screen.getByText('Waiting on parts')).toBeInTheDocument());
 
-    // Switch to Waiting filter
-    const statusSelect = screen.getAllByRole('combobox')[0];
-    fireEvent.click(statusSelect);
-    fireEvent.change(statusSelect, { target: { value: "waiting" } });
+    fireEvent.click(screen.getByTestId('filter-chip-waiting'));
     await waitFor(() => {
       expect(screen.getByText('Waiting on parts')).toBeInTheDocument();
       expect(screen.queryByText('Email deliverability remediation')).not.toBeInTheDocument();
-    });
-  });
-
-  it('filters by mine status (open tickets)', async () => {
-    render(<TicketingPage />);
-    await waitFor(() => expect(screen.getByText('Microphone and speaker setup')).toBeInTheDocument());
-
-    const statusSelect = screen.getAllByRole('combobox')[0];
-    fireEvent.click(statusSelect);
-    fireEvent.change(statusSelect, { target: { value: 'mine' } });
-    await waitFor(() => {
-      expect(screen.getByText('Microphone and speaker setup')).toBeInTheDocument();
-      expect(screen.queryByText('Email deliverability remediation')).not.toBeInTheDocument();
+      expect(screen.queryByText('Microphone and speaker setup')).not.toBeInTheDocument();
+      expect(screen.queryByText('Laptop repair')).not.toBeInTheDocument();
     });
   });
 
@@ -261,7 +315,7 @@ describe('TicketingPage (with mocked bridge API)', () => {
   it('can switch sort to due without crashing', async () => {
     render(<TicketingPage />);
     await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
-    const sortSelect = screen.getAllByRole('combobox')[1];
+    const sortSelect = screen.getAllByRole('combobox')[0];
     fireEvent.change(sortSelect, { target: { value: 'due' } });
     await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
   });
