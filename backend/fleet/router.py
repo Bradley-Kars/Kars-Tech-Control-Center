@@ -429,7 +429,10 @@ async def system_stats(request: Request, server_id: str) -> Any:
     try:
         helper = SshHelper.from_config(server)
         return await _probe_system_stats(helper)
-    except (SshCommandError, TransportError) as exc:
+    except (SshCommandError, TransportError, OSError) as exc:
+        # asyncssh can raise plain OSError (e.g. socket.gaierror when the
+        # hostname does not resolve, or connection refused) before any SSH
+        # command runs; treat it as a failed probe, not a 500 crash.
         return _probe_error(exc, server)
 
 
