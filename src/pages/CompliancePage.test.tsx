@@ -87,8 +87,21 @@ describe('CompliancePage (COMP-001, COMP-002)', () => {
     render(<CompliancePage />);
 
     expect(screen.getByText('Patch Compliance')).toBeInTheDocument();
-    expect(screen.getByText(/No devices to check for compliance/)).toBeInTheDocument();
+    expect(screen.getByText(/No devices to scan/)).toBeInTheDocument();
     expect(screen.queryByText('Unraid Server')).not.toBeInTheDocument();
+  });
+
+  it('empty state: shows "no devices to scan" message and hides table headers when zero devices', () => {
+    mockUseServers.mockReturnValue({ servers: [], loading: false, error: null } as any);
+    render(<CompliancePage />);
+
+    expect(screen.getByText(/no devices to scan/i)).toBeInTheDocument();
+    // Table headers must not render when there is no data
+    expect(screen.queryByText('Device')).not.toBeInTheDocument();
+    expect(screen.queryByText('Status')).not.toBeInTheDocument();
+    expect(screen.queryByText('Last checked')).not.toBeInTheDocument();
+    expect(screen.queryByText('Agent')).not.toBeInTheDocument();
+    expect(screen.queryByText('Action')).not.toBeInTheDocument();
   });
 
   it('interaction: Check all devices fans out meshcentralShellFleet to every shell server, disabled while in flight', async () => {

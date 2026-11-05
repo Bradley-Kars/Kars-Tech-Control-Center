@@ -286,9 +286,9 @@ export function CompliancePage() {
       {/* Coverage table */}
       {!hasDevices ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <p className="text-[var(--kts-text-secondary)] text-sm max-w-md mx-auto">
-            No devices to check for compliance. Enroll devices in MeshCentral first, then run a compliance check.
-          </p>
+            <p className="text-[var(--kts-text-secondary)] text-sm max-w-md mx-auto">
+              No devices to scan. Enroll devices in MeshCentral first, then run a compliance check.
+            </p>
         </div>
       ) : (
         <Card>
