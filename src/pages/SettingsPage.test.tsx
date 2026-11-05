@@ -100,6 +100,24 @@ describe('SettingsPage', () => {
     expect(screen.getByText('Light')).toBeInTheDocument();
   });
 
+  it('emphasizes the selected theme radio label: font-semibold + brand color (SETTINGS-003)', () => {
+    render(wrap(<SettingsPage />));
+    // Clicking a radio label toggles selection in this jsdom; pick Dark first
+    // so the start state is known no matter what localStorage state earlier
+    // tests in this file leaked (they share one localStorageStore).
+    fireEvent.click(screen.getByText('Dark'));
+    const darkLabel = screen.getByText('Dark');
+    expect(darkLabel.style.fontWeight).toBe('600');
+    expect(darkLabel.style.color).toBe('var(--kts-brand-primary)');
+
+    // Switching to "Light" moves the emphasis onto "Light" and off "Dark"
+    fireEvent.click(screen.getByText('Light'));
+    const lightLabel = screen.getByText('Light');
+    expect(lightLabel.style.fontWeight).toBe('600');
+    expect(lightLabel.style.color).toBe('var(--kts-brand-primary)');
+    expect(screen.getByText('Dark').style.fontWeight).not.toBe('600');
+  });
+
   it('reduce motion switch shows on/off state and brand color when on (SETTINGS-002)', () => {
     render(wrap(<SettingsPage />));
     const switchEl = screen.getByRole('switch', { name: /Reduce motion/ });

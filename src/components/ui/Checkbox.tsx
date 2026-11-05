@@ -204,7 +204,12 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(
             {label && (
               <span
                 className="font-medium truncate"
-                style={{ fontSize: s.labelSize, color: 'var(--kts-text-primary)', fontFamily: 'var(--kts-font-sans)' }}
+                style={{
+                  fontSize: s.labelSize,
+                  color: checked ? 'var(--kts-brand-primary)' : 'var(--kts-text-primary)',
+                  fontWeight: checked ? '600' : undefined,
+                  fontFamily: 'var(--kts-font-sans)',
+                }}
               >
                 {label}
               </span>
