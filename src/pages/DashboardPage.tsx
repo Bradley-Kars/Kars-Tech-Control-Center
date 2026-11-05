@@ -60,9 +60,13 @@ function getDevicePath(deviceType: string) {
 
 export function DashboardPage() {
   const { servers, loading: serversLoading } = useServers();
-  const { stats: localStats } = useLocalStats();
-  const { fleetStats } = useFleetStats(servers);
+  const { stats: localStats, loading: localStatsLoading } = useLocalStats();
+  const { fleetStats, loading: fleetStatsLoading } = useFleetStats(servers);
   const navigate = useNavigate();
+
+  // A gauge is only meaningful when a device actually reported the number;
+  // missing data renders "—" (Gauge's loading state) instead of a fake 0%.
+  const isLoading = serversLoading || localStatsLoading || fleetStatsLoading;
 
   // Container width for responsive grid (containerRef must stay mounted from the
   // first commit — the measure effect attaches exactly once and never retries)
@@ -286,7 +290,7 @@ export function DashboardPage() {
     return actions;
   }, [servers, navigate, handleFleetHealth]);
 
-  if (serversLoading) {
+  if (isLoading) {
     // Keep the measured container mounted during load — useContainerWidth's
     // effect only ever attaches to containerRef once, right after first commit.
     return (
@@ -404,8 +408,8 @@ export function DashboardPage() {
       >
       {devices.map(({ deviceType, server, stats }, index) => {
         const isOnline = stats.connected !== false;
-        const cpu = stats.cpu_usage ?? stats.system?.cpu_usage ?? 0;
-        const mem = stats.memory_usage_pct ?? stats.system?.memory_usage_pct ?? 0;
+        const cpu = stats.cpu_usage ?? stats.system?.cpu_usage;
+        const mem = stats.memory_usage_pct ?? stats.system?.memory_usage_pct;
         const temp = stats.temp_avg ?? stats.system?.thermal?.cpu_temp_c ?? stats.thermal?.cpu_temp_c;
         const uptime = stats.uptime ?? stats.system?.uptime;
         const hostname = stats.hostname ?? server.hostname;
@@ -451,10 +455,24 @@ export function DashboardPage() {
                 </div>
               </div>
 
-            {/* Vitals */}
+            {/* Vitals — missing data shows "—", never a fabricated 0% */}
             <div className="grid grid-cols-3 gap-3 mb-4">
-              <Gauge size="sm" value={cpu} variant={cpu > 80 ? 'danger' : cpu > 50 ? 'warning' : 'success'} label="CPU" showValue />
-              <Gauge size="sm" value={mem} variant={mem > 85 ? 'danger' : mem > 60 ? 'warning' : 'success'} label="Memory" showValue />
+              <Gauge
+                size="sm"
+                value={cpu ?? 0}
+                variant={cpu == null ? 'default' : cpu > 80 ? 'danger' : cpu > 50 ? 'warning' : 'success'}
+                label="CPU"
+                showValue
+                loading={cpu == null}
+              />
+              <Gauge
+                size="sm"
+                value={mem ?? 0}
+                variant={mem == null ? 'default' : mem > 85 ? 'danger' : mem > 60 ? 'warning' : 'success'}
+                label="Memory"
+                showValue
+                loading={mem == null}
+              />
               {temp != null && (
                 <Gauge size="sm" value={Math.min(100, (temp / 100) * 100)} variant={temp > 75 ? 'danger' : temp > 55 ? 'warning' : 'success'} label="Temp" showValue valueFormatter={() => `${Math.round(temp)}°C`} />
               )}

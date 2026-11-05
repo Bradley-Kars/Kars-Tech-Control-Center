@@ -65,15 +65,24 @@ const renderPage = (overrides: Partial<{
   servers: typeof servers;
   loading: boolean;
   localStats: unknown;
+  localStatsLoading: boolean;
   fleetStats: Record<string, unknown>;
+  fleetStatsLoading: boolean;
 }> = {}) => {
   mocks.useServers.mockReturnValue({
     servers: overrides.servers ?? servers,
     loading: overrides.loading ?? false,
     error: null,
   } as any);
-  mocks.useLocalStats.mockReturnValue({ stats: overrides.localStats ?? localStats, loading: false, error: null } as any);
-  mocks.useFleetStats.mockReturnValue({ fleetStats: overrides.fleetStats ?? fleetStats, loading: false } as any);
+  mocks.useLocalStats.mockReturnValue({
+    stats: overrides.localStats === undefined ? localStats : overrides.localStats,
+    loading: overrides.localStatsLoading ?? false,
+    error: null,
+  } as any);
+  mocks.useFleetStats.mockReturnValue({
+    fleetStats: overrides.fleetStats ?? fleetStats,
+    loading: overrides.fleetStatsLoading ?? false,
+  } as any);
   return render(
     <MemoryRouter initialEntries={['/']}>
       <DashboardPage />
@@ -99,6 +108,43 @@ describe('DashboardPage (D/E/L/R/I state matrix)', () => {
     // 1 text skeleton (3 shimmer lines) + 6 SkeletonCard (2 shimmers each) = 15
     const shimmers = container.querySelectorAll('div[style*="skeleton-shimmer"]');
     expect(shimmers.length).toBe(15);
+  });
+
+  it('L loading (local stats): renders the skeleton shell while local stats fetch', () => {
+    const { container } = renderPage({ localStatsLoading: true });
+
+    expect(screen.queryByText('Fleet Overview')).not.toBeInTheDocument();
+    expect(screen.queryByText('This Machine')).not.toBeInTheDocument();
+
+    const shimmers = container.querySelectorAll('div[style*="skeleton-shimmer"]');
+    expect(shimmers.length).toBe(15);
+  });
+
+  it('L loading (fleet stats): renders the skeleton shell while fleet stats fetch', () => {
+    const { container } = renderPage({ fleetStatsLoading: true });
+
+    expect(screen.queryByText('Fleet Overview')).not.toBeInTheDocument();
+    expect(screen.queryByText('This Machine')).not.toBeInTheDocument();
+
+    const shimmers = container.querySelectorAll('div[style*="skeleton-shimmer"]');
+    expect(shimmers.length).toBe(15);
+  });
+
+  it('shows "—" instead of 0% when a device has no stats', () => {
+    renderPage({
+      // localStats keeps its defaults (cpu 22, mem 44). Unraid is connected but
+      // reports no numbers; phone is missing from fleet stats entirely.
+      fleetStats: { unraid: { connected: true, source: 'ssh', hostname: 'unraid.main' } },
+    });
+
+    // Local machine (null stats), unraid (connected but no numbers), phone (missing entirely)
+    // all render "—" gauges; nothing may show "0%".
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+    expect(screen.queryByText('0%')).not.toBeInTheDocument();
+
+    // Devices that do have data still show real percentages.
+    expect(screen.getByText('22%')).toBeInTheDocument();
+    expect(screen.getByText('44%')).toBeInTheDocument();
   });
 
   it('E empty servers: only the local machine card shows ("1 device"), quick actions fall back to Fleet Health + Refresh', () => {

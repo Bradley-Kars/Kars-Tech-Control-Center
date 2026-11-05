@@ -199,11 +199,15 @@ export function useFleetStats(servers: ServerConfig[], interval = 10000) {
   }, [servers]);
 
   useEffect(() => {
-    if (servers.length > 0) {
-      refresh();
-      const timer = setInterval(refresh, interval);
-      return () => clearInterval(timer);
+    if (servers.length === 0) {
+      // Nothing to fetch: report idle instead of stuck in loading forever.
+      setFleetStats({});
+      setLoading(false);
+      return;
     }
+    refresh();
+    const timer = setInterval(refresh, interval);
+    return () => clearInterval(timer);
   }, [refresh, interval, servers.length]);
 
   return useMemo(() => ({ fleetStats, loading, refresh }), [fleetStats, loading, refresh]);
