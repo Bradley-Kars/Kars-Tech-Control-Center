@@ -32,6 +32,20 @@ The fleet source of truth is `~/.config/master-control/servers.json` (overridabl
 - `api_key?`, `service_keys?` (per-service credentials and URLs)
 - `meshcentral_device_id?`, `meshcentral_enrolled_at?`, `meshcentral_status?`, `connection_priority?`
 
+### *arr service keys
+
+A server entry that runs Lidarr, Sonarr, or Radarr configures them under
+`service_keys`. Each app needs its base URL and its API key, sent as the
+`X-Api-Key` header on every request. Lidarr uses API version `v1`; Sonarr and
+Radarr use `v3`. Lidarr, Sonarr, and Radarr share one "Arr" section — there is
+no separate MySpeed product.
+
+| Key | App | API version | Example (placeholder values only) |
+|---|---|---|---|
+| `lidarr_url` / `lidarr_api_key` | Lidarr | v1 | `http://<device>.<tailnet>.ts.net:8686` / `0123456789abcdef0123456789abcdef` |
+| `sonarr_url` / `sonarr_api_key` | Sonarr | v3 | `http://<device>.<tailnet>.ts.net:8989` / `0123456789abcdef0123456789abcdef` |
+| `radarr_url` / `radarr_api_key` | Radarr | v3 | `http://<device>.<tailnet>.ts.net:7878` / `0123456789abcdef0123456789abcdef` |
+
 `servers.json` wins for matching server ids. Writes are atomic (mode 0600) with a `.bak` copy.
 
 Private ticketing bridge config lives separately in `~/.config/master-control/config.private.json` (mode 0600): `bridge_url`, `bridge_token`, `use_live_bridge`. It is never exposed to the frontend and never in `servers.json`.
