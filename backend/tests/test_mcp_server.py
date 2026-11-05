@@ -64,6 +64,24 @@ READ_ONLY_TOOLS = [
     "mc_prometheus_query",
 ]
 
+# Mutating (POST) tools added in M3. Each requires scope=write on the token;
+# the destructive subset additionally requires confirm: true.
+WRITE_TOOLS = [
+    "mc_docker_start",
+    "mc_docker_stop",
+    "mc_docker_restart",
+    "mc_shell_exec",
+    "mc_adguard_enable",
+    "mc_adguard_disable",
+]
+
+DESTRUCTIVE_TOOLS = [
+    "mc_docker_restart",
+    "mc_shell_exec",
+    "mc_adguard_enable",
+    "mc_adguard_disable",
+]
+
 
 def free_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -100,6 +118,7 @@ def backend_endpoint(tmp_path, monkeypatch):
     table_dir = tmp_path / "auth"
     table = TokenTable(table_dir / "token-table.json")
     _, secret = table.mint("mcp-client", actor_id="mcp-actor", scope="read")
+    _, write_secret = table.mint("mcp-write-client", actor_id="mcp-write-actor", scope="write")
 
     # Seed one fixture server so probe-style tools (system stats, array info)
     # exercise the client path instead of hitting "server not found" (404).
@@ -123,6 +142,7 @@ def backend_endpoint(tmp_path, monkeypatch):
 
     monkeypatch.setenv("KTS_API_URL", f"http://127.0.0.1:{port}")
     monkeypatch.setenv("KTS_API_TOKEN", secret)
+    monkeypatch.setenv("KTS_WRITE_TOKEN", write_secret)
 
     yield f"http://127.0.0.1:{port}", secret
 
@@ -255,6 +275,13 @@ class TestToolsList:
             assert set(t) <= {"name", "description", "inputSchema"}
             assert isinstance(t["inputSchema"], dict)
 
+    def test_lists_write_tools(self, backend_endpoint):
+        with McpProc() as mcp:
+            resp = mcp.send(_rpc("tools/list"))
+        names = {t["name"] for t in resp["result"]["tools"]}
+        for name in WRITE_TOOLS:
+            assert name in names, f"missing write tool {name}"
+
 
 class TestMcListServers:
     def test_returns_seeded_server_redacted(self, backend_endpoint, tmp_path, monkeypatch):
@@ -337,3 +364,110 @@ class TestMcListServers:
             resp = mcp.send(_rpc("tools/call", {"name": "mc_alert_list", "arguments": {}}))
         body = json.loads(_content(resp))
         assert isinstance(body, list)
+
+
+class TestWriteTools:
+    """Write tools require scope=write on the token; destructive ones require
+    confirm: true. Every refusal path is covered."""
+
+    def test_read_token_rejected_on_write_tool(self, backend_endpoint):
+        # KTS_API_TOKEN in env is the read token (scope="read"); POST needs write.
+        with McpProc() as mcp:
+            resp = mcp.send(_rpc("tools/call", {
+                "name": "mc_docker_start",
+                "arguments": {"server_id": "unraid-main", "container": "nginx"},
+            }))
+        assert "error" in resp
+        assert resp["error"]["code"] == -32603
+        assert "403" in resp["error"]["data"]
+
+    def test_write_token_reaches_backend(self, backend_endpoint):
+        write_secret = os.environ["KTS_WRITE_TOKEN"]
+        with McpProc(env_overrides={"KTS_API_TOKEN": write_secret}) as mcp:
+            resp = mcp.send(_rpc("tools/call", {
+                "name": "mc_docker_start",
+                "arguments": {"server_id": "unraid-main", "container": "nginx"},
+            }))
+        # No SSH daemon in the test env -> redacted 502, but write scope was
+        # accepted (not 403): the backend was reached over HTTP.
+        content = json.loads(_content(resp))
+        assert content["status"] == 502
+        assert "SSH" in content["error"] or "probe" in content["error"]
+
+    def test_destructive_without_confirm_is_invalid_params(self, backend_endpoint):
+        write_secret = os.environ["KTS_WRITE_TOKEN"]
+        with McpProc(env_overrides={"KTS_API_TOKEN": write_secret}) as mcp:
+            resp = mcp.send(_rpc("tools/call", {
+                "name": "mc_docker_restart",
+                "arguments": {"server_id": "unraid-main", "container": "nginx"},
+            }))
+        assert resp["error"]["code"] == -32602
+        assert "confirm" in resp["error"]["message"]
+
+    def test_confirm_false_is_rejected(self, backend_endpoint):
+        write_secret = os.environ["KTS_WRITE_TOKEN"]
+        with McpProc(env_overrides={"KTS_API_TOKEN": write_secret}) as mcp:
+            resp = mcp.send(_rpc("tools/call", {
+                "name": "mc_docker_restart",
+                "arguments": {"server_id": "unraid-main", "container": "nginx", "confirm": False},
+            }))
+        assert resp["error"]["code"] == -32602
+
+    def test_confirm_string_is_rejected(self, backend_endpoint):
+        write_secret = os.environ["KTS_WRITE_TOKEN"]
+        with McpProc(env_overrides={"KTS_API_TOKEN": write_secret}) as mcp:
+            resp = mcp.send(_rpc("tools/call", {
+                "name": "mc_docker_restart",
+                "arguments": {"server_id": "unraid-main", "container": "nginx", "confirm": "true"},
+            }))
+        assert resp["error"]["code"] == -32602
+
+    def test_destructive_with_confirm_reaches_backend(self, backend_endpoint):
+        write_secret = os.environ["KTS_WRITE_TOKEN"]
+        with McpProc(env_overrides={"KTS_API_TOKEN": write_secret}) as mcp:
+            resp = mcp.send(_rpc("tools/call", {
+                "name": "mc_docker_restart",
+                "arguments": {"server_id": "unraid-main", "container": "nginx", "confirm": True},
+            }))
+        content = json.loads(_content(resp))
+        assert content["status"] == 502
+
+    def test_missing_required_args_on_write_tool(self, backend_endpoint):
+        write_secret = os.environ["KTS_WRITE_TOKEN"]
+        with McpProc(env_overrides={"KTS_API_TOKEN": write_secret}) as mcp:
+            resp = mcp.send(_rpc("tools/call", {
+                "name": "mc_docker_start",
+                "arguments": {},
+            }))
+        assert resp["error"]["code"] == -32602
+        assert "server_id" in resp["error"]["message"]
+
+    def test_adguard_enable_needs_confirm(self, backend_endpoint):
+        write_secret = os.environ["KTS_WRITE_TOKEN"]
+        with McpProc(env_overrides={"KTS_API_TOKEN": write_secret}) as mcp:
+            resp = mcp.send(_rpc("tools/call", {
+                "name": "mc_adguard_enable",
+                "arguments": {"server_id": "unraid-main"},
+            }))
+        assert resp["error"]["code"] == -32602
+        assert "confirm" in resp["error"]["message"]
+
+    def test_adguard_enable_with_confirm_reaches_backend(self, backend_endpoint):
+        write_secret = os.environ["KTS_WRITE_TOKEN"]
+        with McpProc(env_overrides={"KTS_API_TOKEN": write_secret}) as mcp:
+            resp = mcp.send(_rpc("tools/call", {
+                "name": "mc_adguard_enable",
+                "arguments": {"server_id": "unraid-main", "confirm": True},
+            }))
+        content = json.loads(_content(resp))
+        assert content["status"] == 502
+
+    def test_unknown_server_on_write_tool_returns_404(self, backend_endpoint):
+        write_secret = os.environ["KTS_WRITE_TOKEN"]
+        with McpProc(env_overrides={"KTS_API_TOKEN": write_secret}) as mcp:
+            resp = mcp.send(_rpc("tools/call", {
+                "name": "mc_docker_start",
+                "arguments": {"server_id": "no-such-server", "container": "nginx"},
+            }))
+        content = json.loads(_content(resp))
+        assert content["status"] == 404

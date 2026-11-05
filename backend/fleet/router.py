@@ -610,7 +610,7 @@ async def docker_start(request: Request, body: dict) -> Any:
     try:
         client = DockerClient(SshHelper.from_config(server))
         message = await client.start_container(container)
-    except (SshCommandError, TransportError) as exc:
+    except (SshCommandError, TransportError, OSError) as exc:
         return _probe_error(exc, server)
     return JSONResponse(content=message)
 
@@ -630,7 +630,7 @@ async def docker_stop(request: Request, body: dict) -> Any:
     try:
         client = DockerClient(SshHelper.from_config(server))
         message = await client.stop_container(container)
-    except (SshCommandError, TransportError) as exc:
+    except (SshCommandError, TransportError, OSError) as exc:
         return _probe_error(exc, server)
     return JSONResponse(content=message)
 
@@ -650,7 +650,7 @@ async def docker_restart(request: Request, body: dict) -> Any:
     try:
         client = DockerClient(SshHelper.from_config(server))
         message = await client.restart_container(container)
-    except (SshCommandError, TransportError) as exc:
+    except (SshCommandError, TransportError, OSError) as exc:
         return _probe_error(exc, server)
     return JSONResponse(content=message)
 
@@ -673,7 +673,7 @@ async def docker_logs(request: Request, body: dict) -> Any:
     try:
         client = DockerClient(SshHelper.from_config(server))
         output = await client.container_logs(container, lines)
-    except (SshCommandError, TransportError) as exc:
+    except (SshCommandError, TransportError, OSError) as exc:
         return _probe_error(exc, server)
     return JSONResponse(content=output)
 
@@ -1990,7 +1990,7 @@ async def meshcentral_shell_exec(
             "stderr": result.stderr,
             "success": result.success,
         }
-    except (ValueError, RemoteError, SshCommandError, TransportError) as exc:
+    except (ValueError, RemoteError, SshCommandError, TransportError, OSError) as exc:
         return _probe_error(exc, server)
     except Exception as exc:  # pragma: no cover — secrets must never leak
         return _probe_error(exc, server)

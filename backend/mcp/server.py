@@ -15,8 +15,14 @@ registry and every route is identity-enforced by create_app's middleware
 Methods:
   initialize        -> protocol version, capabilities, server info
   initialized       -> notification, no response
-  tools/list        -> the read-only tool catalogue
+  tools/list        -> the tool catalogue (read-only and write tools)
   tools/call        -> proxy one tool to its /api/fleet route
+
+Write tools (POST routes) require scope=write on the presented token — the
+backend's create_app middleware returns 403 for read tokens on mutating
+routes. Destructive write tools (docker restart, shell exec, AdGuard
+enable/disable) additionally require an explicit `confirm: true` argument,
+validated here and never forwarded to the backend.
 
 Backend answers:
   200          -> content = parsed JSON body
@@ -135,6 +141,64 @@ TOOLS: dict[str, dict[str, Any]] = {
         "params": ["base_url", "query", "start", "end", "step"],
         "required": ["base_url", "query", "start", "end", "step"],
     },
+    # --- Write tools (M3): mutating POST routes, scope=write required -------
+    # `body: true` sends arguments as a JSON request body; otherwise they are
+    # sent as query parameters. `destructive: true` requires confirm: true.
+    # `confirm` is validated here and never forwarded to the backend.
+    "mc_docker_start": {
+        "description": "Start a Docker container on a server.",
+        "method": "POST",
+        "route": "/api/fleet/docker/start",
+        "params": ["server_id", "container"],
+        "required": ["server_id", "container"],
+        "body": True,
+        "destructive": False,
+    },
+    "mc_docker_stop": {
+        "description": "Stop a Docker container on a server.",
+        "method": "POST",
+        "route": "/api/fleet/docker/stop",
+        "params": ["server_id", "container"],
+        "required": ["server_id", "container"],
+        "body": True,
+        "destructive": False,
+    },
+    "mc_docker_restart": {
+        "description": "Restart a Docker container on a server.",
+        "method": "POST",
+        "route": "/api/fleet/docker/restart",
+        "params": ["server_id", "container"],
+        "required": ["server_id", "container"],
+        "body": True,
+        "destructive": True,
+    },
+    "mc_shell_exec": {
+        "description": "Execute a shell command on a server via MeshCentral or direct SSH.",
+        "method": "POST",
+        "route": "/api/fleet/meshcentral/shell_exec",
+        "params": ["server_id", "command", "timeout_secs"],
+        "required": ["server_id", "command"],
+        "body": True,
+        "destructive": True,
+    },
+    "mc_adguard_enable": {
+        "description": "Enable AdGuard DNS protection on a server.",
+        "method": "POST",
+        "route": "/api/fleet/adguard/enable",
+        "params": ["server_id"],
+        "required": ["server_id"],
+        "body": False,
+        "destructive": True,
+    },
+    "mc_adguard_disable": {
+        "description": "Disable AdGuard DNS protection on a server.",
+        "method": "POST",
+        "route": "/api/fleet/adguard/disable",
+        "params": ["server_id"],
+        "required": ["server_id"],
+        "body": False,
+        "destructive": True,
+    },
 }
 
 
@@ -204,6 +268,66 @@ TOOL_SPECS: dict[str, dict[str, Any]] = {
             "step": {"type": "string", "description": "Step duration (e.g. 1m, 15s)."},
         },
     ),
+    "mc_docker_start": _schema(
+        ["server_id", "container"],
+        {
+            "server_id": {"type": "string", "description": "Short server id (from mc_list_servers)."},
+            "container": {"type": "string", "description": "Docker container name or id."},
+        },
+    ),
+    "mc_docker_stop": _schema(
+        ["server_id", "container"],
+        {
+            "server_id": {"type": "string", "description": "Short server id (from mc_list_servers)."},
+            "container": {"type": "string", "description": "Docker container name or id."},
+        },
+    ),
+    "mc_docker_restart": _schema(
+        ["server_id", "container", "confirm"],
+        {
+            "server_id": {"type": "string", "description": "Short server id (from mc_list_servers)."},
+            "container": {"type": "string", "description": "Docker container name or id."},
+            "confirm": {
+                "type": "boolean",
+                "description": "Must be true to restart a running container.",
+            },
+        },
+    ),
+    "mc_shell_exec": _schema(
+        ["server_id", "command", "confirm"],
+        {
+            "server_id": {"type": "string", "description": "Short server id (from mc_list_servers)."},
+            "command": {"type": "string", "description": "Shell command to execute."},
+            "timeout_secs": {
+                "type": "integer",
+                "description": "Command timeout in seconds (default 60).",
+            },
+            "confirm": {
+                "type": "boolean",
+                "description": "Must be true to execute a shell command.",
+            },
+        },
+    ),
+    "mc_adguard_enable": _schema(
+        ["server_id", "confirm"],
+        {
+            "server_id": {"type": "string", "description": "Short server id (from mc_list_servers)."},
+            "confirm": {
+                "type": "boolean",
+                "description": "Must be true to change AdGuard protection state.",
+            },
+        },
+    ),
+    "mc_adguard_disable": _schema(
+        ["server_id", "confirm"],
+        {
+            "server_id": {"type": "string", "description": "Short server id (from mc_list_servers)."},
+            "confirm": {
+                "type": "boolean",
+                "description": "Must be true to change AdGuard protection state.",
+            },
+        },
+    ),
 }
 
 
@@ -263,7 +387,10 @@ def _call_tool(
             _rpc_error(None, ERR_INVALID_PARAMS, "arguments must be an object"),
         )
 
-    missing = [k for k in spec["required"] if k not in arguments]
+    required = list(spec["required"])
+    if spec.get("destructive"):
+        required.append("confirm")
+    missing = [k for k in required if k not in arguments]
     if missing:
         return (
             "rpc_error",
@@ -274,12 +401,30 @@ def _call_tool(
             ),
         )
 
-    query = {k: arguments[k] for k in spec["params"] if k in arguments}
+    if spec.get("destructive") and arguments.get("confirm") is not True:
+        return (
+            "rpc_error",
+            _rpc_error(
+                None,
+                ERR_INVALID_PARAMS,
+                f"tool {name!r} is destructive: confirm: true is required",
+            ),
+        )
+
+    # `confirm` is an MCP-layer guard and is not part of spec["params"], so it
+    # is never forwarded to the backend. Optional params (e.g. timeout_secs)
+    # are forwarded only when present.
+    payload = {k: arguments[k] for k in spec["params"] if k in arguments}
     url = base_url + spec["route"]
     try:
-        resp = client.request(
-            spec["method"], url, params=query, headers={"X-API-Token": token}
-        )
+        if spec.get("body"):
+            resp = client.request(
+                spec["method"], url, json=payload, headers={"X-API-Token": token}
+            )
+        else:
+            resp = client.request(
+                spec["method"], url, params=payload, headers={"X-API-Token": token}
+            )
     except httpx.RequestError as exc:
         return (
             "rpc_error",
