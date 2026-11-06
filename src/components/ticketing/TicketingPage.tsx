@@ -627,6 +627,7 @@ export function TicketingPage() {
                         <th className="p-3">Client</th>
                         <th className="p-3 text-right">Hours</th>
                         <th className="p-3 text-right">Total</th>
+                        <th className="p-3 text-right">Invoice</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -648,6 +649,7 @@ export function TicketingPage() {
                           <td className="p-3 font-mono">{t.client_id}</td>
                           <td className="p-3 text-right">{t.hours}</td>
                           <td className="p-3 text-right">{t.total.toFixed(2)}</td>
+                          <td className="p-3 font-mono text-right">{t.invoice_number ?? '—'}</td>
                         </tr>
                       ))}
                     </tbody>
