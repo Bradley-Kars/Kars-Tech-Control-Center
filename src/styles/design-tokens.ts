@@ -13,7 +13,7 @@ export const tokens = {
     ink: '#0A1628',           // Deep navy background
     panel: '#101E33',         // Card/surface background
     panel2: '#152A47',        // Elevated surface
-    line: 'rgba(139, 157, 179, 0.16)', // Borders, dividers
+    line: '#94A3B8', // Borders, dividers (solid: must stay legible on the dark theme)
     muted: '#8B9DB3',         // Secondary text, icons
     off: '#EDF2F7',           // Primary text
 
