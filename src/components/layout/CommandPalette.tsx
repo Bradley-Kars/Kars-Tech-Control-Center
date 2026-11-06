@@ -28,6 +28,8 @@ import {
   BellRing,
   Camera,
   Monitor,
+  Terminal,
+  Ticket,
   Sun,
   Minimize2,
   Keyboard,
@@ -82,6 +84,8 @@ const STATIC_COMMANDS: Cmd[] = [
   { id: 'nav-phone', label: 'Galaxy S24 Ultra', description: '<device>.<tailnet>.ts.net', category: 'Navigation', icon: Smartphone, shortcut: '⌘4', action: () => '/device/phone' },
   { id: 'nav-ally', label: 'ROG Ally', description: '<device>.<tailnet>.ts.net', category: 'Navigation', icon: Gamepad2, shortcut: '⌘5', action: () => '/device/ally' },
   { id: 'nav-laptop', label: 'Senpai Laptop', description: '<device>.<tailnet>.ts.net', category: 'Navigation', icon: Laptop, shortcut: '⌘6', action: () => '/device/laptop' },
+  { id: 'nav-ticketing', label: 'Ticketing', description: 'Tickets & invoices', category: 'Navigation', icon: Ticket, shortcut: '', action: () => '/ticketing' },
+  { id: 'nav-chat', label: 'Hermes', description: 'Terminal page (SSH via the bridge)', category: 'Navigation', icon: Terminal, shortcut: '', action: () => '/chat' },
 
   // Services
   { id: 'svc-docker', label: 'Docker', description: 'Container management', category: 'Services', icon: Layout, shortcut: '⌘D', action: () => '/service/docker' },
@@ -174,7 +178,7 @@ const STATIC_COMMANDS: Cmd[] = [
     },
   },
   { id: 'act-meshcentral', label: 'MeshCentral Console', description: 'Fleet devices & agents', category: 'Actions', icon: Monitor, shortcut: '', action: () => '/meshcentral' },
-  { id: 'act-settings', label: 'Open Settings', description: 'App settings', category: 'Actions', icon: Settings, shortcut: '', action: () => '/settings' },
+  { id: 'act-settings', label: 'Settings', description: 'App settings', category: 'Actions', icon: Settings, shortcut: '', action: () => '/settings' },
 
   // System
   {
