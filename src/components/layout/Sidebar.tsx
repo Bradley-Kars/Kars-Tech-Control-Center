@@ -32,27 +32,31 @@ export function Sidebar({
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
-      {/* Brand header + single collapse/expand toggle */}
+      {/* Brand header + single collapse/expand toggle.
+       gap between the mark, the title and the toggle so the boxes can
+       never collide; the title truncates instead of overflowing into
+       the mark or the toggle. In the collapsed rail the mark and toggle
+       are sized to fit inside 56px without clipping. */}
       <div
         className={[
-          'flex items-center justify-between px-4 py-4 border-b',
+          'flex items-center gap-3 px-4 py-4 border-b',
           'border-[var(--kts-border-default)]',
           collapsed && 'justify-center',
         ].join(' ')}
         style={{ minHeight: '60px' }}
       >
         {collapsed ? (
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex items-center justify-center gap-1">
             <img
               src="/favicon.svg"
               alt="KTS Master Control logo"
               className="shrink-0"
-              style={{ width: 24, height: 24, borderRadius: 6 }}
+              style={{ width: 20, height: 20, borderRadius: 6 }}
             />
             <Tooltip content="Expand sidebar" position="right">
               <IconButton
                 variant="ghost"
-                size="sm"
+                size="xs"
                 onClick={onToggleCollapse}
                 aria-label="Expand sidebar"
               >
@@ -70,11 +74,11 @@ export function Sidebar({
                 style={{ width: 32, height: 32, borderRadius: 8 }}
               />
             </div>
-            <div className="flex-1 min-w-0">
-              <span className="font-[var(--kts-font-heading)] font-bold text-[var(--kts-text-primary)] block leading-tight" style={{ fontSize: '15px', letterSpacing: '-0.01em' }}>
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <span className="truncate font-[var(--kts-font-heading)] font-bold text-[var(--kts-text-primary)] block leading-tight" style={{ fontSize: '15px', letterSpacing: '-0.01em' }}>
                 KTS
               </span>
-              <span className="font-[var(--kts-font-mono)] font-medium text-[var(--kts-text-secondary)] text-[11px] block">
+              <span className="truncate font-[var(--kts-font-mono)] font-medium text-[var(--kts-text-secondary)] text-[11px] block">
                 Master Control
               </span>
             </div>
