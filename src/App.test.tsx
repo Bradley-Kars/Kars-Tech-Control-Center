@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SIDEBAR_ITEMS, NAV_ITEMS } from './config/nav';
+import { SIDEBAR_GROUPS, NAV_ITEMS } from './config/nav';
 import { render, screen, fireEvent } from '@testing-library/react';
 import App from './App';
 
@@ -28,15 +28,32 @@ vi.mock('../lib/fleet-api', () => ({
 }));
 
 describe('Navigation (S5)', () => {
-  it('sidebar shows only Ticketing and Settings', () => {
-    expect(SIDEBAR_ITEMS.map((i) => i.id)).toEqual(['ticketing', 'settings']);
+  it('sidebar exposes the full navigation set, not just Ticketing and Settings', () => {
+    const ids = SIDEBAR_GROUPS.flatMap((group) => group.pages.map((page) => page.id));
+    for (const id of [
+      'ticketing',
+      'settings',
+      'docker',
+      'storage',
+      'system',
+      'network',
+      'arr',
+      'homeassistant',
+      'nextcloud',
+      'adguard',
+      'chat',
+    ]) {
+      expect(ids).toContain(id);
+    }
   });
 
   it('other routes exist in code but are unlinked from the sidebar', () => {
     const unlinked = NAV_ITEMS.filter((i) => !i.sidebar).map((i) => i.id);
     expect(unlinked).toContain('dashboard');
     expect(unlinked).toContain('meshcentral');
-    expect(unlinked).toContain('chat');
+    expect(unlinked).toContain('fleet-command');
+    expect(unlinked).toContain('compliance');
+    expect(unlinked).toContain('alerts');
   });
 });
 

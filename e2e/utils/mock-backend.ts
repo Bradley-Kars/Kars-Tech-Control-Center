@@ -41,6 +41,7 @@ const mockData: Record<string, unknown> = {
   get_nextcloud_activity: { activities: [{ app: 'files', subject: 'You created "test.txt"', timestamp: 1724000000, type: 'file', user: '<user>' }] },
   get_lidarr_status: { version: '3.1.0.4875', instanceName: 'Lidarr' },
   get_homeassistant_states: [{ entity_id: 'light.living_room', state: 'on', attributes: { friendly_name: 'Living Room Light' } }, { entity_id: 'switch.kitchen', state: 'off', attributes: { friendly_name: 'Kitchen Switch' } }],
+  get_homeassistant_config: { components: [] },
   test_connection: { success: true, message: 'Connected', hostname: 'home-server', os: 'Unraid', services: { graphql: true, nextcloud: true, lidarr: true, homeassistant: true, adguard: true } },
   get_processes: 'root 1234 0.5 1.2 /usr/bin/foo',
   get_syslog: 'Aug 26 00:00:00 server kernel: test',
@@ -98,7 +99,7 @@ function mockFor(pathname: string): unknown {
     '/api/fleet/adguard/filters': 'get_adguard_filters',
     '/api/fleet/adguard/dhcp': {},
     '/api/fleet/homeassistant/get_homeassistant_states': 'get_homeassistant_states',
-    '/api/fleet/homeassistant/get_homeassistant_config': {},
+    '/api/fleet/homeassistant/get_homeassistant_config': 'get_homeassistant_config',
     '/api/fleet/homeassistant/get_homeassistant_areas': [],
     '/api/fleet/homeassistant/get_homeassistant_devices': [],
     '/api/fleet/homeassistant/get_homeassistant_entities': [],
@@ -155,7 +156,8 @@ export async function mockFleetBackend(page: Page) {
   }, mockData);
 
   // Serve the fetch-based /api/fleet API used by src/lib/fleet-api.ts.
-  await page.route('**/api/fleet/*', async (route) => {
+  // `**` (not `*`): endpoints like /api/fleet/alerts/list have multiple path segments.
+  await page.route('**/api/fleet/**', async (route) => {
     const url = route.request().url();
     let pathname: string;
     try {

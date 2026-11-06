@@ -8,6 +8,12 @@ import {
   ShieldCheck,
   Bell,
   MessageCircle,
+  Package,
+  HardDrive,
+  Wifi,
+  Music,
+  Home,
+  Cloud,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -34,12 +40,66 @@ export const NAV_ITEMS: ReadonlyArray<NavItem> = [
   { id: 'fleet-command', label: 'Fleet Command', href: '/fleet-command', icon: Terminal, description: 'Batch commands across devices', sidebar: false },
   { id: 'compliance', label: 'Patch Compliance', href: '/compliance', icon: ShieldCheck, description: 'Update status & remote updates', sidebar: false },
   { id: 'alerts', label: 'Alerts', href: '/alerts', icon: Bell, description: 'Active & acknowledged alerts', sidebar: false },
-  { id: 'chat', label: 'Hermes Chat', href: '/chat', icon: MessageCircle, description: 'AI assistant for fleet ops', sidebar: false },
+  { id: 'chat', label: 'Hermes Chat', href: '/chat', icon: MessageCircle, description: 'AI assistant for fleet ops', sidebar: true },
   { id: 'settings', label: 'Settings', href: '/settings', icon: Settings, description: 'App settings', sidebar: true },
 ];
 
-/** Items rendered in the sidebar — the only two linkable destinations in this phase. */
+/** Items rendered in the sidebar. */
 export const SIDEBAR_ITEMS: ReadonlyArray<NavItem> = NAV_ITEMS.filter((item) => item.sidebar);
+
+export interface NavGroup {
+  id: string;
+  label: string;
+  pages: ReadonlyArray<NavItem>;
+}
+
+/**
+ * Sidebar navigation groups, in display order. Groups are collapsible sections;
+ * every page below is a linkable destination. This is the single source of
+ * truth for the sidebar layout — labels, icons and routes are shared with
+ * NAV_ITEMS above (routeTitle/breadcrumb still resolve from NAV_ITEMS).
+ */
+export const SIDEBAR_GROUPS: ReadonlyArray<NavGroup> = [
+  {
+    id: 'services',
+    label: 'Services',
+    pages: [
+      { id: 'docker', label: 'Docker', href: '/service/docker', icon: Package, description: 'Container management', sidebar: true },
+      { id: 'storage', label: 'Storage', href: '/service/storage', icon: HardDrive, description: 'Array, disks & shares', sidebar: true },
+      { id: 'system', label: 'System', href: '/service/system', icon: Settings, description: 'CPU, memory & processes', sidebar: true },
+      { id: 'network', label: 'Network', href: '/service/network', icon: Wifi, description: 'Interfaces & Tailscale', sidebar: true },
+    ],
+  },
+  {
+    id: 'arr',
+    label: 'Arr',
+    pages: [{ id: 'arr', label: 'Arr', href: '/service/arr', icon: Music, description: 'Lidarr, Sonarr & Radarr', sidebar: true }],
+  },
+  {
+    id: 'more-services',
+    label: 'More Services',
+    pages: [
+      { id: 'homeassistant', label: 'Home Assistant', href: '/service/homeassistant', icon: Home, description: 'Home automation', sidebar: true },
+      { id: 'nextcloud', label: 'Nextcloud', href: '/service/nextcloud', icon: Cloud, description: 'File sync & share', sidebar: true },
+      { id: 'adguard', label: 'AdGuard', href: '/service/adguard', icon: ShieldCheck, description: 'DNS filtering', sidebar: true },
+    ],
+  },
+  {
+    id: 'business',
+    label: 'Business',
+    pages: [{ id: 'ticketing', label: 'Ticketing', href: '/ticketing', icon: Ticket, description: 'Tickets & invoices', sidebar: true }],
+  },
+  {
+    id: 'hermes',
+    label: 'Hermes',
+    pages: [{ id: 'chat', label: 'Hermes', href: '/chat', icon: Terminal, description: 'Terminal page (SSH via the bridge)', sidebar: true }],
+  },
+  {
+    id: 'settings',
+    label: 'Settings',
+    pages: [{ id: 'settings', label: 'Settings', href: '/settings', icon: Settings, description: 'App settings', sidebar: true }],
+  },
+];
 
 /** Dynamic device labels (JetBrains Mono for hostnames/IDs). */
 export const DEVICE_LABELS: Readonly<Record<string, string>> = {

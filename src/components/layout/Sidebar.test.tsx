@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Sidebar, type SidebarProps } from './Sidebar';
 
-function renderSidebar(overrides: Partial<SidebarProps> = {}) {
+function renderSidebar(overrides: Partial<SidebarProps> = {}, initialEntries: string[] = ['/']) {
   const props: SidebarProps = {
     onNavigate: vi.fn(),
     collapsed: false,
@@ -11,11 +11,27 @@ function renderSidebar(overrides: Partial<SidebarProps> = {}) {
     ...overrides,
   };
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={initialEntries}>
       <Sidebar {...props} />
     </MemoryRouter>
   );
 }
+
+const LINKS: Array<[label: string, path: string]> = [
+  ['Docker', '/service/docker'],
+  ['Storage', '/service/storage'],
+  ['System', '/service/system'],
+  ['Network', '/service/network'],
+  ['Arr', '/service/arr'],
+  ['Home Assistant', '/service/homeassistant'],
+  ['Nextcloud', '/service/nextcloud'],
+  ['AdGuard', '/service/adguard'],
+  ['Ticketing', '/ticketing'],
+  ['Hermes', '/chat'],
+  ['Settings', '/settings'],
+];
+
+const GROUPS = ['Services', 'Arr', 'More Services', 'Business', 'Hermes', 'Settings'];
 
 describe('Sidebar', () => {
   it('renders KTS Master Control branding', () => {
@@ -24,36 +40,54 @@ describe('Sidebar', () => {
     expect(screen.getByText('Master Control')).toBeInTheDocument();
   });
 
-  it('renders only Ticketing and Settings as linkable destinations', () => {
+  it('renders the KTS logo image in the expanded sidebar header', () => {
     renderSidebar();
-    expect(screen.getByText('Ticketing')).toBeInTheDocument();
-    expect(screen.getByText('Settings')).toBeInTheDocument();
+    expect(screen.getByAltText('KTS Master Control logo')).toBeInTheDocument();
   });
 
-  it('does not render removed fleet pages', () => {
-    renderSidebar();
-    expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
-    expect(screen.queryByText('Unraid Server')).not.toBeInTheDocument();
-    expect(screen.queryByText('Galaxy S24 Ultra')).not.toBeInTheDocument();
+  it('keeps the KTS logo mark visible in the collapsed rail', () => {
+    renderSidebar({ collapsed: true });
+    expect(screen.getByAltText('KTS Master Control logo')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument();
   });
 
-  it('does not render Fleet Operations Hub subtitle', () => {
+  it.each(GROUPS)('renders the %s collapsible group header', (group) => {
     renderSidebar();
-    expect(screen.queryByText('Fleet Operations Hub')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: group })).toBeInTheDocument();
   });
 
-  it('calls onNavigate when a nav item is clicked', () => {
+  it.each(LINKS)('renders the %s link and navigates to %s', (label, path) => {
     const onNavigate = vi.fn();
     renderSidebar({ onNavigate });
-    fireEvent.click(screen.getByText('Ticketing'));
-    expect(onNavigate).toHaveBeenCalledWith('/ticketing');
+    const link = screen.getByRole('link', { name: label });
+    expect(link).toHaveAttribute('href', path);
+    fireEvent.click(link);
+    expect(onNavigate).toHaveBeenCalledWith(path);
   });
 
-  it('calls onToggleCollapse when collapse is clicked', () => {
-    const onToggleCollapse = vi.fn();
-    renderSidebar({ onToggleCollapse });
-    fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }));
-    expect(onToggleCollapse).toHaveBeenCalled();
+  it('highlights the active route', () => {
+    renderSidebar({}, ['/service/system']);
+    expect(screen.getByRole('link', { name: 'System' })).toHaveClass(/bg-\[var\(--kts-brand-primary-bg\)\]/);
+  });
+
+  it('collapses and expands a section', () => {
+    renderSidebar();
+    expect(screen.getByText('Docker')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Services' }));
+    expect(screen.queryByText('Docker')).not.toBeInTheDocument();
+    expect(screen.queryByText('Storage')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Services' }));
+    expect(screen.getByText('Docker')).toBeInTheDocument();
+  });
+
+  it('renders collapsed sidebar as icon-only rail (labels hidden)', () => {
+    const { container } = renderSidebar({ collapsed: true });
+    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument();
+    for (const [label] of LINKS) {
+      expect(screen.queryByText(label)).not.toBeInTheDocument();
+    }
+    // Icons still render for every link.
+    expect(container.querySelectorAll('svg.lucide').length).toBeGreaterThan(0);
   });
 
   it('calls onToggleCollapse when expand is clicked while collapsed', () => {
@@ -63,21 +97,15 @@ describe('Sidebar', () => {
     expect(onToggleCollapse).toHaveBeenCalled();
   });
 
-  it('renders collapsed sidebar as icon-only rail', () => {
-    renderSidebar({ collapsed: true });
-    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument();
-    expect(screen.queryByText('Ticketing')).not.toBeInTheDocument();
-    expect(screen.queryByText('Settings')).not.toBeInTheDocument();
+  it('calls onToggleCollapse when collapse is clicked while expanded', () => {
+    const onToggleCollapse = vi.fn();
+    renderSidebar({ onToggleCollapse });
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }));
+    expect(onToggleCollapse).toHaveBeenCalled();
   });
 
-  it('renders the KTS logo image in the expanded sidebar header (LOGO-001 / LOGO-002)', () => {
+  it('does not render MySpeed anywhere', () => {
     renderSidebar();
-    expect(screen.getByAltText('KTS Master Control logo')).toBeInTheDocument();
-  });
-
-  it('keeps the KTS logo mark visible in the collapsed rail instead of only a chevron (LOGO-002)', () => {
-    renderSidebar({ collapsed: true });
-    expect(screen.getByAltText('KTS Master Control logo')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument();
+    expect(screen.queryByText('MySpeed')).not.toBeInTheDocument();
   });
 });
