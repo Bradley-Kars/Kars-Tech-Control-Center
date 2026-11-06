@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   addWorklog: vi.fn(),
   changeTicketStatus: vi.fn(),
   updateTicket: vi.fn(),
+  getTicketDetail: vi.fn(),
+  generateInvoice: vi.fn(),
 }));
 
 vi.mock('../../lib/api', () => ({
@@ -22,6 +24,8 @@ vi.mock('../../lib/api', () => ({
   addWorklog: mocks.addWorklog,
   changeTicketStatus: mocks.changeTicketStatus,
   updateTicket: mocks.updateTicket,
+  getTicketDetail: mocks.getTicketDetail,
+  generateInvoice: mocks.generateInvoice,
 }));
 
 import {
@@ -30,6 +34,8 @@ import {
   addWorklog,
   changeTicketStatus,
   updateTicket,
+  getTicketDetail,
+  generateInvoice,
 } from '../../lib/api';
 
 const mockListTickets = listTickets as unknown as ReturnType<typeof vi.fn>;
@@ -37,6 +43,8 @@ const mockCreateTicket = createTicket as unknown as ReturnType<typeof vi.fn>;
 const mockAddWorklog = addWorklog as unknown as ReturnType<typeof vi.fn>;
 const mockChangeTicketStatus = changeTicketStatus as unknown as ReturnType<typeof vi.fn>;
 const mockUpdateTicket = updateTicket as unknown as ReturnType<typeof vi.fn>;
+const mockGetTicketDetail = getTicketDetail as unknown as ReturnType<typeof vi.fn>;
+const mockGenerateInvoice = generateInvoice as unknown as ReturnType<typeof vi.fn>;
 
 describe('TicketingPage (with mocked bridge API)', () => {
   beforeEach(() => {
@@ -54,6 +62,20 @@ describe('TicketingPage (with mocked bridge API)', () => {
     mockAddWorklog.mockResolvedValue({ ticket_id: 'TKT-2026-001', version: 1, worklog_count: 1 });
     mockChangeTicketStatus.mockResolvedValue({ ticket_id: 'TKT-2026-001', status: 'new', version: 1 });
     mockUpdateTicket.mockResolvedValue({ ticket_id: 'TKT-2026-001', title: '', status: 'new', version: 1 });
+    mockGetTicketDetail.mockResolvedValue({
+      id: 'TKT-2026-001',
+      title: 'Email deliverability remediation',
+      status: 'closed',
+      client_name: 'ORG-000001',
+      priority: 'medium',
+      description: '',
+      worklog: [],
+      hours: 0,
+      total: 0,
+      invoice_number: null,
+      no_charge: false,
+    });
+    mockGenerateInvoice.mockResolvedValue({ invoice_id: 'INV-2026-001', ticket_id: 'TKT-2026-001', amount: 273, status: 'issued' });
   });
 
   afterEach(() => {
@@ -524,5 +546,156 @@ describe('TicketingPage — All/Closed include closed tickets (U1)', () => {
       expect(screen.queryByText('Open ticket')).not.toBeInTheDocument();
     });
     expect(screen.getByText('1 open')).toBeInTheDocument();
+  });
+});
+
+describe('TicketingPage — U7 ticket detail with long text', () => {
+  const longDescription = [
+    'Customer reports that outbound email from the front desk workstation has stopped working entirely.',
+    'SMTP authentication fails with "535 5.7.8 Username and Password not accepted" on every send attempt.',
+    'Verified credentials match the mail server configuration; tested with telnet to port 587 — connection',
+    'established but AUTH LOGIN rejected. Checked the local mail client (Thunderbird) — same failure.',
+    'Reviewed mail server logs: no record of the authentication attempt reaching the server, suggesting',
+    'a local firewall or antivirus is intercepting outbound SMTP. Temporarily disabled the third-party',
+    'antivirus mail scanner — email sending resumed immediately. Recommended adding an exclusion for',
+    'the mail client\'s SMTP process and re-enabling antivirus. Customer confirmed the fix works.',
+    'Follow-up scheduled for next week to verify no recurrence.',
+  ].join('\n');
+
+  const worklogEntries = [
+    { date: '2026-10-01', mode: 'onsite', hours: 0.5, amount: 39, payment: 'uninvoiced', description: 'Diagnosed SMTP auth failure; checked mail server logs and client config.' },
+    { date: '2026-10-02', mode: 'remote', hours: 1.33, amount: 39, payment: 'uninvoiced', description: 'Tested telnet to port 587; confirmed AUTH LOGIN rejection before reaching the server.' },
+    { date: '2026-10-03', mode: 'onsite', hours: 0.5, amount: 39, payment: 'uninvoiced', description: 'Identified third-party antivirus mail scanner as the interception point.' },
+    { date: '2026-10-04', mode: 'remote', hours: 1.33, amount: 39, payment: 'uninvoiced', description: 'Disabled antivirus mail scanner; verified email sending resumed.' },
+    { date: '2026-10-05', mode: 'onsite', hours: 0.5, amount: 39, payment: 'uninvoiced', description: 'Configured antivirus exclusion for the mail client SMTP process.' },
+    { date: '2026-10-06', mode: 'remote', hours: 1.33, amount: 39, payment: 'uninvoiced', description: 'Re-enabled antivirus; confirmed email still works with exclusion in place.' },
+    { date: '2026-10-07', mode: 'onsite', hours: 0.5, amount: 39, payment: 'uninvoiced', description: 'Final verification with customer; follow-up scheduled for next week.' },
+  ];
+
+  const detailTicket: any = {
+    id: 'TKT-2026-001',
+    title: 'Email deliverability remediation',
+    status: 'closed',
+    client_name: 'ORG-000001',
+    priority: 'medium',
+    description: longDescription,
+    worklog: worklogEntries,
+    hours: 5.99,
+    total: 273,
+    invoice_number: null,
+    no_charge: false,
+  };
+
+  beforeEach(() => {
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn().mockImplementation(() => ({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    });
+    vi.stubGlobal('alert', vi.fn());
+    mockListTickets.mockResolvedValue({ count: 3, tickets: baseTickets });
+    mockGetTicketDetail.mockResolvedValue(detailTicket);
+    mockGenerateInvoice.mockResolvedValue({ invoice_id: 'INV-2026-001', ticket_id: 'TKT-2026-001', amount: 273, status: 'issued' });
+  });
+
+  it('selecting a ticket fetches and shows the full detail panel', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('ticket-row-TKT-2026-001'));
+    await waitFor(() => expect(screen.getByTestId('ticket-detail')).toBeInTheDocument());
+    await waitFor(() => expect(mockGetTicketDetail).toHaveBeenCalledWith('TKT-2026-001'));
+  });
+
+  it('shows the full description with line breaks preserved, no truncation', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('ticket-row-TKT-2026-001'));
+    await waitFor(() => expect(screen.getByTestId('ticket-detail')).toBeInTheDocument());
+    await waitFor(() => expect(mockGetTicketDetail).toHaveBeenCalled());
+
+    const description = screen.getByTestId('ticket-description');
+    expect(description).toBeInTheDocument();
+    // Full long text present (800+ chars)
+    expect(description.textContent).toContain('Customer reports that outbound email');
+    expect(description.textContent).toContain('Follow-up scheduled for next week to verify no recurrence.');
+    // Line breaks preserved: multiple lines visible
+    const lines = (description.textContent || '').split('\n');
+    expect(lines.length).toBeGreaterThan(5);
+  });
+
+  it('shows worklog entries with hours, amount, mode, payment', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('ticket-row-TKT-2026-001'));
+    await waitFor(() => expect(screen.getByTestId('ticket-detail')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId('worklog-list')).toBeInTheDocument());
+
+    // All 7 entries rendered
+    // Count worklog rows by looking for the mode labels
+    expect(screen.getAllByText('onsite')).toHaveLength(4);
+    expect(screen.getAllByText('remote')).toHaveLength(3);
+    expect(screen.getAllByText('0.50h')).toHaveLength(4);
+    expect(screen.getAllByText('1.33h')).toHaveLength(3);
+    expect(screen.getAllByText('$39.00')).toHaveLength(7);
+    expect(screen.getAllByText('uninvoiced')).toHaveLength(7);
+  });
+
+  it('shows correct hours and amount totals', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('ticket-row-TKT-2026-001'));
+    await waitFor(() => expect(screen.getByTestId('ticket-detail')).toBeInTheDocument());
+
+    // Totals shown in worklog header: 5.99h • $273.00
+    expect(screen.getByText('5.99h', { exact: false })).toBeInTheDocument();
+    expect(screen.getByText('$273.00', { exact: false })).toBeInTheDocument();
+  });
+
+  it('add worklog calls the API with the selected ticket id', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('ticket-row-TKT-2026-001'));
+    await waitFor(() => expect(screen.getByTestId('ticket-detail')).toBeInTheDocument());
+
+    const entryInput = screen.getByTestId('worklog-entry');
+    fireEvent.input(entryInput, { target: { value: 'Replaced the keyboard' } });
+    fireEvent.click(screen.getByTestId('add-worklog'));
+
+    await waitFor(() => expect(addWorklog).toHaveBeenCalled());
+    expect(addWorklog).toHaveBeenCalledWith('TKT-2026-001', expect.objectContaining({ entry: 'Replaced the keyboard' }));
+  });
+
+  it('change status calls the API with the selected ticket id', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('ticket-row-TKT-2026-001'));
+    await waitFor(() => expect(screen.getByTestId('ticket-detail')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('change-status'));
+
+    await waitFor(() => expect(changeTicketStatus).toHaveBeenCalled());
+    expect(changeTicketStatus).toHaveBeenCalledWith('TKT-2026-001', 'closed');
+  });
+
+  it('generate invoice calls the API and shows the result', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Laptop repair')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('ticket-row-TKT-2026-001'));
+    await waitFor(() => expect(screen.getByTestId('ticket-detail')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('generate-invoice'));
+
+    await waitFor(() => expect(mockGenerateInvoice).toHaveBeenCalled());
+    expect(mockGenerateInvoice).toHaveBeenCalledWith('TKT-2026-001');
   });
 });

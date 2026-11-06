@@ -18,12 +18,17 @@ import {
   addWorklog,
   changeTicketStatus,
   createTicket,
+  generateInvoice,
+  getTicketDetail,
   listTickets,
   updateTicket,
   type CreateTicketInput,
+  type InvoiceResult,
+  type TicketDetail,
   type TicketSummary,
   type TicketsResponse,
   type WorklogEntryInput,
+  type WorklogEntryView,
 } from '../../lib/api';
 
 /* ------------------------------------------------------------------ */
@@ -160,6 +165,26 @@ function TicketRowItem({ ticket, onSelect }: { ticket: TicketRow; onSelect: (t: 
   );
 }
 
+/** One worklog entry row in the ticket detail view. */
+function WorklogEntryRow({ entry }: { entry: WorklogEntryView }) {
+  return (
+    <div className="border-b border-[var(--kts-border-default)] pb-3 pt-3 last:border-b-0 last:pb-0">
+      <div className="flex flex-wrap items-start gap-3 text-sm">
+        <div className="font-mono text-[var(--kts-text-secondary)]">{entry.date}</div>
+        <span className="text-xs px-1.5 py-0.5 rounded border border-[var(--kts-border-default)] text-[var(--kts-text-tertiary)]">{entry.mode}</span>
+        <span className="font-mono text-right w-12">{entry.hours.toFixed(2)}h</span>
+        <span className="font-mono text-right w-14">${entry.amount.toFixed(2)}</span>
+        <span className="text-xs text-[var(--kts-text-tertiary)]">{entry.payment}</span>
+      </div>
+      {entry.description && (
+        <div className="mt-1 text-sm text-[var(--kts-text-secondary)] whitespace-pre-wrap break-words">
+          {entry.description}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ------------------------------------------------------------------ */
 /* TicketingPage                                                      */
 /* ------------------------------------------------------------------ */
@@ -183,6 +208,11 @@ export function TicketingPage() {
   // Worklog state for the selected ticket
   const [worklogEntry, setWorklogEntry] = useState('');
   const [worklogHours, setWorklogHours] = useState('0.5');
+
+  // Ticket detail state (fetched when a ticket is selected)
+  const [detail, setDetail] = useState<TicketDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   // Filter state
   const [filterStatus, setFilterStatus] = useState<'all' | 'open' | 'mine' | 'waiting' | 'closed'>('all');
@@ -296,6 +326,35 @@ export function TicketingPage() {
     }
   }, [filterStatus]);
 
+  // Fetch full ticket detail when a ticket is selected.
+  useEffect(() => {
+    if (!selected) {
+      setDetail(null);
+      setDetailError(null);
+      return;
+    }
+    let mounted = true;
+    setDetailLoading(true);
+    setDetailError(null);
+    (async () => {
+      try {
+        const d = await getTicketDetail(selected.id);
+        if (mounted) {
+          setDetail(d);
+          setDetailLoading(false);
+        }
+      } catch (err) {
+        if (mounted) {
+          setDetailError(err instanceof Error ? err.message : 'Failed to load ticket detail');
+          setDetailLoading(false);
+        }
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [selected]);
+
   // Create ticket
   const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -379,9 +438,9 @@ export function TicketingPage() {
     }
   };
 
-  // Selected ticket detail panel (inline edit + worklog + status change)
+  // Selected ticket detail panel (inline edit + worklog + status change + invoice)
   const detailPanel = selected ? (
-    <Card variant="subtle" className="p-4 space-y-4" data-testid="ticket-detail">
+    <Card variant="subtle" className="p-4 space-y-5" data-testid="ticket-detail">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Ticket {selected.id}</h2>
         <Button className="min-h-[44px] min-w-[44px]" variant="outline" size="sm" onClick={() => setSelected(null)}>
@@ -389,6 +448,85 @@ export function TicketingPage() {
         </Button>
       </div>
 
+      {/* Detail header: status, client, priority */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+        <div className="flex flex-col gap-1">
+          <Label className="text-[var(--kts-text-tertiary)] text-xs uppercase">Status</Label>
+          <StatusChip status={selected.status} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label className="text-[var(--kts-text-tertiary)] text-xs uppercase">Client</Label>
+          <span className="font-mono">{selected.client_id}</span>
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label className="text-[var(--kts-text-tertiary)] text-xs uppercase">Priority</Label>
+          <PriorityChip priority={selected.priority} />
+        </div>
+      </div>
+
+      {/* Description: full text, line breaks preserved */}
+      {detail && (
+        <div className="border border-[var(--kts-border-default)] rounded-lg p-4 bg-[var(--kts-bg-tertiary)]">
+          <Label className="text-[var(--kts-text-tertiary)] text-xs uppercase block mb-2">Description</Label>
+          <div className="text-sm text-[var(--kts-text-secondary)] whitespace-pre-wrap break-words" data-testid="ticket-description">
+            {detail.description || 'No description recorded.'}
+          </div>
+        </div>
+      )}
+
+      {!detail && detailLoading && (
+        <div className="py-4 text-center text-[var(--kts-text-tertiary)] text-sm">Loading ticket detail…</div>
+      )}
+      {detailError && (
+        <div className="p-3 rounded bg-[var(--kts-bg-error)] text-[var(--kts-text-error-on)] text-sm border border-[var(--kts-border-error)]">
+          {detailError}
+        </div>
+      )}
+
+      {/* Worklog entries */}
+      {detail && detail.worklog.length > 0 && (
+        <div className="border border-[var(--kts-border-default)] rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <Label className="text-[var(--kts-text-tertiary)] text-xs uppercase">Worklog ({detail.worklog.length})</Label>
+            <span className="font-mono text-sm text-[var(--kts-text-secondary)]">
+              {detail.hours.toFixed(2)}h • ${detail.total.toFixed(2)}
+            </span>
+          </div>
+          <div className="space-y-0" data-testid="worklog-list">
+            {detail.worklog.map((entry, i) => (
+              <WorklogEntryRow key={i} entry={entry} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Invoice action */}
+      {detail && (
+        <div className="flex items-center gap-3 border-t pt-4">
+          <Button
+            className="min-h-[44px] min-w-[44px]"
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              if (!selected) return;
+              try {
+                const inv: InvoiceResult = await generateInvoice(selected.id);
+                alert(`Invoice ${inv.invoice_id} created for $${inv.amount.toFixed(2)}`);
+              } catch (err) {
+                alert(`Failed to generate invoice: ${err}`);
+              }
+            }}
+            data-testid="generate-invoice"
+          >
+            Generate Invoice
+          </Button>
+          <span className="flex-1 text-[var(--kts-text-tertiary)] text-sm">
+            Invoice not yet generated for this ticket.
+          </span>
+        </div>
+      )}
+
+      {/* Existing inline edit form */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="flex flex-col gap-2">
           <Label>Title</Label>
@@ -448,6 +586,7 @@ export function TicketingPage() {
         Change status to {editStatus || selected.status}
       </Button>
 
+      {/* Add worklog form */}
       <div className="border-t pt-4">
         <h3 className="text-sm font-semibold mb-2">Add worklog</h3>
         <div className="flex flex-col gap-2 md:flex-row md:items-end">

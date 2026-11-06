@@ -223,7 +223,7 @@ export function updateTicket(
   );
 }
 
-/** GET /api/tickets/{id} — get a single ticket. */
+/** GET /api/tickets/{id} — get a single ticket summary. */
 export function getTicket(
   ticketId: string,
   token?: string,
@@ -231,5 +231,54 @@ export function getTicket(
   return request<TicketSummary>(
     `/tickets/${encodeURIComponent(ticketId)}`,
     { token },
+  );
+}
+
+export interface WorklogEntryView {
+  id: string;
+  date: string;
+  mode: string;
+  hours: number;
+  amount: number;
+  payment: string;
+  description: string;
+}
+
+/** Full ticket detail returned by the ticket detail endpoint. */
+export interface TicketDetail extends TicketSummary {
+  description: string;
+  worklog: WorklogEntryView[];
+  hours: number;
+  total: number;
+  invoice_number: string | null;
+  no_charge: boolean;
+}
+
+/** GET /api/tickets/{id}/detail — get full ticket detail (description, worklog, totals). */
+export function getTicketDetail(
+  ticketId: string,
+  token?: string,
+): Promise<TicketDetail> {
+  return request<TicketDetail>(
+    `/tickets/${encodeURIComponent(ticketId)}/detail`,
+    { token },
+  );
+}
+
+/** POST /api/tickets/{id}/invoice — generate an invoice for a ticket. */
+export interface InvoiceResult {
+  invoice_id: string;
+  ticket_id: string;
+  amount: number;
+  status: string;
+}
+
+export function generateInvoice(
+  ticketId: string,
+  token?: string,
+): Promise<InvoiceResult> {
+  return request<InvoiceResult>(
+    `/tickets/${encodeURIComponent(ticketId)}/invoice`,
+    { method: 'POST', token },
   );
 }
