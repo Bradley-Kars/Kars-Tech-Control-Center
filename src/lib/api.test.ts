@@ -114,6 +114,13 @@ describe('listTickets', () => {
     fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
     await expect(listTickets()).rejects.toMatchObject({ status: 0 });
   });
+
+  it('requests ?all=true when asked to include closed tickets', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ count: 3, tickets: [] }));
+    await listTickets(undefined, { all: true });
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/tickets?all=true');
+  });
 });
 
 describe('createTicket', () => {

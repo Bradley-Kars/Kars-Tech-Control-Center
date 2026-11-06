@@ -123,9 +123,19 @@ export interface TicketsResponse {
   tickets: TicketSummary[];
 }
 
-/** GET /api/tickets — read-only ticket list. */
-export function listTickets(token?: string): Promise<TicketsResponse> {
-  return request<TicketsResponse>('/tickets', { token });
+/** Options for listTickets. */
+export interface ListTicketsOptions {
+  /** When true, requests GET /tickets?all=true so the bridge returns open plus closed/cancelled/resolved tickets. Without it the bridge returns open statuses only. */
+  all?: boolean;
+}
+
+/** GET /api/tickets — read-only ticket list. Pass { all: true } to include closed/cancelled/resolved. */
+export function listTickets(
+  token?: string,
+  opts?: ListTicketsOptions,
+): Promise<TicketsResponse> {
+  const url = opts?.all ? '/tickets?all=true' : '/tickets';
+  return request<TicketsResponse>(url, { token });
 }
 
 export interface CreateTicketInput {

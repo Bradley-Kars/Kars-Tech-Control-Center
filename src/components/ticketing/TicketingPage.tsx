@@ -21,6 +21,8 @@ import {
   listTickets,
   updateTicket,
   type CreateTicketInput,
+  type TicketSummary,
+  type TicketsResponse,
   type WorklogEntryInput,
 } from '../../lib/api';
 
@@ -68,6 +70,28 @@ const CLOSED_STATUSES = new Set(['closed', 'cancelled', 'resolved']);
 const WAITING_STATUSES = new Set(['waiting', 'pending']);
 
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
+
+/** Map a TicketSummary from the bridge into a TicketRow for the UI. */
+function toTicketRow(t: TicketSummary): TicketRow {
+  return {
+    id: t.id,
+    title: t.title,
+    status: t.status,
+    client_id: t.client_name ?? '',
+    priority: t.priority ?? 'medium',
+    due_date: t.due_date ?? null,
+    updated_at: t.updated_at ?? null,
+    hours: 0,
+    total: 0,
+    invoice_number: null,
+    no_charge: false,
+  };
+}
+
+/** True when the filter needs every ticket (including closed/cancelled/resolved), so the request must ask for ?all=true. */
+function filterNeedsAllTickets(value: 'all' | 'open' | 'mine' | 'waiting' | 'closed'): boolean {
+  return value === 'all' || value === 'closed';
+}
 
 // ------------------------------------------------------------------ */
 /* Small components                                                   */
@@ -225,28 +249,18 @@ export function TicketingPage() {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
-  // Fetch tickets on mount
+  // Fetch tickets on mount, and re-fetch when the status filter changes
+  // ('all' and 'closed' need every ticket, so they request ?all=true).
   useEffect(() => {
     let mounted = true;
+    const all = filterNeedsAllTickets(filterStatus);
     (async () => {
       try {
         setLoading(true);
-        const res = await listTickets();
+        const res = await listTickets(undefined, all ? { all: true } : undefined);
         if (mounted) {
           setData({
-            tickets: res.tickets.map((t) => ({
-              id: t.id,
-              title: t.title,
-              status: t.status,
-              client_id: t.client_name ?? '',
-              priority: t.priority ?? 'medium',
-              due_date: t.due_date ?? null,
-              updated_at: t.updated_at ?? null,
-              hours: 0,
-              total: 0,
-              invoice_number: null,
-              no_charge: false,
-            })),
+            tickets: res.tickets.map(toTicketRow),
             offline_reason: 'none',
           });
         }
@@ -263,33 +277,24 @@ export function TicketingPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [filterStatus]);
 
-  const refetch = useCallback(async () => {
+  const refetch = useCallback(async (): Promise<TicketsResponse | null> => {
     try {
-      const res = await listTickets();
+      const all = filterNeedsAllTickets(filterStatus);
+      const res = await listTickets(undefined, all ? { all: true } : undefined);
       setData({
-        tickets: res.tickets.map((t) => ({
-          id: t.id,
-          title: t.title,
-          status: t.status,
-          client_id: t.client_name ?? '',
-          priority: t.priority ?? 'medium',
-          due_date: t.due_date ?? null,
-          updated_at: t.updated_at ?? null,
-          hours: 0,
-          total: 0,
-          invoice_number: null,
-          no_charge: false,
-        })),
+        tickets: res.tickets.map(toTicketRow),
         offline_reason: 'none',
       });
       setRefetchError(null);
+      return res;
     } catch (err) {
       console.error('[ticketing] refetch failed:', err);
       setRefetchError((err as { status?: number }).status === 401 ? 'Unauthorized' : 'Unreachable');
+      return null;
     }
-  }, []);
+  }, [filterStatus]);
 
   // Create ticket
   const handleCreateTicket = async (e: React.FormEvent) => {
@@ -338,23 +343,12 @@ export function TicketingPage() {
     if (!selected) return;
     try {
       await changeTicketStatus(selected.id, newStatus);
-      await refetch();
-      const refreshed = await listTickets();
-      setSelected(
-        refreshed.tickets
-          .map((t) => ({
-            id: t.id,
-            title: t.title,
-            status: t.status,
-            client_id: t.client_name ?? '',
-            priority: t.priority ?? 'medium',
-            hours: 0,
-            total: 0,
-            invoice_number: null,
-            no_charge: false,
-          }))
-          .find((t) => t.id === selected.id) ?? selected,
-      );
+      const refreshed = await refetch();
+      if (refreshed) {
+        setSelected(
+          refreshed.tickets.map(toTicketRow).find((t) => t.id === selected.id) ?? selected,
+        );
+      }
     } catch (err) {
       console.error('[ticketing] status change failed:', err);
       alert(`Failed to change status: ${err}`);
@@ -370,23 +364,12 @@ export function TicketingPage() {
     if (Object.keys(fields).length === 0) return;
     try {
       await updateTicket(selected.id, fields);
-      await refetch();
-      const refreshed = await listTickets();
-      setSelected(
-        refreshed.tickets
-          .map((t) => ({
-            id: t.id,
-            title: t.title,
-            status: t.status,
-            client_id: t.client_name ?? '',
-            priority: t.priority ?? 'medium',
-            hours: 0,
-            total: 0,
-            invoice_number: null,
-            no_charge: false,
-          }))
-          .find((t) => t.id === selected.id) ?? selected,
-      );
+      const refreshed = await refetch();
+      if (refreshed) {
+        setSelected(
+          refreshed.tickets.map(toTicketRow).find((t) => t.id === selected.id) ?? selected,
+        );
+      }
       setEditTitle(selected.title);
       setEditStatus(selected.status);
       setEditPriority(selected.priority ?? '');
@@ -500,9 +483,9 @@ export function TicketingPage() {
   ) : null;
 
   const subtitle = useMemo(() => {
-    const openCount = filteredTickets.filter((t) => !CLOSED_STATUSES.has(t.status)).length;
+    const openCount = (data?.tickets ?? []).filter((t) => !CLOSED_STATUSES.has(t.status)).length;
     return `${openCount} open`;
-  }, [filteredTickets]);
+  }, [data]);
 
   return (
     <div className="flex flex-col h-full min-w-0" data-testid="ticketing-page">

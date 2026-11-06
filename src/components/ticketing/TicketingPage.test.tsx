@@ -451,3 +451,78 @@ describe('TicketingPage (with mocked bridge API)', () => {
     );
   });
 });
+
+describe('TicketingPage — All/Closed include closed tickets (U1)', () => {
+  const allTickets = [
+    { id: 'TKT-2026-101', title: 'Closed ticket', status: 'closed', client_name: 'CUS-000001', priority: 'medium' },
+    { id: 'TKT-2026-102', title: 'Open ticket', status: 'open', client_name: 'CUS-000002', priority: 'high' },
+    { id: 'TKT-2026-103', title: 'Resolved ticket', status: 'resolved', client_name: 'CUS-000003', priority: 'low' },
+    { id: 'TKT-2026-104', title: 'Cancelled ticket', status: 'cancelled', client_name: 'CUS-000004', priority: 'low' },
+  ];
+
+  beforeEach(() => {
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn().mockImplementation(() => ({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    });
+    mockListTickets.mockResolvedValue({ count: allTickets.length, tickets: allTickets });
+  });
+
+  it('All (default) requests ?all=true and shows closed and resolved tickets too', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Closed ticket')).toBeInTheDocument());
+    for (const t of allTickets) {
+      expect(screen.getByText(t.title)).toBeInTheDocument();
+      expect(screen.getByTestId(`ticket-row-${t.id}`)).toBeInTheDocument();
+    }
+    expect(mockListTickets.mock.calls).toContainEqual([undefined, { all: true }]);
+  });
+
+  it('Open requests without all=true and shows only open tickets', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Open ticket')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('filter-chip-open'));
+    await waitFor(() => {
+      expect(screen.getByText('Open ticket')).toBeInTheDocument();
+      expect(screen.queryByText('Closed ticket')).not.toBeInTheDocument();
+      expect(screen.queryByText('Resolved ticket')).not.toBeInTheDocument();
+      expect(screen.queryByText('Cancelled ticket')).not.toBeInTheDocument();
+    });
+
+    const last = mockListTickets.mock.calls[mockListTickets.mock.calls.length - 1];
+    expect(last).toEqual([undefined, undefined]);
+  });
+
+  it('Closed requests ?all=true and shows only closed/cancelled/resolved', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Open ticket')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('filter-chip-closed'));
+    await waitFor(() => {
+      expect(screen.getByText('Closed ticket')).toBeInTheDocument();
+      expect(screen.getByText('Resolved ticket')).toBeInTheDocument();
+      expect(screen.getByText('Cancelled ticket')).toBeInTheDocument();
+      expect(screen.queryByText('Open ticket')).not.toBeInTheDocument();
+    });
+
+    const last = mockListTickets.mock.calls[mockListTickets.mock.calls.length - 1];
+    expect(last).toEqual([undefined, { all: true }]);
+  });
+
+  it('"N open" header counts open statuses only, also on the Closed filter', async () => {
+    render(<TicketingPage />);
+    await waitFor(() => expect(screen.getByText('Open ticket')).toBeInTheDocument());
+    expect(screen.getByText('1 open')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('filter-chip-closed'));
+    await waitFor(() => {
+      expect(screen.queryByText('Open ticket')).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('1 open')).toBeInTheDocument();
+  });
+});
