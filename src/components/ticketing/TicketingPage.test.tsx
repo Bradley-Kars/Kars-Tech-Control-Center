@@ -210,12 +210,14 @@ describe('TicketingPage (with mocked bridge API)', () => {
     expect(listTickets).toHaveBeenCalledTimes(2);
   });
 
-  it('unauthorized (401) shows specific error', async () => {
-    const err: any = new Error("You're not signed in to this server.");
+  it('unauthorized (401) shows AuthRequired card, not raw "unauthorized" word', async () => {
+    const err: any = new Error("missing or invalid token");
     err.status = 401;
     mockListTickets.mockRejectedValue(err);
     render(<TicketingPage />);
-    await waitFor(() => expect(screen.getByText("You're not signed in to this server.")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Not signed in')).toBeInTheDocument());
+    expect(screen.queryByText("unauthorized")).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open Settings' })).toBeInTheDocument();
   });
 
   it('shows No tickets found only on success with zero tickets', async () => {

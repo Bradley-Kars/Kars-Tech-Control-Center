@@ -150,7 +150,7 @@ export function Sidebar({
                         to={page.href}
                         onClick={() => onNavigate(page.href)}
                         className={[
-                          'nav-item flex items-center gap-3 px-3 py-2 rounded-[var(--kts-radius-base)]',
+                          'nav-item flex items-center gap-2 px-3 py-2 rounded-[var(--kts-radius-base)]',
                           'transition-all duration-[var(--kts-motion-fast)]',
                           'text-[var(--kts-text-secondary)] hover:text-[var(--kts-text-primary)] hover:bg-[var(--kts-interactive-hover)]',
                           isCurrentPage && 'bg-[var(--kts-brand-primary-bg)] text-[var(--kts-brand-primary)] font-medium',

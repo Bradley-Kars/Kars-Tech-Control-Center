@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Sidebar, type SidebarProps } from './Sidebar';
+import { SIDEBAR_GROUPS } from '../../config/nav';
 
 function renderSidebar(overrides: Partial<SidebarProps> = {}, initialEntries: string[] = ['/']) {
   const props: SidebarProps = {
@@ -17,21 +18,11 @@ function renderSidebar(overrides: Partial<SidebarProps> = {}, initialEntries: st
   );
 }
 
-const LINKS: Array<[label: string, path: string]> = [
-  ['Docker', '/service/docker'],
-  ['Storage', '/service/storage'],
-  ['System', '/service/system'],
-  ['Network', '/service/network'],
-  ['Arr', '/service/arr'],
-  ['Home Assistant', '/service/homeassistant'],
-  ['Nextcloud', '/service/nextcloud'],
-  ['AdGuard', '/service/adguard'],
-  ['Ticketing', '/ticketing'],
-  ['Hermes', '/chat'],
-  ['Settings', '/settings'],
-];
+const GROUP_LABELS: Array<string> = SIDEBAR_GROUPS.map((g) => g.label);
 
-const GROUPS = ['Services', 'Arr', 'More Services', 'Business', 'Hermes', 'Settings'];
+const LINKS: Array<[label: string, path: string]> = SIDEBAR_GROUPS.flatMap((g) =>
+  g.pages.map((p) => [p.label, p.href] as [string, string]),
+);
 
 describe('Sidebar', () => {
   it('renders KTS Master Control branding', () => {
@@ -51,9 +42,9 @@ describe('Sidebar', () => {
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument();
   });
 
-  it.each(GROUPS)('renders the %s collapsible group header', (group) => {
+  it.each(GROUP_LABELS)('renders the %s collapsible group header', (label) => {
     renderSidebar();
-    expect(screen.getByRole('button', { name: group })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
   });
 
   it.each(LINKS)('renders the %s link and navigates to %s', (label, path) => {
@@ -66,18 +57,18 @@ describe('Sidebar', () => {
   });
 
   it('highlights the active route', () => {
-    renderSidebar({}, ['/service/system']);
-    expect(screen.getByRole('link', { name: 'System' })).toHaveClass(/bg-\[var\(--kts-brand-primary-bg\)\]/);
+    renderSidebar({}, ['/device/local']);
+    expect(screen.getByText('This Machine')).toHaveClass(/bg-\[var\(--kts-brand-primary-bg\)\]/);
   });
 
   it('collapses and expands a section', () => {
     renderSidebar();
-    expect(screen.getByText('Docker')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Services' }));
-    expect(screen.queryByText('Docker')).not.toBeInTheDocument();
-    expect(screen.queryByText('Storage')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Services' }));
-    expect(screen.getByText('Docker')).toBeInTheDocument();
+    expect(screen.getByText('Fleet')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Fleet' }));
+    expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Fleet' }));
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
   });
 
   it('renders collapsed sidebar as icon-only rail (labels hidden)', () => {
@@ -107,5 +98,36 @@ describe('Sidebar', () => {
   it('does not render MySpeed anywhere', () => {
     renderSidebar();
     expect(screen.queryByText('MySpeed')).not.toBeInTheDocument();
+  });
+
+  it('does not render Lidarr as a top-level link', () => {
+    renderSidebar();
+    expect(screen.queryByText('Lidarr')).not.toBeInTheDocument();
+  });
+
+  it('does not render Sonarr as a top-level link', () => {
+    renderSidebar();
+    expect(screen.queryByText('Sonarr')).not.toBeInTheDocument();
+  });
+
+  it('does not render Radarr as a top-level link', () => {
+    renderSidebar();
+    expect(screen.queryByText('Radarr')).not.toBeInTheDocument();
+  });
+
+  it('does not render a standalone Services group', () => {
+    renderSidebar();
+    expect(screen.queryByText('Services')).not.toBeInTheDocument();
+  });
+
+  it('does not render a standalone More Services group', () => {
+    renderSidebar();
+    expect(screen.queryByText('More Services')).not.toBeInTheDocument();
+  });
+
+  it('renders a single Arr link under Services', () => {
+    renderSidebar();
+    expect(screen.getByText('Arr')).toBeInTheDocument();
+    expect(screen.getByText('Arr')).toHaveAttribute('href', '/service/arr');
   });
 });

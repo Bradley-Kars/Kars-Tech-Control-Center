@@ -14,6 +14,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Label } from '../ui/Label';
+import { AuthRequired } from '../shared/AuthRequired';
 import {
   addWorklog,
   changeTicketStatus,
@@ -192,8 +193,12 @@ function WorklogEntryRow({ entry }: { entry: WorklogEntryView }) {
 export function TicketingPage() {
   const [data, setData] = useState<TicketOverview | null>(null);
   const [loading, setLoading] = useState(true);
-  const [listError, setListError] = useState<string | null>(null);
-  const [refetchError, setRefetchError] = useState<string | null>(null);
+  interface ApiErrorInfo {
+    message: string;
+    status: number | null;
+  }
+  const [listError, setListError] = useState<ApiErrorInfo | null>(null);
+  const [refetchError, setRefetchError] = useState<ApiErrorInfo | null>(null);
   const [selected, setSelected] = useState<TicketRow | null>(null);
   const [creating, setCreating] = useState(false);
   const [createTitle, setCreateTitle] = useState('');
@@ -297,8 +302,8 @@ export function TicketingPage() {
       } catch (err) {
         if (mounted) {
           console.error('[ticketing] list failed:', err);
-          setListError(err instanceof Error ? err.message : 'Failed to load tickets');
-          setLoading(false);
+          const e = err as { status?: number; message?: string };
+          setListError({ message: e.message ?? 'Failed to load tickets', status: e.status ?? null });
         }
       } finally {
         if (mounted) setLoading(false);
@@ -321,7 +326,8 @@ export function TicketingPage() {
       return res;
     } catch (err) {
       console.error('[ticketing] refetch failed:', err);
-      setRefetchError((err as { status?: number }).status === 401 ? 'Unauthorized' : 'Unreachable');
+      const e = err as { status?: number; message?: string };
+      setRefetchError({ message: e.status === 401 ? 'Unauthorized' : 'Unreachable', status: e.status ?? null });
       return null;
     }
   }, [filterStatus]);
@@ -645,13 +651,21 @@ export function TicketingPage() {
           </div>
         ) : !data && listError ? (
           <div className="px-6 pt-6 pb-6 pl-6">
-            <ErrorBanner error={listError} onRetry={() => refetch()} />
+            {listError.status === 401 ? (
+              <AuthRequired />
+            ) : (
+              <ErrorBanner error={listError.message} onRetry={() => refetch()} />
+            )}
           </div>
         ) : (
           <>
             {refetchError && (
               <div className="pt-6 pr-6 pb-2 pl-6">
-                <ErrorBanner error={refetchError} onRetry={() => refetch()} />
+                {refetchError.status === 401 ? (
+                  <AuthRequired />
+                ) : (
+                  <ErrorBanner error={refetchError.message} onRetry={() => refetch()} />
+                )}
               </div>
             )}
 
