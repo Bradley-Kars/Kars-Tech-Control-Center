@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { meshcentralListDevices, meshcentralGetEnrollmentInfo, meshcentralSyncFleet, meshcentralExecuteBatch, meshcentralGetTerminalUrl, meshcentralGetFileManagerUrl } from '../lib/fleet-api';
+import { meshcentralListDevices, meshcentralGetEnrollmentInfo, meshcentralSyncFleet, meshcentralExecuteBatch, meshcentralGetTerminalUrl, meshcentralGetFileManagerUrl, getFleetReadonly } from '../lib/fleet-api';
 import { useServers } from '../hooks';
 import { Card, CardSection } from '../components/ui/Card';
 import { Button, IconButton } from '../components/ui/Button';
@@ -59,6 +59,7 @@ export function MeshCentralPage() {
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [batchCommands, setBatchCommands] = useState<BatchCommand[]>([{ command: '', args: [] }]);
   const [batchRunning, setBatchRunning] = useState(false);
+  const [readonly, setReadonly] = useState(false);
   const [batchResults, setBatchResults] = useState<BatchResult[]>([]);
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
@@ -87,6 +88,14 @@ export function MeshCentralPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    let mounted = true;
+    getFleetReadonly()
+      .then((value) => { if (mounted) setReadonly(value); })
+      .catch(() => { if (mounted) setReadonly(false); });
+    return () => { mounted = false; };
+  }, []);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -246,6 +255,11 @@ export function MeshCentralPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {readonly && (
+        <div className="text-sm text-amber bg-amber/10 border border-amber/20 rounded-lg px-3 py-2 font-mono">
+          Fleet is read-only on this instance — command execution is disabled.
+        </div>
+      )}
       {/* Page Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -406,7 +420,7 @@ export function MeshCentralPage() {
           {/* Execute Button */}
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" onClick={() => setShowBatchModal(false)}>Cancel</Button>
-            <Button variant="primary" onClick={handleBatchExecute} loading={batchRunning} disabled={selectedDevices.length === 0 || batchCommands.every(c => !c.command.trim())}>
+            <Button variant="primary" onClick={handleBatchExecute} loading={batchRunning} disabled={batchRunning || readonly || selectedDevices.length === 0 || batchCommands.every(c => !c.command.trim())}>
               Execute on {selectedDevices.length} Device(s)
             </Button>
           </div>

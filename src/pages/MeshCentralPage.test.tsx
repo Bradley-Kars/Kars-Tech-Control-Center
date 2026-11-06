@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   getEnrollmentInfo: vi.fn(),
   syncFleet: vi.fn(),
   executeBatch: vi.fn(),
+  getFleetReadonly: vi.fn().mockResolvedValue(false),
   useServers: vi.fn(),
 }));
 
@@ -22,6 +23,7 @@ vi.mock('../lib/fleet-api', () => ({
   meshcentralExecuteBatch: mocks.executeBatch,
   meshcentralGetTerminalUrl: vi.fn(),
   meshcentralGetFileManagerUrl: vi.fn(),
+  getFleetReadonly: mocks.getFleetReadonly,
 }));
 
 import {
@@ -29,12 +31,14 @@ import {
   meshcentralGetEnrollmentInfo,
   meshcentralSyncFleet,
   meshcentralExecuteBatch,
+  getFleetReadonly,
 } from '../lib/fleet-api';
 
 const mockListDevices = vi.mocked(meshcentralListDevices);
 const mockGetEnrollmentInfo = vi.mocked(meshcentralGetEnrollmentInfo);
 const mockSyncFleet = vi.mocked(meshcentralSyncFleet);
 const mockExecuteBatch = vi.mocked(meshcentralExecuteBatch);
+const mockGetFleetReadonly = vi.mocked(getFleetReadonly);
 
 const devices: MeshDevice[] = [
   { id: 'mc-1', name: 'unraid-main', group: 'Home', conn: 2, pwr: 1, platform: 'Linux', ip: '10.0.0.50' },
@@ -66,6 +70,7 @@ const batchResults: BatchResult[] = [
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.useServers.mockReturnValue({ servers: [], loading: false, error: null } as any);
+  mockGetFleetReadonly.mockResolvedValue(false);
   Object.defineProperty(navigator, 'clipboard', {
     writable: true,
     value: { writeText: vi.fn() },
@@ -188,6 +193,24 @@ describe('MeshCentralPage (MESH-001, MESH-002, MESH-003)', () => {
     expect(screen.getByText('FAILED')).toBeInTheDocument();
     expect(screen.getByText('Device: mc-1')).toBeInTheDocument();
     expect(screen.getByText('Device: mc-2')).toBeInTheDocument();
+  });
+
+  it('readonly: shows the read-only banner and disables batch execution', async () => {
+    mockGetFleetReadonly.mockResolvedValue(true);
+    mockListDevices.mockResolvedValue(devices);
+    render(<MeshCentralPage />);
+
+    await waitFor(() => expect(screen.getByText('unraid-main')).toBeInTheDocument());
+    expect(screen.getByText(/Fleet is read-only on this instance/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /batch commands/i }));
+    await waitFor(() => expect(screen.getByText('Batch Command Execution')).toBeInTheDocument());
+
+    const executeBtn = screen.getByRole('button', { name: /execute on/i });
+    expect(executeBtn).toBeDisabled();
+
+    fireEvent.click(executeBtn);
+    expect(mockExecuteBatch).not.toHaveBeenCalled();
   });
 
   it('G3 prerequisite: no MeshCentral server configured → shows the prerequisite banner and gates the enrollment buttons', async () => {

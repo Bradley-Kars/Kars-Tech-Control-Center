@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ServerConfig } from '../../lib/types';
-import { getDockerContainers, dockerStart, dockerStop, dockerRestart, dockerLogs, dockerRemove } from '../../lib/fleet-api';
+import { getDockerContainers, dockerStart, dockerStop, dockerRestart, dockerLogs, dockerRemove, getFleetReadonly } from '../../lib/fleet-api';
 
 type Page = 'dashboard' | 'docker' | 'storage' | 'system' | 'network' | 'nextcloud' | 'arr' | 'homeassistant' | 'adguard';
 
@@ -61,6 +61,15 @@ export function DockerPage({ server, setPage }: Props) {
   const [loading, setLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState('');
   const [error, setError] = useState('');
+  const [readonly, setReadonly] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    getFleetReadonly()
+      .then((value) => { if (mounted) setReadonly(value); })
+      .catch(() => { if (mounted) setReadonly(false); });
+    return () => { mounted = false; };
+  }, []);
 
   const refresh = useCallback(async () => {
     try {
@@ -92,6 +101,7 @@ export function DockerPage({ server, setPage }: Props) {
   };
 
   const viewLogs = async (containerId: string, containerName: string) => {
+    if (readonly) return;
     try {
       const l = await dockerLogs(server.id, containerId, 100);
       setLogs(l);
@@ -135,6 +145,12 @@ export function DockerPage({ server, setPage }: Props) {
           <div className="text-sm text-red bg-red/10 border border-red/20 rounded-lg px-3 py-2 font-mono">{error}</div>
         )}
 
+        {readonly && (
+          <div className="text-sm text-amber bg-amber/10 border border-amber/20 rounded-lg px-3 py-2 font-mono">
+            Fleet is read-only on this instance — container actions are disabled.
+          </div>
+        )}
+
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search containers..."
           className="w-full bg-ink border border-line rounded-lg px-3 py-2 text-sm text-off font-mono focus:border-teal focus:outline-none" />
 
@@ -145,7 +161,7 @@ export function DockerPage({ server, setPage }: Props) {
         <div className="space-y-1">
           {running.map(c => (
             <ContainerRow key={c.id || c.name} container={c} selected={selected === c.name}
-              onSelect={() => { viewLogs(c.id, c.name); navigateToService(c.name); }} loading={loading}
+              onSelect={() => { viewLogs(c.id, c.name); navigateToService(c.name); }} loading={loading} readonly={readonly}
               onStart={() => doAction('start', c.id)} onStop={() => doAction('stop', c.id)}
               onRestart={() => doAction('restart', c.id)} onRemove={() => doAction('remove', c.id)} />
           ))}
@@ -157,7 +173,7 @@ export function DockerPage({ server, setPage }: Props) {
             <div className="space-y-1">
               {stopped.map(c => (
                 <ContainerRow key={c.id || c.name} container={c} selected={selected === c.name}
-                  onSelect={() => { viewLogs(c.id, c.name); navigateToService(c.name); }} loading={loading}
+                  onSelect={() => { viewLogs(c.id, c.name); navigateToService(c.name); }} loading={loading} readonly={readonly}
                   onStart={() => doAction('start', c.id)} onStop={() => doAction('stop', c.id)}
                   onRestart={() => doAction('restart', c.id)} onRemove={() => doAction('remove', c.id)} />
               ))}
@@ -181,8 +197,9 @@ export function DockerPage({ server, setPage }: Props) {
   );
 }
 
-function ContainerRow({ container: c, selected, onSelect, loading, onStart, onStop, onRestart, onRemove }: {
+function ContainerRow({ container: c, selected, onSelect, loading, readonly, onStart, onStop, onRestart, onRemove }: {
   container: any; selected: boolean; onSelect: () => void; loading: boolean;
+  readonly: boolean;
   onStart: () => void; onStop: () => void; onRestart: () => void; onRemove: () => void;
 }) {
   const stateColor = c.state === 'running' ? 'bg-green' : c.state === 'exited' || c.state === 'stopped' ? 'bg-red' : 'bg-muted';
@@ -205,13 +222,13 @@ function ContainerRow({ container: c, selected, onSelect, loading, onStart, onSt
       <div className="flex gap-1 shrink-0" onClick={e => e.stopPropagation()}>
         {c.state === 'running' ? (
           <>
-            <button onClick={onStop} disabled={loading} className="text-[10px] px-2 py-1 rounded bg-amber/15 text-amber hover:bg-amber/25">Stop</button>
-            <button onClick={onRestart} disabled={loading} className="text-[10px] px-2 py-1 rounded bg-teal/15 text-teal hover:bg-teal/25">Restart</button>
+            <button onClick={onStop} disabled={loading || readonly} className="text-[10px] px-2 py-1 rounded bg-amber/15 text-amber hover:bg-amber/25">Stop</button>
+            <button onClick={onRestart} disabled={loading || readonly} className="text-[10px] px-2 py-1 rounded bg-teal/15 text-teal hover:bg-teal/25">Restart</button>
           </>
         ) : (
-          <button onClick={onStart} disabled={loading} className="text-[10px] px-2 py-1 rounded bg-green/15 text-green hover:bg-green/25">Start</button>
+          <button onClick={onStart} disabled={loading || readonly} className="text-[10px] px-2 py-1 rounded bg-green/15 text-green hover:bg-green/25">Start</button>
         )}
-        <button onClick={onRemove} disabled={loading} className="text-[10px] px-2 py-1 rounded bg-red/15 text-red hover:bg-red/25">Remove</button>
+        <button onClick={onRemove} disabled={loading || readonly} className="text-[10px] px-2 py-1 rounded bg-red/15 text-red hover:bg-red/25">Remove</button>
       </div>
     </div>
   );

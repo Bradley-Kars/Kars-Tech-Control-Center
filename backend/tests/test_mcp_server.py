@@ -114,6 +114,9 @@ def backend_endpoint(tmp_path, monkeypatch):
     servers_file = tmp_path / "servers.json"
     monkeypatch.setenv("KTS_SERVERS_FILE", str(servers_file))
     monkeypatch.setenv("KTS_ALERTS_DB", str(tmp_path / "alerts.db"))
+    # U8: KTS_SANDBOX=1 (set in conftest) defaults fleet read-only ON;
+    # these tests exercise the writeable backend path.
+    monkeypatch.setenv("KTS_FLEET_READONLY", "0")
 
     table_dir = tmp_path / "auth"
     table = TokenTable(table_dir / "token-table.json")

@@ -70,6 +70,9 @@ def _mock_client(monkeypatch):
 def app_client(tmp_path, monkeypatch):
     servers_file = tmp_path / "servers.json"
     monkeypatch.setenv("KTS_SERVERS_FILE", str(servers_file))
+    # U8: KTS_SANDBOX=1 (set in conftest) defaults fleet read-only ON;
+    # shell_exec tests exercise the writeable path.
+    monkeypatch.setenv("KTS_FLEET_READONLY", "0")
     # C3 default-deny: the minted tokens must be listed admin identities.
     monkeypatch.setenv("KTS_ADMIN_IDENTITIES", "fleet-client")
     table_dir = tmp_path / "auth"
@@ -264,6 +267,9 @@ def _admin_app_client(tmp_path, monkeypatch, admin_identities, token_label):
     admins_file = tmp_path / "admins.json"
     admins_file.write_text(json.dumps(admin_identities))
     monkeypatch.setenv("KTS_ADMINS_FILE", str(admins_file))
+    # U8: KTS_SANDBOX=1 (set in conftest) defaults fleet read-only ON;
+    # these tests exercise the writeable path.
+    monkeypatch.setenv("KTS_FLEET_READONLY", "0")
     app = create_app(table)
     return TestClient(app, base_url="http://127.0.0.1"), secret, servers_file
 

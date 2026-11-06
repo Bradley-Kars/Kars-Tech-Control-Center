@@ -205,6 +205,12 @@ export async function removeServer(id: string, token?: string): Promise<void> {
   });
 }
 
+/** GET /api/fleet/readonly — whether fleet writes are blocked on this instance. */
+export async function getFleetReadonly(): Promise<boolean> {
+  const body = await request<{ readonly: boolean }>('/fleet/readonly');
+  return body.readonly;
+}
+
 /**
  * POST /api/fleet/test_connection — probe connectivity to a server config.
  *

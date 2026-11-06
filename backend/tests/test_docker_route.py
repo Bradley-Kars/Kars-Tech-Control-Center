@@ -42,6 +42,9 @@ DOCKER_PS_OUTPUT = """{"ID":"7f1a2b3c4d5e","Names":"nextcloud","Image":"linuxser
 def app_client(tmp_path, monkeypatch):
     servers_file = tmp_path / "servers.json"
     monkeypatch.setenv("KTS_SERVERS_FILE", str(servers_file))
+    # U8: KTS_SANDBOX=1 (set in conftest) defaults fleet read-only ON;
+    # these tests exercise the writeable path.
+    monkeypatch.setenv("KTS_FLEET_READONLY", "0")
     table_dir = tmp_path / "auth"
     table = TokenTable(table_dir / "token-table.json")
     _, secret = table.mint("fleet-client", actor_id="fleet-actor", scope="write")

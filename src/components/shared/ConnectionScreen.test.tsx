@@ -4,12 +4,14 @@ import type { ServerConfig } from '../../lib/types';
 
 vi.mock('../../lib/fleet-api', () => ({
   testConnection: vi.fn(),
+  getFleetReadonly: vi.fn().mockResolvedValue(false),
 }));
 
-import { testConnection } from '../../lib/fleet-api';
+import { testConnection, getFleetReadonly } from '../../lib/fleet-api';
 import { ConnectionScreen } from './ConnectionScreen';
 
 const mockTestConnection = vi.mocked(testConnection);
+const mockGetFleetReadonly = vi.mocked(getFleetReadonly);
 const onConnect = vi.fn();
 
 beforeEach(() => {
@@ -63,6 +65,18 @@ it('shows the error when the connection test fails', async () => {
   await waitFor(() =>
     expect(screen.getByText(/SSH connection failed/)).toBeInTheDocument(),
   );
+  expect(onConnect).not.toHaveBeenCalled();
+});
+
+it('readonly: shows the banner and disables the Connect button', async () => {
+  mockGetFleetReadonly.mockResolvedValue(true);
+  render(<ConnectionScreen onConnect={onConnect} />);
+  await waitFor(() =>
+    expect(screen.getByText(/Fleet is read-only on this instance/)).toBeInTheDocument(),
+  );
+  const connectBtn = screen.getByRole('button', { name: 'Connect' });
+  expect(connectBtn).toBeDisabled();
+  fireEvent.click(connectBtn);
   expect(onConnect).not.toHaveBeenCalled();
 });
 

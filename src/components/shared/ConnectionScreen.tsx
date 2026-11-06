@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ServerConfig } from '../../lib/types';
-import { testConnection } from '../../lib/fleet-api';
+import { testConnection, getFleetReadonly } from '../../lib/fleet-api';
 
 interface Props {
   onConnect: (config: ServerConfig) => void;
@@ -23,6 +23,15 @@ export function ConnectionScreen({ onConnect }: Props) {
   const [steamdeckKdeconnectDeviceId, setSteamdeckKdeconnectDeviceId] = useState('');
   const [error, setError] = useState('');
   const [testing, setTesting] = useState(false);
+  const [readonly, setReadonly] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    getFleetReadonly()
+      .then((value) => { if (mounted) setReadonly(value); })
+      .catch(() => { if (mounted) setReadonly(false); });
+    return () => { mounted = false; };
+  }, []);
 
   const handleTest = async () => {
     setTesting(true);
@@ -210,12 +219,18 @@ export function ConnectionScreen({ onConnect }: Props) {
 
         {error && <div className="mt-4 text-sm text-red bg-red/10 border border-red/20 rounded-lg px-3 py-2">{error}</div>}
 
+        {readonly && (
+          <div className="mt-4 text-sm text-amber bg-amber/10 border border-amber/20 rounded-lg px-3 py-2 font-mono">
+            Fleet is read-only on this instance — saving a server is disabled.
+          </div>
+        )}
+
         <div className="flex gap-3 mt-6">
           <button onClick={handleTest} disabled={testing}
             className="btn btn-ghost flex-1 disabled:opacity-50">
             {testing ? 'Testing...' : 'Test Connection'}
           </button>
-          <button onClick={handleConnect} className="btn btn-primary flex-1">Connect</button>
+          <button onClick={handleConnect} disabled={testing || readonly} className="btn btn-primary flex-1">Connect</button>
         </div>
       </div>
     </div>

@@ -10,15 +10,17 @@ vi.mock('../../lib/fleet-api', () => ({
   dockerRestart: vi.fn(),
   dockerLogs: vi.fn().mockResolvedValue('mock logs'),
   dockerRemove: vi.fn(),
+  getFleetReadonly: vi.fn().mockResolvedValue(false),
 }));
 
-import { getDockerContainers, dockerStart, dockerStop, dockerRestart, dockerLogs } from '../../lib/fleet-api';
+import { getDockerContainers, dockerStart, dockerStop, dockerRestart, dockerLogs, getFleetReadonly } from '../../lib/fleet-api';
 
 const mockGetDockerContainers = vi.mocked(getDockerContainers);
 const mockDockerStart = vi.mocked(dockerStart);
 const mockDockerStop = vi.mocked(dockerStop);
 const mockDockerRestart = vi.mocked(dockerRestart);
 const mockDockerLogs = vi.mocked(dockerLogs);
+const mockGetFleetReadonly = vi.mocked(getFleetReadonly);
 
 function pending<T>() {
   let resolve!: (value: T) => void;
@@ -31,6 +33,7 @@ function pending<T>() {
 beforeEach(() => {
   vi.clearAllMocks();
   mockGetDockerContainers.mockResolvedValue(mockDockerContainers as any);
+  mockGetFleetReadonly.mockResolvedValue(false);
 });
 
 const defaultProps = {
@@ -112,6 +115,37 @@ describe('DockerPage (D/E/L/R/I/M state matrix)', () => {
 
     await waitForContainers();
     expect(screen.getByText('Stopped')).toBeInTheDocument();
+  });
+
+  it('readonly: shows the read-only banner and disables every container action', async () => {
+    mockGetFleetReadonly.mockResolvedValue(true);
+
+    render(<DockerPage {...defaultProps} />);
+
+    await waitForContainers();
+    expect(screen.getByText(/Fleet is read-only on this instance/)).toBeInTheDocument();
+
+    const startBtn = screen.getAllByText('Start')[0];
+    const stopBtns = screen.getAllByText('Stop');
+    const restartBtns = screen.getAllByText('Restart');
+    const removeBtns = screen.getAllByText('Remove');
+    expect(startBtn).toBeDisabled();
+    stopBtns.forEach((b) => expect(b).toBeDisabled());
+    restartBtns.forEach((b) => expect(b).toBeDisabled());
+    removeBtns.forEach((b) => expect(b).toBeDisabled());
+
+    fireEvent.click(startBtn);
+    expect(mockDockerStart).not.toHaveBeenCalled();
+  });
+
+  it('readonly: clicking a container does not fetch logs', async () => {
+    mockGetFleetReadonly.mockResolvedValue(true);
+
+    render(<DockerPage {...defaultProps} />);
+
+    await waitForContainers();
+    fireEvent.click(screen.getByText('nextcloud'));
+    expect(mockDockerLogs).not.toHaveBeenCalled();
   });
 
   it('D populated: filters containers by search text', async () => {

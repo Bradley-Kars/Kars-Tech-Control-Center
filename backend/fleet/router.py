@@ -20,6 +20,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
 from core.admin import require_admin
+from .readonly import is_fleet_readonly, require_fleet_write
 from .config import (
     ServerConfig,
     load_servers,
@@ -150,7 +151,11 @@ def list_servers(request: Request) -> dict[str, Any]:
 
 
 @router.post("/servers")
-def save_server(request: Request, body: dict) -> Any:
+def save_server(
+    request: Request,
+    body: dict,
+    _readonly: None = Depends(require_fleet_write),
+) -> Any:
     """POST /api/fleet/servers — create or update a server (upsert by id).
 
     Requires scope=write (enforced by the create_app middleware). The body
@@ -186,7 +191,11 @@ def save_server(request: Request, body: dict) -> Any:
 
 
 @router.delete("/servers/{server_id}")
-def remove_server(request: Request, server_id: str) -> Any:
+def remove_server(
+    request: Request,
+    server_id: str,
+    _readonly: None = Depends(require_fleet_write),
+) -> Any:
     """DELETE /api/fleet/servers/{server_id} — remove a server by id.
 
     Requires scope=write (enforced by the create_app middleware). Returns
@@ -202,6 +211,18 @@ def remove_server(request: Request, server_id: str) -> Any:
 
     save_servers(remaining)
     return {"removed": server_id}
+
+
+@router.get("/readonly")
+def fleet_readonly() -> dict[str, bool]:
+    """GET /api/fleet/readonly — whether fleet writes are blocked on this instance.
+
+    True when KTS_FLEET_READONLY=1, or when KTS_FLEET_READONLY is unset and
+    KTS_SANDBOX=1. The frontend uses this to disable fleet write buttons and
+    show a read-only banner. This endpoint is itself read-only and is never
+    gated by require_fleet_write.
+    """
+    return {"readonly": is_fleet_readonly()}
 
 
 @router.post("/test_connection")
@@ -593,7 +614,11 @@ async def get_docker_containers(request: Request, server_id: str) -> Any:
 
 
 @router.post("/docker/start")
-async def docker_start(request: Request, body: dict) -> Any:
+async def docker_start(
+    request: Request,
+    body: dict,
+    _readonly: None = Depends(require_fleet_write),
+) -> Any:
     """POST /api/fleet/docker/start — start a container over SSH.
 
     Body: {server_id, container}. Returns a status message string.
@@ -616,7 +641,11 @@ async def docker_start(request: Request, body: dict) -> Any:
 
 
 @router.post("/docker/stop")
-async def docker_stop(request: Request, body: dict) -> Any:
+async def docker_stop(
+    request: Request,
+    body: dict,
+    _readonly: None = Depends(require_fleet_write),
+) -> Any:
     """POST /api/fleet/docker/stop — stop a container over SSH."""
     validated = _docker_payload(body)
     if isinstance(validated, JSONResponse):
@@ -636,7 +665,11 @@ async def docker_stop(request: Request, body: dict) -> Any:
 
 
 @router.post("/docker/restart")
-async def docker_restart(request: Request, body: dict) -> Any:
+async def docker_restart(
+    request: Request,
+    body: dict,
+    _readonly: None = Depends(require_fleet_write),
+) -> Any:
     """POST /api/fleet/docker/restart — restart a container over SSH."""
     validated = _docker_payload(body)
     if isinstance(validated, JSONResponse):
@@ -656,7 +689,11 @@ async def docker_restart(request: Request, body: dict) -> Any:
 
 
 @router.post("/docker/logs")
-async def docker_logs(request: Request, body: dict) -> Any:
+async def docker_logs(
+    request: Request,
+    body: dict,
+    _readonly: None = Depends(require_fleet_write),
+) -> Any:
     """POST /api/fleet/docker/logs — fetch container logs over SSH.
 
     Body: {server_id, container, lines?}. Returns the log output string.
@@ -1937,7 +1974,11 @@ async def meshcentral_get_device_status(
 
 
 @router.post("/meshcentral/execute_batch")
-async def meshcentral_execute_batch(request: Request, body: dict) -> Any:
+async def meshcentral_execute_batch(
+    request: Request,
+    body: dict,
+    _readonly: None = Depends(require_fleet_write),
+) -> Any:
     """POST /api/fleet/meshcentral/execute_batch — run commands on devices.
 
     Body: {server_id, device_ids: [str], commands: [{command: str, args?: [str]}]}.
@@ -2146,6 +2187,7 @@ async def meshcentral_shell_exec(
     request: Request,
     body: dict,
     _admin: str = Depends(require_admin),
+    _readonly: None = Depends(require_fleet_write),
 ) -> Any:
     """POST /api/fleet/meshcentral/shell_exec — run a shell command on a device.
 

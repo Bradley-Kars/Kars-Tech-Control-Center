@@ -71,6 +71,7 @@ import {
   getSyslog,
   getUserScripts,
   runUserScript,
+  getFleetReadonly,
   getPlugins,
   getNetworkInterfaces,
   getTailscalePeers,
@@ -298,6 +299,23 @@ describe('removeServer', () => {
     expect(err).not.toBeNull();
     expect(err!.status).toBe(500);
     expect(err!.message).toBe('The server returned a web page instead of data. The API address may be wrong.');
+  });
+});
+
+describe('getFleetReadonly', () => {
+  it('GETs /api/fleet/readonly and returns the readonly flag', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ readonly: true }));
+    const result = await getFleetReadonly();
+    expect(result).toBe(true);
+    const [input] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe('/api/fleet/readonly');
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init?.method).toBe('GET');
+  });
+
+  it('returns false when the backend reports the fleet is writeable', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ readonly: false }));
+    expect(await getFleetReadonly()).toBe(false);
   });
 });
 
