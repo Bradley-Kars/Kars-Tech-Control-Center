@@ -1,0 +1,72 @@
+name: UI Smoke (U10)
+
+on:
+  push:
+    branches: ["work/**", main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build the web app (vite preview target)
+        run: npm run build
+
+      - name: Pick a free preview port
+        run: |
+          PORT=$(python3 -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
+          echo "PORT=$PORT" >> $GITHUB_ENV
+          echo "Preview port: $PORT"
+
+      - name: Start vite preview
+        run: |
+          nohup npx vite preview --port "$PORT" > /tmp/ui-smoke-preview.log 2>&1 &
+          echo $! > /tmp/ui-smoke-preview.pid
+
+      - name: Wait for preview to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -s "http://localhost:$PORT/" > /dev/null 2>&1; then
+              echo "Preview ready on port $PORT"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Preview never became ready:" >&2
+          cat /tmp/ui-smoke-preview.log >&2
+          exit 1
+
+      - name: Run U10 route smoke against vite preview + stub backend
+        run: |
+          PLAYWRIGHT_BASE_URL=http://localhost:$PORT CI=1 npx playwright test --config playwright.smoke.config.ts e2e/tests/layout-route-smoke.spec.ts
+
+      - name: Stop vite preview
+        if: always()
+        run: kill "$(cat /tmp/ui-smoke-preview.pid)" 2>/dev/null || true
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30

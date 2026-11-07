@@ -17,7 +17,9 @@ const baseConfig = {
     ['list'],
   ],
   use: {
-    baseURL: 'http://localhost:5173',
+    // CI sets PLAYWRIGHT_BASE_URL to the randomly chosen preview port so the
+    // workflow can bind vite preview to a free port instead of a fixed one.
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
