@@ -1,8 +1,13 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { Sidebar, type SidebarProps } from './Sidebar';
 import { SIDEBAR_GROUPS } from '../../config/nav';
+import { ServicePage } from '../../pages/ServicePage';
+import { TicketingPage } from '../../components/ticketing/TicketingPage';
+import { ChatPage } from '../../pages/ChatPage';
+import { SettingsPage } from '../../pages/SettingsPage';
+import { AppProvider } from '../../context/AppContext';
 
 function renderSidebar(overrides: Partial<SidebarProps> = {}, initialEntries: string[] = ['/']) {
   const props: SidebarProps = {
@@ -47,28 +52,33 @@ describe('Sidebar', () => {
     expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
   });
 
-  it.each(LINKS)('renders the %s link and navigates to %s', (label, path) => {
+  it.each(LINKS)('renders the %s link with href %s', (label, path) => {
+    renderSidebar();
+    const link = screen.getByRole('link', { name: label });
+    expect(link).toHaveAttribute('href', path);
+  });
+
+  it.each(LINKS)('navigates to %s when the %s link is clicked', (label, path) => {
     const onNavigate = vi.fn();
     renderSidebar({ onNavigate });
     const link = screen.getByRole('link', { name: label });
-    expect(link).toHaveAttribute('href', path);
     fireEvent.click(link);
     expect(onNavigate).toHaveBeenCalledWith(path);
   });
 
   it('highlights the active route', () => {
-    renderSidebar({}, ['/device/local']);
-    expect(screen.getByText('This Machine')).toHaveClass(/bg-\[var\(--kts-brand-primary-bg\)\]/);
+    renderSidebar({}, ['/service/system']);
+    expect(screen.getByRole('link', { name: 'System' })).toHaveClass(/bg-\[var\(--kts-brand-primary-bg\)\]/);
   });
 
   it('collapses and expands a section', () => {
     renderSidebar();
-    expect(screen.getByText('Fleet')).toBeInTheDocument();
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Fleet' }));
-    expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Fleet' }));
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Docker')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Services' }));
+    expect(screen.queryByText('Docker')).not.toBeInTheDocument();
+    expect(screen.queryByText('Storage')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Services' }));
+    expect(screen.getByText('Docker')).toBeInTheDocument();
   });
 
   it('renders collapsed sidebar as icon-only rail (labels hidden)', () => {
@@ -99,35 +109,109 @@ describe('Sidebar', () => {
     renderSidebar();
     expect(screen.queryByText('MySpeed')).not.toBeInTheDocument();
   });
+});
 
-  it('does not render Lidarr as a top-level link', () => {
-    renderSidebar();
-    expect(screen.queryByText('Lidarr')).not.toBeInTheDocument();
+/* ------------------------------------------------------------------ */
+/* Route rendering against the stub backend: every sidebar link points
+ * at a route that must render (no crash, no console errors) with the
+ * API modules mocked out. No real host, no network, no real vault. */
+/* ------------------------------------------------------------------ */
+describe('Sidebar routes against the stub backend', () => {
+  const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+  beforeEach(() => {
+    consoleError.mockClear();
   });
 
-  it('does not render Sonarr as a top-level link', () => {
-    renderSidebar();
-    expect(screen.queryByText('Sonarr')).not.toBeInTheDocument();
+  afterAll(() => {
+    consoleError.mockRestore();
   });
 
-  it('does not render Radarr as a top-level link', () => {
-    renderSidebar();
-    expect(screen.queryByText('Radarr')).not.toBeInTheDocument();
+  vi.mock('../../lib/api', () => ({
+    listTickets: vi.fn().mockResolvedValue({ count: 0, tickets: [] }),
+    createTicket: vi.fn().mockResolvedValue({ ticket_id: 'NEW-1', title: '', status: 'new', version: 1 }),
+    addWorklog: vi.fn().mockResolvedValue({ ticket_id: 'TKT-1', version: 1, worklog_count: 1 }),
+    changeTicketStatus: vi.fn().mockResolvedValue({ ticket_id: 'TKT-1', status: 'new', version: 1 }),
+    updateTicket: vi.fn().mockResolvedValue({ ticket_id: 'TKT-1', title: '', status: 'new', version: 1 }),
+    getTicketDetail: vi.fn().mockResolvedValue({
+      id: 'TKT-1', title: 't', status: 'open', client_name: 'c', priority: 'medium',
+      description: '', worklog: [], hours: 0, total: 0, invoice_number: null, no_charge: false,
+    }),
+    generateInvoice: vi.fn().mockResolvedValue({ invoice_id: 'INV-1', ticket_id: 'TKT-1', amount: 0, status: 'issued' }),
+  }));
+
+  vi.mock('../lib/fleet-api', () => ({
+    getServers: vi.fn().mockResolvedValue([]),
+    saveServer: vi.fn().mockResolvedValue(undefined),
+    removeServer: vi.fn().mockResolvedValue(undefined),
+    getSystemStats: vi.fn().mockResolvedValue({}),
+    getLocalSystemStats: vi.fn().mockResolvedValue({}),
+    meshcentralGetFleetStats: vi.fn().mockResolvedValue({}),
+    meshcentralGetSystemStats: vi.fn().mockResolvedValue({}),
+    terminalTicket: vi.fn().mockResolvedValue({ ticket: 'tkt-1', expires_in: 60 }),
+    meshcentralSyncFleet: vi.fn().mockResolvedValue({}),
+  }));
+
+  vi.mock('../../components/terminal/EmbeddedTerminal', () => ({
+    EmbeddedTerminal: () => <div data-testid="chat-stub">Hermes terminal</div>,
+  }));
+
+  // jsdom has no localStorage; AppContext (used by SettingsPage) reads it.
+  Object.defineProperty(window, 'localStorage', {
+    value: {
+      getItem: vi.fn(() => null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+    },
+    writable: true,
   });
 
-  it('does not render a standalone Services group', () => {
-    renderSidebar();
-    expect(screen.queryByText('Services')).not.toBeInTheDocument();
+  const wrap = (path: string) => (
+    <AppProvider>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="service/:serviceId" element={<ServicePage />} />
+          <Route path="ticketing" element={<TicketingPage />} />
+          <Route path="chat" element={<ChatPage />} />
+          <Route path="settings/*" element={<SettingsPage />} />
+        </Routes>
+      </MemoryRouter>
+    </AppProvider>
+  );
+
+  it.each([
+    ['docker', 'Docker'],
+    ['storage', 'Storage'],
+    ['system', 'System'],
+    ['network', 'Network'],
+    ['arr', 'Arr'],
+    ['homeassistant', 'Home Assistant'],
+    ['nextcloud', 'Nextcloud'],
+    ['adguard', 'AdGuard'],
+  ])('renders /service/%s with no server configured and no console errors', async (serviceId) => {
+    render(wrap('/service/' + serviceId));
+    // No server is configured, so the service page shows the server-required
+    // state instead of crashing or calling the real backend.
+    await waitFor(() => expect(screen.getByText('Server required')).toBeInTheDocument());
+    expect(consoleError).not.toHaveBeenCalled();
   });
 
-  it('does not render a standalone More Services group', () => {
-    renderSidebar();
-    expect(screen.queryByText('More Services')).not.toBeInTheDocument();
+  it('renders /ticketing against the stub backend with no console errors', async () => {
+    render(wrap('/ticketing'));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Ticketing' })).toBeInTheDocument());
+    expect(consoleError).not.toHaveBeenCalled();
   });
 
-  it('renders a single Arr link under Services', () => {
-    renderSidebar();
-    expect(screen.getByText('Arr')).toBeInTheDocument();
-    expect(screen.getByText('Arr')).toHaveAttribute('href', '/service/arr');
+  it('renders /chat against the stub backend with no console errors', async () => {
+    render(wrap('/chat'));
+    expect(screen.getByTestId('chat-stub')).toBeInTheDocument();
+    expect(consoleError).not.toHaveBeenCalled();
+  });
+
+  it('renders /settings against the stub backend with no console errors', async () => {
+    render(wrap('/settings'));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument());
+    expect(consoleError).not.toHaveBeenCalled();
   });
 });

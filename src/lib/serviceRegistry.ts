@@ -52,12 +52,9 @@ export interface PageDef {
   /** Background refresh cadence in ms. 0 = no polling. */
   pollMs?: number;
   /**
-   * Whether the page appears in the sidebar.
-   *
-   * The five service pages are intentionally `nav: false` — the dashboard acts
-   * as the hub and links into them. This is a deliberate, test-covered design
-   * choice (see Sidebar.test.tsx "does not render service pages in nav"), so it
-   * is expressed here rather than by silently omitting them from the table.
+   * Whether the page appears in the sidebar. All pages are linkable
+   * destinations; the sidebar groups (config/nav) decide which of them are
+   * shown in the collapsible navigation.
    */
   nav: boolean;
   description: string;
@@ -137,7 +134,7 @@ export const PAGES: PageDef[] = [
   },
   {
     id: 'nextcloud',
-    nav: false,
+    nav: true,
     label: 'Nextcloud',
     icon: '☁',
     group: 'services',
@@ -148,7 +145,7 @@ export const PAGES: PageDef[] = [
   },
   {
     id: 'arr',
-    nav: false,
+    nav: true,
     label: 'Arr',
     icon: '🎵',
     group: 'services',
@@ -159,7 +156,7 @@ export const PAGES: PageDef[] = [
   },
   {
     id: 'homeassistant',
-    nav: false,
+    nav: true,
     label: 'Home Assistant',
     icon: '⌂',
     group: 'services',
@@ -170,7 +167,7 @@ export const PAGES: PageDef[] = [
   },
   {
     id: 'adguard',
-    nav: false,
+    nav: true,
     label: 'AdGuard',
     icon: '⛨',
     group: 'services',
