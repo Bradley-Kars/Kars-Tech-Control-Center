@@ -143,15 +143,15 @@ export function DashboardPage() {
     addToast({ type: 'info', title: 'Fleet health check', message: `Pinging ${enrolled.length} device(s) over MeshCentral…`, duration: 4000 });
     try {
       const results = await meshcentralShellFleet(enrolled.map((s) => s.id), 'uptime', 15);
-      const ok = results.filter((r) => r.success).length;
-      const failed = results.filter((r) => !r.success);
+      const ok = results.filter((r: any) => r.success).length;
+      const failed = results.filter((r: any) => !r.success);
       if (failed.length === 0) {
         addToast({ type: 'success', title: 'Fleet healthy', message: `${ok}/${results.length} devices responded via MeshCentral` });
       } else {
         addToast({
           type: 'warning',
           title: 'Fleet degraded',
-          message: `${ok}/${results.length} up — no response from ${failed.map((f) => f.device_id).join(', ')}`,
+          message: `${ok}/${results.length} up — no response from ${failed.map((f: any) => f.device_id).join(', ')}`,
           duration: 8000,
         });
       }

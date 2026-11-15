@@ -86,7 +86,7 @@ export function FleetCommandPage() {
       };
       setRuns((r) => [record, ...r].slice(0, 20));
       setRunSeq((n) => n + 1);
-      const ok = results.filter((r) => r.success).length;
+      const ok = results.filter((r: any) => r.success).length;
       window.dispatchEvent(
         new CustomEvent('kts:toast', {
           detail: {
