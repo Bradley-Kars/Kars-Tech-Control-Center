@@ -51,3 +51,6 @@ ui-audit-screenshots/
 *.njsproj
 *.sln
 *.sw?
+
+# Git worktrees (isolated feature workspaces — do not commit contents)
+.worktrees/
