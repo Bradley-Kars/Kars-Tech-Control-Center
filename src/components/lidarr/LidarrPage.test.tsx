@@ -3,15 +3,19 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { LidarrPage } from './LidarrPage';
 import { mockServerConfig, mockLidarrStatus, mockLidarrArtists, mockLidarrAlbums, mockLidarrWanted, mockLidarrDiskspace } from '../../test/mock-data';
 
-vi.mock('../../lib/tauri-commands', () => ({
-  getLidarrStatus: vi.fn(),
-  getLidarrArtists: vi.fn(),
-  getLidarrAlbums: vi.fn(),
-  getLidarrWanted: vi.fn(),
-  getLidarrDiskspace: vi.fn(),
-  lidarrRefreshArtist: vi.fn(),
-  lidarrSearchMissing: vi.fn(),
-}));
+vi.mock('../../lib/tauri-commands', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    getLidarrStatus: vi.fn(),
+    getLidarrArtists: vi.fn(),
+    getLidarrAlbums: vi.fn(),
+    getLidarrWanted: vi.fn(),
+    getLidarrDiskspace: vi.fn(),
+    lidarrRefreshArtist: vi.fn(),
+    lidarrSearchMissing: vi.fn(),
+  };
+});
 
 import { getLidarrStatus, getLidarrArtists, getLidarrAlbums, getLidarrWanted, getLidarrDiskspace } from '../../lib/tauri-commands';
 

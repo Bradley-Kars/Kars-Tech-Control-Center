@@ -6,7 +6,12 @@ import { Badge, StatusBadge } from '../ui/Badge';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Label } from '../ui/Label';
-import { invoke } from '@tauri-apps/api/core';
+import {
+  ticketingOverview,
+  ticketingCreateTicket,
+  ticketingAddWorklog,
+  ticketingChangeStatus,
+} from '../../lib/bridge';
 
 interface TicketRow {
   id: string;
@@ -83,7 +88,7 @@ export function TicketingPage() {
 
   useEffect(() => {
     let mounted = true;
-    invoke<TicketingOverview>('ticketing_overview')
+    ticketingOverview()
       .then((res) => {
         if (mounted) {
           setData(res);
@@ -92,7 +97,7 @@ export function TicketingPage() {
       })
       .catch((err) => {
         if (mounted) {
-          console.error('[ticketing] invoke failed:', err);
+          console.error('[ticketing] bridge failed:', err);
           setLoading(false);
         }
       });
@@ -103,8 +108,8 @@ export function TicketingPage() {
   const handleCreateTicket = async () => {
     if (!createTitle.trim()) return;
     try {
-      const created = await invoke<TicketRow>('ticketing_create_ticket', {
-        text: createTitle,
+      const created = await ticketingCreateTicket({
+        title: createTitle,
         priority: createPriority,
         category: createCategory || undefined,
       });
@@ -131,18 +136,19 @@ export function TicketingPage() {
     if (!selected) return;
     if (!worklogEntry.trim()) return;
     try {
-      await invoke('ticketing_add_worklog', {
-        ticket_id: selected.id,
-        entry: worklogEntry,
+      await ticketingAddWorklog(selected.id, {
+        date: new Date().toISOString().split('T')[0],
+        mode: 'remote',
         hours: worklogHours,
         payment: 'uninvoiced',
+        entry: worklogEntry,
       });
       setWorklogEntry('');
       setWorklogHours(0.5);
       // Refresh to reflect updated ticket
-      const refreshed = await invoke<TicketingOverview>('ticketing_overview');
+      const refreshed = await ticketingOverview();
       setData(refreshed);
-      setSelected(refreshed.tickets.find((t) => t.id === selected.id) ?? null);
+      setSelected(refreshed.tickets.find((t: any) => t.id === selected.id) ?? null);
     } catch (err) {
       console.error('[ticketing] worklog failed:', err);
       alert(`Failed to add worklog: ${err}`);
@@ -153,14 +159,11 @@ export function TicketingPage() {
   const handleChangeStatus = async (newStatus: string) => {
     if (!selected) return;
     try {
-      await invoke('ticketing_change_status', {
-        ticket_id: selected.id,
-        status: newStatus,
-      });
+      await ticketingChangeStatus(selected.id, newStatus);
       // Refresh to reflect updated ticket
-      const refreshed = await invoke<TicketingOverview>('ticketing_overview');
+      const refreshed = await ticketingOverview();
       setData(refreshed);
-      setSelected(refreshed.tickets.find((t) => t.id === selected.id) ?? selected);
+      setSelected(refreshed.tickets.find((t: any) => t.id === selected.id) ?? selected);
     } catch (err) {
       console.error('[ticketing] status change failed:', err);
       alert(`Failed to change status: ${err}`);

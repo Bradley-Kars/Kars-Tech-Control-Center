@@ -3,9 +3,13 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MySpeedPage } from './MySpeedPage';
 import { mockServerConfig, mockMySpeedSummary } from '../../test/mock-data';
 
-vi.mock('../../lib/tauri-commands', () => ({
-  getMySpeedSummary: vi.fn(),
-}));
+vi.mock('../../lib/tauri-commands', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    getMySpeedSummary: vi.fn(),
+  };
+});
 
 import { getMySpeedSummary } from '../../lib/tauri-commands';
 

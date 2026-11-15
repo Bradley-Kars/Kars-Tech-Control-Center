@@ -3,11 +3,15 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { StoragePage } from './StoragePage';
 import { mockServerConfig, mockDisks, mockShares } from '../../test/mock-data';
 
-vi.mock('../../lib/tauri-commands', () => ({
-  getDisks: vi.fn(),
-  getShares: vi.fn(),
-  getSmartData: vi.fn(),
-}));
+vi.mock('../../lib/tauri-commands', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    getDisks: vi.fn(),
+    getShares: vi.fn(),
+    getSmartData: vi.fn(),
+  };
+});
 
 import { getDisks, getShares, getSmartData } from '../../lib/tauri-commands';
 

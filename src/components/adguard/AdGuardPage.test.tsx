@@ -3,16 +3,20 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { AdGuardPage } from './AdGuardPage';
 import { mockServerConfig, mockAdGuardStatus, mockAdGuardStats, mockAdGuardQueryLog, mockAdGuardClients, mockAdGuardFilters } from '../../test/mock-data';
 
-vi.mock('../../lib/tauri-commands', () => ({
-  getAdGuardStatus: vi.fn(),
-  getAdGuardStats: vi.fn(),
-  getAdGuardQueryLog: vi.fn(),
-  getAdGuardClients: vi.fn(),
-  getAdGuardFilters: vi.fn(),
-  getAdGuardDhcp: vi.fn(),
-  adguardEnable: vi.fn(),
-  adguardDisable: vi.fn(),
-}));
+vi.mock('../../lib/tauri-commands', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    getAdGuardStatus: vi.fn(),
+    getAdGuardStats: vi.fn(),
+    getAdGuardQueryLog: vi.fn(),
+    getAdGuardClients: vi.fn(),
+    getAdGuardFilters: vi.fn(),
+    getAdGuardDhcp: vi.fn(),
+    adguardEnable: vi.fn(),
+    adguardDisable: vi.fn(),
+  };
+});
 
 import { getAdGuardStatus, getAdGuardStats, getAdGuardQueryLog, getAdGuardClients, getAdGuardFilters, getAdGuardDhcp } from '../../lib/tauri-commands';
 

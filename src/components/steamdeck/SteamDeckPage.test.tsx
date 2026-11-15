@@ -2,18 +2,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { SteamDeckPage } from './SteamDeckPage';
 
-vi.mock('../../lib/tauri-commands', () => ({
-  steamdeckGetSystemStats: vi.fn(),
-  steamdeckGetBattery: vi.fn(),
-  steamdeckGetThermal: vi.fn(),
-  steamdeckGetDisk: vi.fn(),
-  steamdeckGetNetwork: vi.fn(),
-  steamdeckGetGpu: vi.fn(),
-  steamdeckLaunchRustdesk: vi.fn(),
-  steamdeckGetDeskflowStatus: vi.fn(),
-  allyProvision: vi.fn(),
-  allyLaunchAgent: vi.fn(),
-}));
+vi.mock('../../lib/tauri-commands', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    steamdeckGetSystemStats: vi.fn(),
+    steamdeckGetBattery: vi.fn(),
+    steamdeckGetThermal: vi.fn(),
+    steamdeckGetDisk: vi.fn(),
+    steamdeckGetNetwork: vi.fn(),
+    steamdeckGetGpu: vi.fn(),
+    steamdeckLaunchRustdesk: vi.fn(),
+    steamdeckGetDeskflowStatus: vi.fn(),
+    allyProvision: vi.fn(),
+    allyLaunchAgent: vi.fn(),
+  };
+});
 
 import {
   steamdeckGetSystemStats,

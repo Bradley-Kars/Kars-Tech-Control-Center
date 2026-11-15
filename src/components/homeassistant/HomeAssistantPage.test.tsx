@@ -3,13 +3,17 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { HomeAssistantPage } from './HomeAssistantPage';
 import { mockServerConfig, mockHomeAssistantConfig, mockHomeAssistantStates } from '../../test/mock-data';
 
-vi.mock('../../lib/tauri-commands', () => ({
-  getHomeAssistantStates: vi.fn(),
-  getHomeAssistantConfig: vi.fn(),
-  homeAssistantToggle: vi.fn(),
-  homeAssistantTurnOn: vi.fn(),
-  homeAssistantTurnOff: vi.fn(),
-}));
+vi.mock('../../lib/tauri-commands', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    getHomeAssistantStates: vi.fn(),
+    getHomeAssistantConfig: vi.fn(),
+    homeAssistantToggle: vi.fn(),
+    homeAssistantTurnOn: vi.fn(),
+    homeAssistantTurnOff: vi.fn(),
+  };
+});
 
 import { getHomeAssistantStates, getHomeAssistantConfig } from '../../lib/tauri-commands';
 

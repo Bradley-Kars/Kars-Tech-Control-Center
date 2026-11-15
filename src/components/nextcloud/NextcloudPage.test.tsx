@@ -3,13 +3,17 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { NextcloudPage } from './NextcloudPage';
 import { mockServerConfig, mockNextcloudInfo, mockNextcloudStorage, mockNextcloudUsers, mockNextcloudActivity } from '../../test/mock-data';
 
-vi.mock('../../lib/tauri-commands', () => ({
-  getNextcloudInfo: vi.fn(),
-  getNextcloudStatus: vi.fn(),
-  getNextcloudStorage: vi.fn(),
-  getNextcloudUsers: vi.fn(),
-  getNextcloudActivity: vi.fn(),
-}));
+vi.mock('../../lib/tauri-commands', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    getNextcloudInfo: vi.fn(),
+    getNextcloudStatus: vi.fn(),
+    getNextcloudStorage: vi.fn(),
+    getNextcloudUsers: vi.fn(),
+    getNextcloudActivity: vi.fn(),
+  };
+});
 
 import { getNextcloudInfo, getNextcloudStatus, getNextcloudStorage, getNextcloudUsers, getNextcloudActivity } from '../../lib/tauri-commands';
 

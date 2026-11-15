@@ -3,28 +3,32 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Dashboard } from './Dashboard';
 import { mockServerConfig, mockSystemStats } from '../../test/mock-data';
 
-vi.mock('../../lib/tauri-commands', () => ({
-  getGpuInfo: vi.fn(),
-  getDockerContainers: vi.fn(),
-  meshcentralReboot: vi.fn(),
-  meshcentralShutdown: vi.fn(),
-  getArrayInfo: vi.fn(),
-  getPhoneDeviceInfo: vi.fn(),
-  getPhoneBattery: vi.fn(),
-  getPhoneMemory: vi.fn(),
-  getPhoneCpu: vi.fn(),
-  getPhoneStorage: vi.fn(),
-  getKdeConnectBattery: vi.fn(),
-  getKdeConnectNotifications: vi.fn(),
-  getKdeConnectMpris: vi.fn(),
-  steamdeckGetBattery: vi.fn(),
-  steamdeckGetThermal: vi.fn(),
-  steamdeckGetDeskflowStatus: vi.fn(),
-  steamdeckGetSystemStats: vi.fn(),
-  steamdeckGetDisk: vi.fn(),
-  steamdeckGetGpu: vi.fn(),
-  getLocalSystemStats: vi.fn(),
-}));
+vi.mock('../../lib/tauri-commands', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    getGpuInfo: vi.fn(),
+    getDockerContainers: vi.fn(),
+    meshcentralReboot: vi.fn(),
+    meshcentralShutdown: vi.fn(),
+    getArrayInfo: vi.fn(),
+    getPhoneDeviceInfo: vi.fn(),
+    getPhoneBattery: vi.fn(),
+    getPhoneMemory: vi.fn(),
+    getPhoneCpu: vi.fn(),
+    getPhoneStorage: vi.fn(),
+    getKdeConnectBattery: vi.fn(),
+    getKdeConnectNotifications: vi.fn(),
+    getKdeConnectMpris: vi.fn(),
+    steamdeckGetBattery: vi.fn(),
+    steamdeckGetThermal: vi.fn(),
+    steamdeckGetDeskflowStatus: vi.fn(),
+    steamdeckGetSystemStats: vi.fn(),
+    steamdeckGetDisk: vi.fn(),
+    steamdeckGetGpu: vi.fn(),
+    getLocalSystemStats: vi.fn(),
+  };
+});
 
 import { getGpuInfo, getDockerContainers, getArrayInfo, steamdeckGetBattery, steamdeckGetThermal, steamdeckGetDeskflowStatus, steamdeckGetSystemStats, steamdeckGetDisk, steamdeckGetGpu, getLocalSystemStats } from '../../lib/tauri-commands';
 const mockGetGpuInfo = vi.mocked(getGpuInfo);

@@ -2,13 +2,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { TicketingPage } from './TicketingPage';
 import { computeOverview, invoiceForTicket, type MockTicketRow } from './mockData';
+import { ticketingOverview } from '../../lib/bridge';
 
-// Mock the Tauri invoke
-vi.mock('@tauri-apps/api/core', () => ({
-  invoke: vi.fn(),
-}));
+vi.mock('../../lib/bridge', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    ticketingOverview: vi.fn(),
+    ticketingCreateTicket: vi.fn(),
+    ticketingAddWorklog: vi.fn(),
+    ticketingChangeStatus: vi.fn(),
+  };
+});
 
-import { invoke } from '@tauri-apps/api/core';
+const mockTicketingOverview = vi.mocked(ticketingOverview);
 
 const MOCK_OVERVIEW = {
   overview: { open: 0, critical: 0, overdue: 0, tickets_total: 4, invoices_total: 4, collected: 365, outstanding: 0 },
@@ -88,18 +95,18 @@ describe('TicketingPage (with mocked Tauri invoke)', () => {
   });
 
   const renderWithMock = (mockData: any) => {
-    (invoke as any).mockResolvedValue(mockData);
+    mockTicketingOverview.mockResolvedValue(mockData);
     return render(<TicketingPage />);
   };
 
   it('renders loading state initially', () => {
-    (invoke as any).mockImplementation(() => new Promise(() => {}));
+    mockTicketingOverview.mockImplementation(() => new Promise(() => {}));
     render(<TicketingPage />);
     expect(screen.getByText('Loading ticketing…')).toBeInTheDocument();
   });
 
   it('renders mock data with MC-1 badge when from_mock=true', async () => {
-    (invoke as any).mockResolvedValue(MOCK_OVERVIEW);
+    mockTicketingOverview.mockResolvedValue(MOCK_OVERVIEW);
     render(<TicketingPage />);
     await waitFor(() => expect(screen.getByText('MC-1 · mock data')).toBeInTheDocument());
     // MC-1b badge should not be present (badge text is "MC-1b · live bridge")
@@ -108,7 +115,7 @@ describe('TicketingPage (with mocked Tauri invoke)', () => {
   });
 
   it('renders live bridge badge when from_mock=false, offline_reason=none', async () => {
-    (invoke as any).mockResolvedValue({ ...MOCK_OVERVIEW, from_mock: false, offline_reason: 'none' });
+    mockTicketingOverview.mockResolvedValue({ ...MOCK_OVERVIEW, from_mock: false, offline_reason: 'none' });
     render(<TicketingPage />);
     await waitFor(() => expect(screen.getByText('MC-1b · live bridge')).toBeInTheDocument());
     expect(screen.queryByText('MC-1 · mock data')).not.toBeInTheDocument();
@@ -116,26 +123,26 @@ describe('TicketingPage (with mocked Tauri invoke)', () => {
   });
 
   it('renders OFF-1 banner with "Unreachable" when offline_reason=unreachable', async () => {
-    (invoke as any).mockResolvedValue({ ...MOCK_OVERVIEW, offline_reason: 'unreachable' });
+    mockTicketingOverview.mockResolvedValue({ ...MOCK_OVERVIEW, offline_reason: 'unreachable' });
     render(<TicketingPage />);
     await waitFor(() => expect(screen.getByText('OFF-1 — Unreachable (network/timeout)')).toBeInTheDocument());
     expect(screen.getByText(/Could not reach the ticketing bridge/)).toBeInTheDocument();
   });
 
   it('renders OFF-1 banner with "Unauthorized (401)" when offline_reason=unauthorized', async () => {
-    (invoke as any).mockResolvedValue({ ...MOCK_OVERVIEW, offline_reason: 'unauthorized' });
+    mockTicketingOverview.mockResolvedValue({ ...MOCK_OVERVIEW, offline_reason: 'unauthorized' });
     render(<TicketingPage />);
     await waitFor(() => expect(screen.getByText('OFF-1 — Unauthorized (401)')).toBeInTheDocument());
   });
 
   it('renders OFF-1 banner with "Bad response" when offline_reason=bad_response', async () => {
-    (invoke as any).mockResolvedValue({ ...MOCK_OVERVIEW, offline_reason: 'bad_response' });
+    mockTicketingOverview.mockResolvedValue({ ...MOCK_OVERVIEW, offline_reason: 'bad_response' });
     render(<TicketingPage />);
     await waitFor(() => expect(screen.getByText('OFF-1 — Bad response (parse/format error)')).toBeInTheDocument());
   });
 
   it('renders cards, table rows, and settings', async () => {
-    (invoke as any).mockResolvedValue(MOCK_OVERVIEW);
+    mockTicketingOverview.mockResolvedValue(MOCK_OVERVIEW);
     render(<TicketingPage />);
     await waitFor(() => expect(screen.getByText('MC-1 · mock data')).toBeInTheDocument());
     expect(screen.getByTestId('ticket-table')).toBeInTheDocument();
@@ -147,7 +154,7 @@ describe('TicketingPage (with mocked Tauri invoke)', () => {
   });
 
   it('shows detail strip on row click with invoice link', async () => {
-    (invoke as any).mockResolvedValue(MOCK_OVERVIEW);
+    mockTicketingOverview.mockResolvedValue(MOCK_OVERVIEW);
     render(<TicketingPage />);
     await waitFor(() => expect(screen.getByText('MC-1 · mock data')).toBeInTheDocument());
     const row = screen.getByTestId('ticket-row-TKT-2026-003');
@@ -158,7 +165,7 @@ describe('TicketingPage (with mocked Tauri invoke)', () => {
   });
 
   it('marks the no-charge invoice in the table', async () => {
-    (invoke as any).mockResolvedValue(MOCK_OVERVIEW);
+    mockTicketingOverview.mockResolvedValue(MOCK_OVERVIEW);
     render(<TicketingPage />);
     await waitFor(() => expect(screen.getByTestId('ticket-row-TKT-2026-004')).toBeInTheDocument());
     const row = screen.getByTestId('ticket-row-TKT-2026-004');
@@ -167,7 +174,7 @@ describe('TicketingPage (with mocked Tauri invoke)', () => {
   });
 
   it('shows settings with bridge URL and mode info', async () => {
-    (invoke as any).mockResolvedValue(MOCK_OVERVIEW);
+    mockTicketingOverview.mockResolvedValue(MOCK_OVERVIEW);
     render(<TicketingPage />);
     await waitFor(() => expect(screen.getByTestId('ticketing-settings')).toBeInTheDocument());
     const settings = screen.getByTestId('ticketing-settings');
@@ -178,7 +185,7 @@ describe('TicketingPage (with mocked Tauri invoke)', () => {
   // Live bridge payloads carry no hours / total / invoice_number / due date. Those must
   // render as n/a — a fabricated 0 (or a stale fixture value) would be a lie about money.
   it('shows n/a for collected, overdue and per-ticket money fields on live data', async () => {
-    (invoke as any).mockResolvedValue(MOCK_LIVE);
+    mockTicketingOverview.mockResolvedValue(MOCK_LIVE);
     render(<TicketingPage />);
     await waitFor(() => expect(screen.getByText('MC-1b · live bridge')).toBeInTheDocument());
 
@@ -203,7 +210,7 @@ describe('TicketingPage (with mocked Tauri invoke)', () => {
 
   it('fails if 401 silently falls back to mock without offline_reason', async () => {
     // This test ensures a 401 cannot silently fall back to mock without offline_reason
-    (invoke as any).mockResolvedValue({ 
+    mockTicketingOverview.mockResolvedValue({ 
       ...MOCK_OVERVIEW, 
       from_mock: true, 
       offline_reason: 'unauthorized' // must have offline_reason set

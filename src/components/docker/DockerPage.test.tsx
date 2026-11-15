@@ -3,14 +3,18 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { DockerPage } from './DockerPage';
 import { mockServerConfig, mockDockerContainers } from '../../test/mock-data';
 
-vi.mock('../../lib/tauri-commands', () => ({
-  getDockerContainers: vi.fn(),
-  dockerStart: vi.fn(),
-  dockerStop: vi.fn(),
-  dockerRestart: vi.fn(),
-  dockerLogs: vi.fn().mockResolvedValue('mock logs'),
-  dockerRemove: vi.fn(),
-}));
+vi.mock('../../lib/tauri-commands', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    getDockerContainers: vi.fn(),
+    dockerStart: vi.fn(),
+    dockerStop: vi.fn(),
+    dockerRestart: vi.fn(),
+    dockerLogs: vi.fn().mockResolvedValue('mock logs'),
+    dockerRemove: vi.fn(),
+  };
+});
 
 import { getDockerContainers } from '../../lib/tauri-commands';
 const mockGetDockerContainers = vi.mocked(getDockerContainers);
