@@ -14,6 +14,7 @@ from app.api.v1.endpoints.lidarr import router as lidarr_router
 from app.api.v1.endpoints.myspeed import router as myspeed_router
 from app.api.v1.endpoints.nextcloud import router as nextcloud_router
 from app.api.v1.endpoints.phone import router as phone_router
+from app.api.v1.endpoints.steamdeck import router as steamdeck_router
 from app.api.v1.endpoints.servers import router as servers_router
 from app.api.v1.endpoints.unraid import router as unraid_router
 from app.core.config import settings
@@ -34,6 +35,7 @@ app.include_router(myspeed_router)
 app.include_router(adguard_router)
 app.include_router(phone_router)
 app.include_router(kdeconnect_router)
+app.include_router(steamdeck_router)
 
 
 @app.get("/health")
