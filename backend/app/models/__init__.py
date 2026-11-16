@@ -2,7 +2,8 @@
 
 from datetime import datetime
 from typing import Optional
-from uuid import UUID, uuid4
+from uuid import uuid4
+import uuid as uuid_module
 
 from sqlalchemy import (
     Boolean,
@@ -32,7 +33,9 @@ from app.db.base import Base
 class KtsCustomer(Base):
     __tablename__ = "kts_customers"
 
-    id: Mapped[UUID] = mapped_column(String, primary_key=True, default=uuid4)
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: str(uuid4())
+    )
     name: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str] = mapped_column(String, nullable=False)
     phone: Mapped[Optional[str]] = mapped_column(String, nullable=True)
@@ -53,8 +56,10 @@ class KtsCustomer(Base):
 class KtsTicket(Base):
     __tablename__ = "kts_tickets"
 
-    id: Mapped[UUID] = mapped_column(String, primary_key=True, default=uuid4)
-    customer_id: Mapped[UUID] = mapped_column(
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: str(uuid4())
+    )
+    customer_id: Mapped[str] = mapped_column(
         String, ForeignKey("kts_customers.id"), nullable=False
     )
     title: Mapped[str] = mapped_column(String, nullable=False)
@@ -103,8 +108,10 @@ class KtsTicket(Base):
 class KtsComment(Base):
     __tablename__ = "kts_comments"
 
-    id: Mapped[UUID] = mapped_column(String, primary_key=True, default=uuid4)
-    ticket_id: Mapped[UUID] = mapped_column(
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: str(uuid4())
+    )
+    ticket_id: Mapped[str] = mapped_column(
         String, ForeignKey("kts_tickets.id"), nullable=False
     )
     author: Mapped[str] = mapped_column(String, nullable=False)
