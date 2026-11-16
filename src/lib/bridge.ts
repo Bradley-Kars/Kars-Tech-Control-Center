@@ -7,6 +7,17 @@
 // REST paths and are concentrated here so they can be re-pointed in one place
 // when the real bridge contract is known.
 
+import type {
+  ListCustomersQuery,
+  CreateCustomerRequest,
+  UpdateCustomerRequest,
+  ListTicketsQuery,
+  CreateTicketRequest,
+  UpdateTicketRequest,
+  CreateCommentRequest,
+  LoginRequest,
+} from '../lib/types';
+
 export class BridgeError extends Error {
   readonly status: number;
   constructor(status: number, message: string) {
@@ -982,6 +993,26 @@ export async function ticketingChangeStatus(ticketId: string, status: string): P
 }
 
 /* ------------------------------------------------------------------ */
+/* Missing Tauri command wrappers (parity gaps G1-G4)                 */
+/* ------------------------------------------------------------------ */
+
+export async function rebootServer(serverId: string): Promise<any> {
+  return bridgeRequest('POST', `/servers/${encodeURIComponent(serverId)}/reboot`);
+}
+
+export async function shutdownServer(serverId: string): Promise<any> {
+  return bridgeRequest('POST', `/servers/${encodeURIComponent(serverId)}/shutdown`);
+}
+
+export async function getPhoneContacts(serverId: string): Promise<any> {
+  return bridgeRequest('GET', `/phone/${encodeURIComponent(serverId)}/contacts`);
+}
+
+export async function getDockerContainerInfo(serverId: string, container: string): Promise<any> {
+  return bridgeRequest('GET', `/servers/${encodeURIComponent(serverId)}/docker/containers/${encodeURIComponent(container)}/info`);
+}
+
+/* ------------------------------------------------------------------ */
 /* Defined in tauri-commands.ts but not imported by src (kept for       */
 /* completeness of the re-export surface).                            */
 /* ------------------------------------------------------------------ */
@@ -996,4 +1027,78 @@ export async function getPlexIdentity(_serverId: string): Promise<any> {
 
 export async function getPlexLibraries(_serverId: string): Promise<any> {
   return bridgeRequest('GET', '/services/plex/libraries');
+}
+
+/* ------------------------------------------------------------------ */
+/* KTS Master Control — Customers / Tickets / Comments / Auth         */
+/* Contract locked 2026-11-15:                                        */
+/*   GET/POST   /kts/customers                                        */
+/*   GET/PATCH  /kts/customers/:id                                    */
+/*   GET/POST   /kts/tickets        (query: customer_id, status, priority, assigned_to, search) */
+/*   GET/PATCH  /kts/tickets/:id                                            */
+/*   GET/POST   /kts/tickets/:id/comments                                   */
+/*   POST       /auth/login                                           */
+/*   POST       /auth/logout                                          */
+/*   GET        /auth/me                                              */
+/* ------------------------------------------------------------------ */
+
+function buildQs(query?: Record<string, string | undefined>): string {
+  if (!query) return '';
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(query)) {
+    if (v !== undefined && v !== '') params.set(k, v);
+  }
+  return params.toString() ? '?' + params.toString() : '';
+}
+
+export async function listCustomers(query?: ListCustomersQuery): Promise<any> {
+  return bridgeRequest('GET', `/kts/customers${buildQs(query as Record<string, string | undefined>)}`);
+}
+
+export async function getCustomer(id: string): Promise<any> {
+  return bridgeRequest('GET', `/kts/customers/${encodeURIComponent(id)}`);
+}
+
+export async function createCustomer(payload: CreateCustomerRequest): Promise<any> {
+  return bridgeRequest('POST', '/kts/customers', payload);
+}
+
+export async function updateCustomer(id: string, payload: UpdateCustomerRequest): Promise<any> {
+  return bridgeRequest('PATCH', `/kts/customers/${encodeURIComponent(id)}`, payload);
+}
+
+export async function listTickets(query?: ListTicketsQuery): Promise<any> {
+  return bridgeRequest('GET', `/kts/tickets${buildQs(query as Record<string, string | undefined>)}`);
+}
+
+export async function getTicket(id: string): Promise<any> {
+  return bridgeRequest('GET', `/kts/tickets/${encodeURIComponent(id)}`);
+}
+
+export async function createTicket(payload: CreateTicketRequest): Promise<any> {
+  return bridgeRequest('POST', '/kts/tickets', payload);
+}
+
+export async function updateTicket(id: string, payload: UpdateTicketRequest): Promise<any> {
+  return bridgeRequest('PATCH', `/kts/tickets/${encodeURIComponent(id)}`, payload);
+}
+
+export async function listComments(ticketId: string): Promise<any> {
+  return bridgeRequest('GET', `/kts/tickets/${encodeURIComponent(ticketId)}/comments`);
+}
+
+export async function createComment(ticketId: string, payload: CreateCommentRequest): Promise<any> {
+  return bridgeRequest('POST', `/kts/tickets/${encodeURIComponent(ticketId)}/comments`, payload);
+}
+
+export async function authLogin(payload: LoginRequest): Promise<any> {
+  return bridgeRequest('POST', '/auth/login', payload);
+}
+
+export async function authLogout(): Promise<any> {
+  return bridgeRequest('POST', '/auth/logout');
+}
+
+export async function authMe(): Promise<any> {
+  return bridgeRequest('GET', '/auth/me');
 }
