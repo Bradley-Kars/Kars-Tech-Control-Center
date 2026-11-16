@@ -14,6 +14,7 @@ from app.api.v1.endpoints.kdeconnect import router as kdeconnect_router
 from app.api.v1.endpoints.lidarr import router as lidarr_router
 from app.api.v1.endpoints.metrics import router as metrics_router
 from app.api.v1.endpoints.meshcentral import router as meshcentral_router
+from app.api.v1.endpoints.prometheus import router as prometheus_router
 from app.api.v1.endpoints.myspeed import router as myspeed_router
 from app.api.v1.endpoints.nextcloud import router as nextcloud_router
 from app.api.v1.endpoints.phone import router as phone_router
@@ -41,6 +42,7 @@ app.include_router(phone_router)
 app.include_router(kdeconnect_router)
 app.include_router(steamdeck_router)
 app.include_router(meshcentral_router)
+app.include_router(prometheus_router)
 app.include_router(alerts_router)
 
 
