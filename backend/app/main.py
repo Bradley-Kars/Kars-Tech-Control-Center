@@ -6,6 +6,7 @@ Tauri command maps to a route registered here.
 
 from fastapi import FastAPI
 
+from app.api.v1.endpoints.servers import router as servers_router
 from app.core.config import settings
 
 app = FastAPI(
@@ -13,6 +14,8 @@ app = FastAPI(
     description="HTTP bridge backend for KTS Master Control Center",
     version="0.1.0",
 )
+
+app.include_router(servers_router)
 
 
 @app.get("/health")
