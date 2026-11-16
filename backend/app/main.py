@@ -8,6 +8,7 @@ from fastapi import FastAPI
 
 from app.api.v1.endpoints.adguard import router as adguard_router
 from app.api.v1.endpoints.alerts import router as alerts_router
+from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.docker import router as docker_router
 from app.api.v1.endpoints.homeassistant import router as homeassistant_router
 from app.api.v1.endpoints.kdeconnect import router as kdeconnect_router
@@ -52,6 +53,7 @@ app.include_router(terminal_router)
 app.include_router(opencode_router)
 app.include_router(rest_services_router)
 app.include_router(alerts_router)
+app.include_router(auth_router)
 
 
 @app.get("/health")
