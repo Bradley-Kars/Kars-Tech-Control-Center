@@ -1,8 +1,8 @@
-"""KTS Master Control SQLAlchemy models — all 5 tables from SPEC.md."""
+"""KTS Master Control SQLAlchemy models — all 5 Tauri parity tables + 3 KTS domain tables from SPEC.md."""
 
 from datetime import datetime
 from typing import Optional
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from sqlalchemy import (
     Boolean,
@@ -20,6 +20,105 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
+
+# ===========================================================================
+# KTS Master Control domain (Customer 1:N Ticket, comments on tickets)
+# Locked contract: statuses open/in_progress/resolved/closed,
+# priorities low/medium/high/urgent, UUID ids, ISO8601 timestamps,
+# resolved_at nullable.
+# ===========================================================================
+
+
+class KtsCustomer(Base):
+    __tablename__ = "kts_customers"
+
+    id: Mapped[UUID] = mapped_column(String, primary_key=True, default=uuid4)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    email: Mapped[str] = mapped_column(String, nullable=False)
+    phone: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    company: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    status: Mapped[str] = mapped_column(String, nullable=False, server_default="active")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+    tickets: Mapped[list["KtsTicket"]] = relationship(
+        back_populates="customer", cascade="all, delete-orphan"
+    )
+
+
+class KtsTicket(Base):
+    __tablename__ = "kts_tickets"
+
+    id: Mapped[UUID] = mapped_column(String, primary_key=True, default=uuid4)
+    customer_id: Mapped[UUID] = mapped_column(
+        String, ForeignKey("kts_customers.id"), nullable=False
+    )
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(
+        Enum(
+            "open",
+            "in_progress",
+            "resolved",
+            "closed",
+            name="kts_ticket_status_enum",
+            create_type=False,
+        ),
+        nullable=False,
+        server_default="open",
+    )
+    priority: Mapped[str] = mapped_column(
+        Enum(
+            "low",
+            "medium",
+            "high",
+            "urgent",
+            name="kts_ticket_priority_enum",
+            create_type=False,
+        ),
+        nullable=False,
+        server_default="medium",
+    )
+    assigned_to: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+
+    customer: Mapped["KtsCustomer"] = relationship(back_populates="tickets")
+    comments: Mapped[list["KtsComment"]] = relationship(
+        back_populates="ticket", cascade="all, delete-orphan"
+    )
+
+
+class KtsComment(Base):
+    __tablename__ = "kts_comments"
+
+    id: Mapped[UUID] = mapped_column(String, primary_key=True, default=uuid4)
+    ticket_id: Mapped[UUID] = mapped_column(
+        String, ForeignKey("kts_tickets.id"), nullable=False
+    )
+    author: Mapped[str] = mapped_column(String, nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now()
+    )
+
+    ticket: Mapped["KtsTicket"] = relationship(back_populates="comments")
+
+
+# ===========================================================================
+# Tauri parity tables (servers, alerts, metrics, mc_device_status, ticketing_config)
+# ===========================================================================
 
 # ---------------------------------------------------------------------------
 # 1. servers
