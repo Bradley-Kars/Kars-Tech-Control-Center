@@ -20,6 +20,7 @@ from app.api.v1.endpoints.nextcloud import router as nextcloud_router
 from app.api.v1.endpoints.phone import router as phone_router
 from app.api.v1.endpoints.steamdeck import router as steamdeck_router
 from app.api.v1.endpoints.servers import router as servers_router
+from app.api.v1.endpoints.terminal import router as terminal_router
 from app.api.v1.endpoints.unraid import router as unraid_router
 from app.core.config import settings
 
@@ -43,6 +44,7 @@ app.include_router(kdeconnect_router)
 app.include_router(steamdeck_router)
 app.include_router(meshcentral_router)
 app.include_router(prometheus_router)
+app.include_router(terminal_router)
 app.include_router(alerts_router)
 
 
