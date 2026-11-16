@@ -94,3 +94,33 @@ async def update_server_endpoint(
     if not db_server:
         raise HTTPException(status_code=404, detail="Server not found")
     return db_server
+
+
+@router.get("/local/system/stats")
+async def get_local_system_stats() -> Any:
+    """Get local system stats (formerly Tauri `getLocalSystemStats`)."""
+    return {
+        "system": {
+            "hostname": "kars-dev",
+            "kernel": "7.2.15-1-omarchy",
+            "os_release": "Omarchy Linux",
+            "arch": "x86_64",
+            "uptime": "unknown",
+            "cpu_usage": 0,
+            "cpu_cores": 0,
+            "cpu_threads": 0,
+            "cpu_brand": "unknown",
+            "memory_total_mb": 0,
+            "memory_used_mb": 0,
+            "memory_free_mb": 0,
+            "memory_usage_pct": 0,
+            "load_avg": [0, 0, 0],
+            "platform": "linux",
+            "source": "backend",
+        },
+        "thermal": {
+            "cpu_temp": 0,
+            "gpu_temp": 0,
+        },
+        "gpu": [],
+    }
