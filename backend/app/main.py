@@ -7,6 +7,7 @@ Tauri command maps to a route registered here.
 from fastapi import FastAPI
 
 from app.api.v1.endpoints.docker import router as docker_router
+from app.api.v1.endpoints.nextcloud import router as nextcloud_router
 from app.api.v1.endpoints.servers import router as servers_router
 from app.api.v1.endpoints.unraid import router as unraid_router
 from app.core.config import settings
@@ -20,6 +21,7 @@ app = FastAPI(
 app.include_router(servers_router)
 app.include_router(docker_router)
 app.include_router(unraid_router)
+app.include_router(nextcloud_router)
 
 
 @app.get("/health")
