@@ -7,6 +7,7 @@ Tauri command maps to a route registered here.
 from fastapi import FastAPI
 
 from app.api.v1.endpoints.adguard import router as adguard_router
+from app.api.v1.endpoints.alerts import router as alerts_router
 from app.api.v1.endpoints.docker import router as docker_router
 from app.api.v1.endpoints.homeassistant import router as homeassistant_router
 from app.api.v1.endpoints.kdeconnect import router as kdeconnect_router
@@ -38,6 +39,7 @@ app.include_router(phone_router)
 app.include_router(kdeconnect_router)
 app.include_router(steamdeck_router)
 app.include_router(meshcentral_router)
+app.include_router(alerts_router)
 
 
 @app.get("/health")
