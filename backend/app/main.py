@@ -11,6 +11,7 @@ from app.api.v1.endpoints.docker import router as docker_router
 from app.api.v1.endpoints.homeassistant import router as homeassistant_router
 from app.api.v1.endpoints.kdeconnect import router as kdeconnect_router
 from app.api.v1.endpoints.lidarr import router as lidarr_router
+from app.api.v1.endpoints.meshcentral import router as meshcentral_router
 from app.api.v1.endpoints.myspeed import router as myspeed_router
 from app.api.v1.endpoints.nextcloud import router as nextcloud_router
 from app.api.v1.endpoints.phone import router as phone_router
@@ -36,6 +37,7 @@ app.include_router(adguard_router)
 app.include_router(phone_router)
 app.include_router(kdeconnect_router)
 app.include_router(steamdeck_router)
+app.include_router(meshcentral_router)
 
 
 @app.get("/health")
