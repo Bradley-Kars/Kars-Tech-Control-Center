@@ -125,8 +125,16 @@ async def kts_list_tickets(
 async def kts_create_ticket(
     payload: TicketCreate, db: AsyncSession = Depends(get_session)
 ) -> Any:
-    """Create a ticket (agent-only)."""
+    """Create a ticket (agent-only).
+
+    A ticket must have a customer unless it is explicitly marked internal.
+    """
     data = payload.model_dump()
+    if not data.get("internal") and not data.get("customer_id"):
+        raise HTTPException(
+            status_code=422,
+            detail="customer_id is required unless the ticket is marked internal",
+        )
     return await create_ticket(db, data)
 
 
@@ -145,8 +153,18 @@ async def kts_update_ticket(
     payload: TicketUpdate,
     db: AsyncSession = Depends(get_session),
 ) -> Any:
-    """Update a ticket."""
+    """Update a ticket. Clearing customer_id requires the ticket be internal."""
     data = payload.model_dump(exclude_unset=True)
+    if "customer_id" in data and not data["customer_id"]:
+        current = await get_ticket(db, ticket_id)
+        effective_internal = data.get(
+            "internal", current.internal if current else False
+        )
+        if not effective_internal:
+            raise HTTPException(
+                status_code=422,
+                detail="customer_id is required unless the ticket is marked internal",
+            )
     db_ticket = await update_ticket(db, ticket_id, data)
     if not db_ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")

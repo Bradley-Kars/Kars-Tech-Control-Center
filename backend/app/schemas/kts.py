@@ -47,12 +47,13 @@ class TicketBase(BaseModel):
     description: str
     priority: Optional[str] = "medium"
     assigned_to: Optional[str] = None
+    internal: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class TicketCreate(TicketBase):
-    customer_id: str
+    customer_id: Optional[str] = None
 
 
 class TicketUpdate(BaseModel):
@@ -61,6 +62,8 @@ class TicketUpdate(BaseModel):
     status: Optional[str] = None
     priority: Optional[str] = None
     assigned_to: Optional[str] = None
+    customer_id: Optional[str] = None
+    internal: Optional[bool] = None
 
     model_config = ConfigDict(from_attributes=True)
 

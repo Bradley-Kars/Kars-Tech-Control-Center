@@ -63,8 +63,8 @@ class KtsTicket(Base):
     id: Mapped[str] = mapped_column(
         String, primary_key=True, default=lambda: str(uuid4())
     )
-    customer_id: Mapped[str] = mapped_column(
-        String, ForeignKey("kts_customers.id", ondelete="CASCADE"), nullable=False
+    customer_id: Mapped[Optional[str]] = mapped_column(
+        String, ForeignKey("kts_customers.id", ondelete="CASCADE"), nullable=True
     )
     title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
@@ -93,6 +93,9 @@ class KtsTicket(Base):
         server_default="medium",
     )
     assigned_to: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    internal: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default="false"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.now()
     )
