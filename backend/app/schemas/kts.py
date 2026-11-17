@@ -86,7 +86,7 @@ class TicketCommentOut(TicketCommentBase):
 
 class TicketOut(TicketBase):
     id: str
-    customer_id: str
+    customer_id: Optional[str] = None
     status: str
     created_at: datetime
     updated_at: datetime

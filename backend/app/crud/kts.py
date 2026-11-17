@@ -126,6 +126,15 @@ async def update_ticket(
     return db_ticket
 
 
+async def delete_ticket(db: AsyncSession, ticket_id: str) -> Optional[KtsTicket]:
+    db_ticket = await get_ticket(db, ticket_id)
+    if not db_ticket:
+        return None
+    await db.delete(db_ticket)
+    await db.commit()
+    return db_ticket
+
+
 async def list_comments(db: AsyncSession, ticket_id: str) -> list[KtsComment]:
     result = await db.execute(
         select(KtsComment)

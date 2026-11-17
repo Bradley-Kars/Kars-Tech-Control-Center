@@ -21,6 +21,7 @@ from app.crud.kts import (
     create_comment,
     create_customer,
     create_ticket,
+    delete_ticket,
     get_customer,
     get_ticket,
     list_comments,
@@ -147,6 +148,17 @@ async def kts_update_ticket(
     """Update a ticket."""
     data = payload.model_dump(exclude_unset=True)
     db_ticket = await update_ticket(db, ticket_id, data)
+    if not db_ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    return db_ticket
+
+
+@router.delete("/tickets/{ticket_id}", response_model=TicketOut)
+async def kts_delete_ticket(
+    ticket_id: str, db: AsyncSession = Depends(get_session)
+) -> Any:
+    """Delete a ticket (agent-only)."""
+    db_ticket = await delete_ticket(db, ticket_id)
     if not db_ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
     return db_ticket

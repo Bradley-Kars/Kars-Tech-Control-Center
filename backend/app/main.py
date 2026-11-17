@@ -5,6 +5,7 @@ Tauri command maps to a route registered here.
 """
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.endpoints.adguard import router as adguard_router
 from app.api.v1.endpoints.alerts import router as alerts_router
@@ -12,6 +13,7 @@ from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.docker import router as docker_router
 from app.api.v1.endpoints.homeassistant import router as homeassistant_router
 from app.api.v1.endpoints.kdeconnect import router as kdeconnect_router
+from app.api.v1.endpoints.hermes import router as hermes_router
 from app.api.v1.endpoints.kts import router as kts_router
 from app.api.v1.endpoints.lidarr import router as lidarr_router
 from app.api.v1.endpoints.metrics import router as metrics_router
@@ -34,6 +36,14 @@ app = FastAPI(
     version="0.1.0",
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(servers_router)
 app.include_router(docker_router)
 app.include_router(unraid_router)
@@ -46,6 +56,7 @@ app.include_router(adguard_router)
 app.include_router(phone_router)
 app.include_router(kdeconnect_router)
 app.include_router(kts_router)
+app.include_router(hermes_router)
 app.include_router(steamdeck_router)
 app.include_router(meshcentral_router)
 app.include_router(prometheus_router)

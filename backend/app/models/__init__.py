@@ -41,6 +41,10 @@ class KtsCustomer(Base):
     phone: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     company: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     status: Mapped[str] = mapped_column(String, nullable=False, server_default="active")
+    organization_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    source_metadata: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, server_default="{}"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.now()
     )
@@ -98,6 +102,10 @@ class KtsTicket(Base):
     resolved_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime, nullable=True
     )
+    organization_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    source_metadata: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, server_default="{}"
+    )
 
     customer: Mapped["KtsCustomer"] = relationship(back_populates="tickets")
     comments: Mapped[list["KtsComment"]] = relationship(
@@ -116,6 +124,9 @@ class KtsComment(Base):
     )
     author: Mapped[str] = mapped_column(String, nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
+    source_metadata: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, server_default="{}"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.now()
     )
@@ -155,6 +166,8 @@ class Server(Base):
             "laptop",
             "router",
             "generic",
+            "desktop",
+            "handheld",
             name="device_type_enum",
             create_type=False,
         ),
@@ -301,6 +314,158 @@ class TicketingConfig(Base):
     bridge_token: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     use_live_bridge: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default="false"
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
+# ===========================================================================
+# WS-7 remediation: new tables for previously "no home" Obsidian directories
+# ===========================================================================
+
+class KtsOrganization(Base):
+    __tablename__ = "kts_organizations"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    legal_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    industry: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    size: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    tier: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    primary_contact_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    billing_contact_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    address: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    billing: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    sla_policy: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class KtsInvoice(Base):
+    __tablename__ = "kts_invoices"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    invoice_number: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    invoice_date: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    due_date: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    company: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    client: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    items: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)
+    subtotal: Mapped[Optional[float]] = mapped_column(nullable=True)
+    tax: Mapped[Optional[float]] = mapped_column(nullable=True)
+    total: Mapped[Optional[float]] = mapped_column(nullable=True)
+    status: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class KtsReceipt(Base):
+    __tablename__ = "kts_receipts"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    receipt_number: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    receipt_date: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    invoice_number: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    payment_method: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    amount: Mapped[Optional[float]] = mapped_column(nullable=True)
+    items: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)
+    total: Mapped[Optional[float]] = mapped_column(nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class KtsTask(Base):
+    __tablename__ = "kts_tasks"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[Optional[str]] = mapped_column(String, nullable=True, server_default="open")
+    priority: Mapped[Optional[str]] = mapped_column(String, nullable=True, server_default="medium")
+    due_date: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    assigned_to: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class KtsKnowledge(Base):
+    __tablename__ = "kts_knowledge"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    category: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    tags: Mapped[Optional[list[str]]] = mapped_column(ARRAY(String), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class KtsProject(Base):
+    __tablename__ = "kts_projects"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[Optional[str]] = mapped_column(String, nullable=True, server_default="active")
+    client_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class KtsTemplate(Base):
+    __tablename__ = "kts_templates"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    category: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class KtsUser(Base):
+    __tablename__ = "kts_users"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    username: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    role: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    teams: Mapped[Optional[list[str]]] = mapped_column(ARRAY(String), nullable=True)
+    skills: Mapped[Optional[list[str]]] = mapped_column(ARRAY(String), nullable=True)
+    capacity_hours_per_day: Mapped[Optional[float]] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.now(), onupdate=func.now()

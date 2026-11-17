@@ -8,8 +8,11 @@ POST /servers/{id}/reboot, /shutdown, /user-scripts/{name}/run
 
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_session
+from app.crud.servers import get_server
 from app.crud.unraid import (
     get_array_info,
     get_disks,
@@ -17,6 +20,7 @@ from app.crud.unraid import (
     get_network_interfaces,
     get_plugins,
     get_processes,
+    get_server_system_stats,
     get_shares,
     get_smart_data,
     get_syslog,
@@ -56,9 +60,27 @@ async def get_shares_endpoint(server_id: str) -> Any:
 
 
 @router.get("/servers/{server_id}/array")
-async def get_array_info_endpoint(server_id: str) -> Any:
-    """Get array info (formerly Tauri `get_array_info`)."""
-    return await get_array_info(server_id)
+async def get_array_info_endpoint(
+    server_id: str, db: AsyncSession = Depends(get_session)
+) -> Any:
+    """Get array info (formerly Tauri `get_array_info`).
+
+    Probes the configured host so the UI shows reachable/unreachable plus
+    an explicit error rather than an empty object.
+    """
+    server = await get_server(db, server_id)
+    hostname = server.hostname if server else None
+    return await get_array_info(server_id, hostname)
+
+
+@router.get("/servers/{server_id}/system/stats")
+async def get_server_system_stats_endpoint(
+    server_id: str, db: AsyncSession = Depends(get_session)
+) -> Any:
+    """Get remote host stats (formerly Tauri `getSystemStats`)."""
+    server = await get_server(db, server_id)
+    hostname = server.hostname if server else None
+    return await get_server_system_stats(server_id, hostname)
 
 
 @router.get("/servers/{server_id}/gpu", response_model=GpuInfo)
