@@ -33,6 +33,78 @@ from app.schemas.alerts import (
 router = APIRouter()
 
 
+@router.post("/alerts/evaluate")
+async def alert_evaluate_endpoint(db: AsyncSession = Depends(get_session)) -> Any:
+    """Scan live device state and materialise real alerts (deduped against open).
+
+    Sources: failed probe / unreachable, high CPU, high memory, array not started.
+    """
+    import asyncio
+
+    from app.crud.servers import get_servers
+    from app.services import transports
+
+    servers = await get_servers(db)
+    open_rows = await alert_list(db, acknowledged=False)
+    open_keys = {(a.device_id or "", a.title) for a in open_rows}
+    created = 0
+
+    for s in servers:
+        entry = transports.find_entry(hostname=s.hostname, server_id=s.id)
+        if not entry:
+            continue
+        try:
+            if s.device_type == "unraid":
+                stats = await transports.unraid_system_stats(entry)
+            elif s.device_type == "phone":
+                stats = await asyncio.to_thread(transports.phone_stats, entry)
+            else:
+                stats = await asyncio.to_thread(transports.ssh_system_stats, entry)
+        except Exception as exc:  # noqa: BLE001
+            stats = {"connected": False, "error": str(exc)}
+
+        findings: list[tuple[str, str, str]] = []
+        if not stats.get("connected"):
+            findings.append(("warning", f"{s.name} unreachable", stats.get("error", "probe failed")))
+        else:
+            cpu = stats.get("cpu_usage")
+            mem = stats.get("memory_usage_pct")
+            if cpu is not None and cpu > 90:
+                findings.append(("critical", f"{s.name} CPU critical", f"{cpu}%"))
+            elif cpu is not None and cpu > 75:
+                findings.append(("warning", f"{s.name} CPU high", f"{cpu}%"))
+            if mem is not None and mem > 95:
+                findings.append(("critical", f"{s.name} memory critical", f"{mem}%"))
+            elif mem is not None and mem > 85:
+                findings.append(("warning", f"{s.name} memory high", f"{mem}%"))
+            if s.device_type == "unraid":
+                try:
+                    arr = await transports.unraid_array(entry)
+                    state = arr.get("array_state")
+                    if arr.get("connected") and state not in (None, "STARTED", "Started"):
+                        findings.append(("warning", f"{s.name} array not started", f"state={state}"))
+                except Exception:  # noqa: BLE001
+                    pass
+
+        for sev, title, msg in findings:
+            if (s.id, title) in open_keys:
+                continue
+            await alert_create(
+                db,
+                {
+                    "severity": sev,
+                    "title": title,
+                    "message": msg,
+                    "device_id": s.id,
+                    "source": "probe",
+                },
+            )
+            open_keys.add((s.id, title))
+            created += 1
+
+    return {"created": created, "devices_checked": len(servers)}
+
+
 @router.post("/alerts", response_model=AlertOut)
 async def alert_create_endpoint(
     alert_in: AlertCreate,
