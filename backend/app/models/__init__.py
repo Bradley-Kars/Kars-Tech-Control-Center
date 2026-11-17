@@ -64,7 +64,7 @@ class KtsTicket(Base):
         String, primary_key=True, default=lambda: str(uuid4())
     )
     customer_id: Mapped[str] = mapped_column(
-        String, ForeignKey("kts_customers.id"), nullable=False
+        String, ForeignKey("kts_customers.id", ondelete="CASCADE"), nullable=False
     )
     title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
@@ -120,7 +120,7 @@ class KtsComment(Base):
         String, primary_key=True, default=lambda: str(uuid4())
     )
     ticket_id: Mapped[str] = mapped_column(
-        String, ForeignKey("kts_tickets.id"), nullable=False
+        String, ForeignKey("kts_tickets.id", ondelete="CASCADE"), nullable=False
     )
     author: Mapped[str] = mapped_column(String, nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
