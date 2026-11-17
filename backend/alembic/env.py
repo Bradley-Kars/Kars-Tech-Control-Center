@@ -2,9 +2,8 @@
 
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from alembic import context
 
@@ -60,14 +59,14 @@ def do_run_migrations(connection) -> None:
 
 
 async def run_async_migrations() -> None:
-    """Run migrations with an async engine."""
-    connectable = AsyncEngine(
-        engine_from_config(
-            config.get_section(config.config_ini_section, {}),
-            prefix="sqlalchemy.",
-            poolclass=pool.NullPool,
-            future=True,
-        )
+    """Run migrations with an async engine (asyncpg — already a dependency).
+
+    Previously used `engine_from_config` which builds a *sync* Engine and
+    requires a sync DBAPI (psycopg). Building the async engine directly lets
+    `alembic upgrade/downgrade` work with the asyncpg driver only.
+    """
+    connectable: AsyncEngine = create_async_engine(
+        settings.DATABASE_URL, poolclass=pool.NullPool
     )
 
     async with connectable.connect() as connection:
