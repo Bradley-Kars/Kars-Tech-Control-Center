@@ -6,7 +6,14 @@ GET/POST /meshcentral/servers/{id}/* (shell, files, docker, stats, processes, re
 
 from typing import Any, Optional
 
-from fastapi import APIRouter
+import asyncio
+
+from fastapi import APIRouter, Body, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import get_session
+from app.crud.servers import get_server
+from app.services import transports
 
 from app.crud.meshcentral import (
     meshcentral_docker_containers,
@@ -118,12 +125,49 @@ async def meshcentral_shell_batch_endpoint(
     return await meshcentral_shell_batch(server_id, commands, timeout_secs)
 
 
-@router.post("/meshcentral/shell/fleet", response_model=list[ShellResult])
+@router.post("/meshcentral/shell/fleet")
 async def meshcentral_shell_fleet_endpoint(
-    server_ids: list[str], command: str, timeout_secs: Optional[int] = None
+    payload: dict = Body(...),
+    db: AsyncSession = Depends(get_session),
 ) -> Any:
-    """Execute shell on fleet (formerly Tauri `meshcentralShellFleet`)."""
-    return await meshcentral_shell_fleet(server_ids, command, timeout_secs)
+    """Execute a shell command across devices over their real transport (SSH).
+
+    MeshCentral is not installed; SSH is the transport. Body accepts camelCase
+    (serverIds/command/timeoutSecs) or snake_case. Returns snake_case per-device
+    results consumed by the Fleet Command UI. A device that cannot be reached
+    reports success:false with the real error.
+    """
+    server_ids = payload.get("serverIds") or payload.get("server_ids") or []
+    command = payload.get("command") or ""
+    timeout = payload.get("timeoutSecs") or payload.get("timeout_secs") or 30
+    results = []
+    for sid in server_ids:
+        server = await get_server(db, sid)
+        if not server:
+            results.append({"device_id": sid, "command": command, "exit_code": None,
+                            "stdout": "", "stderr": "", "success": False,
+                            "error": "unknown server"})
+            continue
+        entry = transports.find_entry(hostname=server.hostname, server_id=server.id)
+        if not entry:
+            results.append({"device_id": sid, "command": command, "exit_code": None,
+                            "stdout": "", "stderr": "no credentials entry", "success": False})
+            continue
+        if server.device_type == "phone":
+            results.append({"device_id": sid, "command": command, "exit_code": None,
+                            "stdout": "", "stderr": "ADB transport unavailable",
+                            "success": False, "error": "phone has no shell transport"})
+            continue
+        r = await asyncio.to_thread(transports.ssh_exec, entry, command, timeout)
+        results.append({
+            "device_id": sid,
+            "command": command,
+            "exit_code": r.get("exit_code"),
+            "stdout": r.get("stdout") or "",
+            "stderr": r.get("stderr") or (r.get("error") or ""),
+            "success": bool(r.get("ok")),
+        })
+    return results
 
 
 @router.get("/meshcentral/servers/{server_id}/files/read", response_model=RemoteFileInfo)
