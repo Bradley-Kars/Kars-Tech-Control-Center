@@ -1,11 +1,13 @@
 """Unraid/storage/system endpoints (WS-2.3).
 
-GET /servers/{id}/disks, /disks/{device}/smart, /shares, /array, /gpu,
-/processes, /syslog, /user-scripts, /plugins, /network/interfaces,
-/tailscale/peers
-POST /servers/{id}/reboot, /shutdown, /user-scripts/{name}/run
+Backed by real transports (see app/services/transports.py):
+- Unraid hosts → GraphQL API (metrics/array/docker/disks)
+- Linux hosts  → SSH
+- Phone        → ADB/SSH
+Falls back to an explicit error state (never fabricated numbers).
 """
 
+import asyncio
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -14,13 +16,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_session
 from app.crud.servers import get_server
 from app.crud.unraid import (
-    get_array_info,
-    get_disks,
     get_gpu_info,
     get_network_interfaces,
     get_plugins,
     get_processes,
-    get_server_system_stats,
     get_shares,
     get_smart_data,
     get_syslog,
@@ -37,14 +36,87 @@ from app.schemas.unraid import (
     SmartInfo,
     SystemActionResult,
 )
+from app.services import transports
 
 router = APIRouter()
 
 
-@router.get("/servers/{server_id}/disks", response_model=list[DiskInfo])
-async def get_disks_endpoint(server_id: str) -> Any:
-    """List disks (formerly Tauri `get_disks`)."""
-    return await get_disks(server_id)
+async def _entry_for(db: AsyncSession, server_id: str) -> tuple[Any, dict | None]:
+    """Fetch the server row and its servers.json entry (by hostname)."""
+    server = await get_server(db, server_id)
+    if not server:
+        return None, None
+    entry = transports.find_entry(hostname=server.hostname, server_id=server.id)
+    return server, entry
+
+
+@router.get("/servers/{server_id}/system/stats")
+async def get_server_system_stats_endpoint(
+    server_id: str, db: AsyncSession = Depends(get_session)
+) -> Any:
+    """Remote host stats via the real transport for this device type."""
+    server, entry = await _entry_for(db, server_id)
+    if not server:
+        return {"connected": False, "source": "none", "error": "server not found"}
+    if not entry:
+        return {
+            "connected": False,
+            "source": "none",
+            "error": "no credentials entry in servers.json for this host",
+        }
+    dtype = server.device_type
+    if dtype == "unraid":
+        return await transports.unraid_system_stats(entry)
+    if dtype == "phone":
+        return await asyncio.to_thread(transports.phone_stats, entry)
+    return await asyncio.to_thread(transports.ssh_system_stats, entry)
+
+
+@router.get("/servers/{server_id}/array")
+async def get_array_info_endpoint(
+    server_id: str, db: AsyncSession = Depends(get_session)
+) -> Any:
+    """Unraid array state + capacity via GraphQL."""
+    server, entry = await _entry_for(db, server_id)
+    if not server:
+        return {"connected": False, "error": "server not found"}
+    if not entry:
+        return {"connected": False, "error": "no credentials entry"}
+    if server.device_type != "unraid":
+        return {"connected": False, "error": "array is only available for unraid hosts"}
+    return await transports.unraid_array(entry)
+
+
+@router.get("/servers/{server_id}/disks")
+async def get_disks_endpoint(
+    server_id: str, db: AsyncSession = Depends(get_session)
+) -> Any:
+    """List disks via GraphQL (unraid)."""
+    server, entry = await _entry_for(db, server_id)
+    if not server or not entry or server.device_type != "unraid":
+        return []
+    try:
+        raw = await transports.unraid_disks(entry)
+    except Exception:  # noqa: BLE001
+        return []
+    out = []
+    for d in raw:
+        out.append(
+            {
+                "name": d.get("name") or "",
+                "device": d.get("device") or "",
+                "type": d.get("type") or "",
+                "size": int(d.get("size") or 0),
+                "vendor": "",
+                "temperature": None,
+                "smartStatus": "unknown",
+                "isSpinning": False,
+                "free": None,
+                "fsSize": None,
+                "fsUsed": None,
+            }
+        )
+    return out
 
 
 @router.get("/servers/{server_id}/disks/{device}/smart", response_model=SmartInfo)
@@ -57,30 +129,6 @@ async def get_smart_data_endpoint(server_id: str, device: str) -> Any:
 async def get_shares_endpoint(server_id: str) -> Any:
     """List shares (formerly Tauri `get_shares`)."""
     return await get_shares(server_id)
-
-
-@router.get("/servers/{server_id}/array")
-async def get_array_info_endpoint(
-    server_id: str, db: AsyncSession = Depends(get_session)
-) -> Any:
-    """Get array info (formerly Tauri `get_array_info`).
-
-    Probes the configured host so the UI shows reachable/unreachable plus
-    an explicit error rather than an empty object.
-    """
-    server = await get_server(db, server_id)
-    hostname = server.hostname if server else None
-    return await get_array_info(server_id, hostname)
-
-
-@router.get("/servers/{server_id}/system/stats")
-async def get_server_system_stats_endpoint(
-    server_id: str, db: AsyncSession = Depends(get_session)
-) -> Any:
-    """Get remote host stats (formerly Tauri `getSystemStats`)."""
-    server = await get_server(db, server_id)
-    hostname = server.hostname if server else None
-    return await get_server_system_stats(server_id, hostname)
 
 
 @router.get("/servers/{server_id}/gpu", response_model=GpuInfo)

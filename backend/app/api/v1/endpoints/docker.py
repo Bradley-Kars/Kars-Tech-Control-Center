@@ -6,17 +6,35 @@ GET /servers/{id}/docker/containers/{name}/info
 
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_session
 from app.crud.docker import container_action, container_info, container_logs, list_containers
+from app.crud.servers import get_server
 from app.schemas.docker import ContainerInfo, DockerActionResult, DockerContainerInfo
+from app.services import transports
 
 router = APIRouter()
 
 
 @router.get("/servers/{server_id}/docker/containers", response_model=list[ContainerInfo])
-async def get_docker_containers(server_id: str) -> Any:
-    """List Docker containers for a server (formerly Tauri `get_docker_containers`)."""
+async def get_docker_containers(
+    server_id: str, db: AsyncSession = Depends(get_session)
+) -> Any:
+    """List Docker containers for a server (formerly Tauri `get_docker_containers`).
+
+    Unraid hosts are queried via the real GraphQL API; other hosts fall back
+    to the CRUD stub.
+    """
+    server = await get_server(db, server_id)
+    if server and server.device_type == "unraid":
+        entry = transports.find_entry(hostname=server.hostname, server_id=server.id)
+        if entry:
+            try:
+                return await transports.unraid_docker(entry)
+            except Exception:  # noqa: BLE001 - fall through to stub
+                pass
     return await list_containers(server_id)
 
 
