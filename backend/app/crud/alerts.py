@@ -13,10 +13,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import async_session
 from app.db.session_test import test_async_session
-from app.models import Alert
+from app.models import Alert, Server
 
 
 async def alert_create(db: AsyncSession, alert_in: dict[str, Any]) -> Alert:
+    # Defensive FK coercion: a synthetic/unknown device_id (e.g. the dashboard's
+    # 'local' tile) has no row in `servers`. Store NULL instead of raising
+    # alerts_device_id_fkey, so ingest of alerts can never crash on a bad device.
+    device_id = alert_in.get("device_id")
+    if device_id is not None:
+        exists = await db.execute(select(Server.id).where(Server.id == device_id))
+        if exists.scalar_one_or_none() is None:
+            alert_in = {**alert_in, "device_id": None}
     db_alert = Alert(**alert_in)
     db.add(db_alert)
     await db.commit()

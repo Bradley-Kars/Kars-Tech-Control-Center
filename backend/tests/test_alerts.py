@@ -162,3 +162,23 @@ async def test_alert_auto_ack(client, ensure_server):
     assert res.status_code == 200, res.text
     body = res.json()
     assert "count" in body
+
+
+@pytest.mark.asyncio
+async def test_alert_create_unknown_device_coerced_to_null(client, ensure_server):
+    """Synthetic/unknown device_id (e.g. the dashboard 'local' tile) must be stored
+    as NULL instead of raising alerts_device_id_fkey. Regression for ticket 09589b5e."""
+    res = await client.post(
+        "/alerts",
+        json={
+            "severity": "warning",
+            "title": "Local threshold",
+            "message": "CPU high on local tile",
+            "deviceId": "local",
+            "source": "manual",
+        },
+    )
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["deviceId"] is None  # coerced to NULL, not 'local'
+    assert body["id"] is not None

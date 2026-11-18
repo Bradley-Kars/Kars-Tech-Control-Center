@@ -220,10 +220,14 @@ export function DashboardPage() {
       }
     });
 
-    // Persist newly-computed breaches into the alert DB (dedup against open rows)
+    // Persist newly-computed breaches into the alert DB (dedup against open rows).
+    // Synthetic devices (e.g. the local "This Machine" tile) are UI-only — 'local'
+    // is not a row in `servers`, so persisting it trips alerts_device_id_fkey.
+    // Only persist alerts that belong to a real server.
+    const realServerIds = new Set(servers.map((s) => s.id));
     const openKeys = new Set(dbAlerts.map((a) => `${a.device_id ?? ''}|${a.title}`));
     items
-      .filter((it) => it.type !== 'info')
+      .filter((it) => it.type !== 'info' && it.device != null && realServerIds.has(it.device))
       .forEach((it) => {
         const key = `${it.device ?? ''}|${it.title}`;
         if (!openKeys.has(key)) {
@@ -252,7 +256,7 @@ export function DashboardPage() {
     });
 
     return items.slice(0, 8);
-  }, [devices, dbAlerts]);
+  }, [devices, dbAlerts, servers]);
 
   // Quick actions based on available devices
   const quickActions = useMemo(() => {
