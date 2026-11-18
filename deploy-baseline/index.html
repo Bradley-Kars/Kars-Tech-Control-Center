@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Static Deploy Baseline — KTS</title>
+  <meta name="description" content="Template: a minimal static site used to smoke-test the KTS build-here / ship-to-static-host pipeline.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="nav">
+    <div class="nav__inner">
+      <a class="brand" href="#" aria-label="KTS static baseline home">
+        <span class="brand__mark" aria-hidden="true"></span>
+        <span class="brand__name">KTS<span class="brand__light"> / static baseline</span></span>
+      </a>
+      <span class="pill" role="note">Template</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <p class="eyebrow">Deploy-path smoke test</p>
+      <h1 class="hero__title">Ship static.<br>Prove the path.</h1>
+      <p class="hero__lede">
+        A minimal, unbranded starter used to verify the
+        <strong>build&nbsp;here&nbsp;→&nbsp;ship to a static host</strong> pipeline end-to-end —
+        before a real client brief lands.
+      </p>
+      <div class="hero__actions">
+        <a class="btn btn--primary" href="#deploy">Deploy notes</a>
+        <a class="btn btn--ghost" href="#proof">What this proves</a>
+      </div>
+    </section>
+
+    <section class="pipeline" aria-label="Deployment pipeline">
+      <div class="pipeline__step pipeline__step--develop">
+        <span class="pipeline__label">01 · Develop</span>
+        <h2 class="pipeline__title">Build here</h2>
+        <p class="pipeline__desc">Author static HTML/CSS on the Omarchy box. No build step, no backend.</p>
+      </div>
+      <div class="pipeline__step pipeline__step--preview">
+        <span class="pipeline__label">02 · Preview</span>
+        <h2 class="pipeline__title">Check locally</h2>
+        <p class="pipeline__desc">Serve the folder on a high port to confirm it renders before it leaves the box.</p>
+      </div>
+      <div class="pipeline__step pipeline__step--ship">
+        <span class="pipeline__label">03 · Ship</span>
+        <h2 class="pipeline__title">Push to host</h2>
+        <p class="pipeline__desc">Drag-drop or CLI to Cloudflare Pages / Netlify. Public DNS, public route.</p>
+      </div>
+    </section>
+
+    <section id="proof" class="proof">
+      <h2 class="section__title">What this proves</h2>
+      <div class="grid">
+        <article class="card">
+          <h3 class="card__title">Build is portable</h3>
+          <p class="card__body">Plain files — <code>index.html</code>, <code>styles.css</code>, assets. Nothing host-specific to untangle.</p>
+        </article>
+        <article class="card">
+          <h3 class="card__title">Host config ships</h3>
+          <p class="card__body"><code>netlify.toml</code> and <code>_headers</code> travel with the folder, so caching &amp; security headers apply on first deploy.</p>
+        </article>
+        <article class="card">
+          <h3 class="card__title">DNS is verifiable</h3>
+          <p class="card__body">net-diag inspects the default route &amp; resolvers before a domain is pointed at the host.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="deploy" class="deploy">
+      <h2 class="section__title">Deploy notes</h2>
+      <p class="deploy__lede">Deployable artifacts live in this folder. Two supported paths:</p>
+
+      <div class="deploy__block">
+        <span class="deploy__label">Netlify — drag &amp; drop</span>
+        <p class="deploy__hint">Drop this folder onto <span class="mono">app.netlify.com/drop</span>. <code>netlify.toml</code> sets <code>publish = "."</code>.</p>
+      </div>
+
+      <div class="deploy__block">
+        <span class="deploy__label">Cloudflare Pages — CLI</span>
+        <pre class="code"><code><span class="code__prompt">$</span> npx wrangler pages deploy . --project-name kts-static-baseline</code></pre>
+        <p class="deploy__hint"><code>_headers</code> in this folder is picked up automatically for cache &amp; security headers.</p>
+      </div>
+
+      <div class="deploy__block">
+        <span class="deploy__label">Local preview</span>
+        <pre class="code"><code><span class="code__prompt">$</span> python3 -m http.server 8080 --directory .</code></pre>
+        <p class="deploy__hint">Then open <span class="mono">http://127.0.0.1:8080</span>. Dev/preview only — never production.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p class="footer__note">
+      <strong>Template.</strong> Generic placeholder content, one design system (Vercel-style) as the base.
+      No client branding. Swap copy into this proven shell when a real brief arrives.
+    </p>
+    <p class="footer__meta mono">KTS · static deploy baseline · <span id="year">2026</span></p>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

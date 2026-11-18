@@ -1,0 +1,13 @@
+# Cloudflare Pages headers — KTS static deploy baseline (smoke test)
+# This file is read automatically when the folder is uploaded to Pages.
+
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/*.css
+  Cache-Control: public, max-age=3600
+
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
